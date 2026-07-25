@@ -186,7 +186,7 @@ export default function PlayingCard({ card, faceDown, selected, disabled, onClic
           : interactive
             ? "hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(15,23,42,0.12)]"
             : ""
-      } ${disabled ? "brightness-[0.58] saturate-[0.45]" : interactive ? "active:scale-[0.98]" : ""}`}
+      } ${disabled ? "brightness-[0.78] saturate-[0.72]" : interactive ? "active:scale-[0.98]" : ""}`}
     >
       <span className="pointer-events-none absolute left-1.5 top-1.5 flex flex-col items-center leading-none">
         <span className={`${dims.corner} font-semibold`}>{rankLabel(card.rank)}</span>
