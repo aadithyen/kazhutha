@@ -49,14 +49,14 @@ export default function HandPreferences({
   }, [open]);
 
   return (
-    <div ref={rootRef} className="absolute right-3 top-2 z-20">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         aria-label="Hand preferences"
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white/90 text-neutral-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-white hover:text-neutral-900"
+        className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400 transition-colors hover:text-neutral-700"
       >
         <PreferencesIcon />
       </button>
@@ -64,7 +64,7 @@ export default function HandPreferences({
         <div
           role="dialog"
           aria-label="Hand preferences"
-          className="absolute right-0 top-full mt-1.5 w-52 rounded-xl border border-neutral-200 bg-white p-3 shadow-lg"
+          className="absolute bottom-full right-0 z-30 mb-2 w-52 rounded-xl border border-neutral-200 bg-white p-3 shadow-lg"
         >
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Arrangement</p>
           <div

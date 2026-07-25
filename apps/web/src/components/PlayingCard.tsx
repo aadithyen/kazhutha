@@ -29,11 +29,11 @@ const SIZE_CLASSES: Record<
     center: "text-4xl",
   },
   lg: {
-    box: "h-[12rem] w-[8.4rem] rounded-2xl",
-    corner: "text-2xl",
-    cornerSuit: "text-lg",
-    pip: "text-2xl",
-    center: "text-7xl",
+    box: "h-[15rem] w-[10.5rem] rounded-2xl",
+    corner: "text-3xl",
+    cornerSuit: "text-xl",
+    pip: "text-3xl",
+    center: "text-8xl",
   },
 };
 

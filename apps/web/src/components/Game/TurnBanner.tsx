@@ -1,21 +1,57 @@
-import { SUIT_SYMBOLS } from "@kazhutha/shared";
+import { HandSortMode, SUIT_SYMBOLS } from "@kazhutha/shared";
+import { useState } from "react";
+import { getHandSortMode, storeHandSortMode } from "../../lib/preferences";
 import { useRoom } from "../../lib/RoomContext";
+import HandPreferences from "./HandPreferences";
 
-export default function TurnBanner() {
+interface Props {
+  sortMode: HandSortMode;
+  onSortModeChange: (mode: HandSortMode) => void;
+}
+
+export default function TurnBanner({ sortMode, onSortModeChange }: Props) {
   const { state, client } = useRoom();
   const turnPlayer = state.players.find((p) => p.id === state.currentTurnId);
   const isMyTurn = state.currentTurnId === client.playerId;
   const vettu = state.lastRoundResult?.kind === "vettu" && Date.now() - state.lastRoundResult.at < 2000;
+  const myCountVisible = state.cardCountVisible[client.playerId] ?? false;
+  const showCountToggle = state.phase === "playing" && !state.finishedPlayers.includes(client.playerId);
+
+  function changeCountVisible(visible: boolean) {
+    client.sendIntent({
+      type: "SetCardCountVisible",
+      playerId: client.playerId,
+      visible,
+    });
+  }
 
   return (
-    <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-2 text-sm">
+    <div className="flex shrink-0 items-center justify-between border-t border-neutral-100 px-4 py-2 text-sm">
       <span className={`font-semibold ${isMyTurn ? "text-neutral-900" : "text-neutral-500"}`}>
         {isMyTurn ? "Your turn" : turnPlayer ? `${turnPlayer.name}'s turn` : "Waiting…"}
       </span>
       <span className="flex items-center gap-2 text-neutral-400">
         {vettu && <span className="rounded bg-rose-50 px-2 py-0.5 font-bold text-rose-600">VETTU!</span>}
         {state.leadSuit && <span>Lead: {SUIT_SYMBOLS[state.leadSuit]}</span>}
+        <HandPreferences
+          sortMode={sortMode}
+          onSortModeChange={onSortModeChange}
+          countVisible={myCountVisible}
+          onCountVisibleChange={changeCountVisible}
+          showCountToggle={showCountToggle}
+        />
       </span>
     </div>
   );
+}
+
+export function useHandSortMode() {
+  const [sortMode, setSortMode] = useState<HandSortMode>(() => getHandSortMode());
+
+  function changeSortMode(mode: HandSortMode) {
+    setSortMode(mode);
+    storeHandSortMode(mode);
+  }
+
+  return { sortMode, changeSortMode };
 }
