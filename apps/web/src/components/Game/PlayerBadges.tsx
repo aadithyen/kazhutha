@@ -5,7 +5,7 @@ export default function PlayerBadges() {
   const { state, client } = useRoom();
   const order = state.turnOrder.length > 0 ? state.turnOrder : state.players.map((p) => p.id);
   return (
-    <div className="flex gap-3 overflow-x-auto border-b border-neutral-100 px-3 py-3">
+    <div className="flex gap-3 overflow-x-auto border-b border-neutral-100 px-3 py-3 dark:border-neutral-800">
       {order.map((id) => {
         const player = state.players.find((p) => p.id === id);
         if (!player) return null;
@@ -28,7 +28,7 @@ export default function PlayerBadges() {
               handCount={handCount}
               finishRank={isFinished ? finishedIndex + 1 : undefined}
             />
-            <span className="max-w-[72px] truncate text-[11px] font-medium text-neutral-800">
+            <span className="max-w-[72px] truncate text-[11px] font-medium text-neutral-800 dark:text-neutral-200">
               {player.name}
               {isMe ? " (you)" : ""}
             </span>

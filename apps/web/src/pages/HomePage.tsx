@@ -4,13 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { getStoredName, storeName } from "../lib/identity";
 
 const inputClass =
-  "w-full rounded-xl bg-neutral-50 px-4 py-3 text-base outline-none ring-1 ring-neutral-200 focus:ring-neutral-400";
+  "w-full rounded-xl bg-neutral-50 px-4 py-3 text-base outline-none ring-1 ring-neutral-200 focus:ring-neutral-400 dark:bg-neutral-800 dark:ring-neutral-700 dark:text-neutral-100 dark:focus:ring-neutral-500";
 const panelClass =
-  "w-full rounded-xl border border-neutral-100 bg-white p-5 shadow-[0_2px_12px_rgba(15,23,42,0.06)]";
+  "w-full rounded-xl border border-neutral-100 bg-white p-5 shadow-[0_2px_12px_rgba(15,23,42,0.06)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-[0_2px_12px_rgba(0,0,0,0.3)]";
 const primaryBtnClass =
-  "w-full rounded-xl bg-neutral-900 px-4 py-3 text-base font-semibold text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)] active:scale-[0.98]";
+  "w-full rounded-xl bg-neutral-900 px-4 py-3 text-base font-semibold text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)] active:scale-[0.98] dark:bg-neutral-100 dark:text-neutral-900 dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]";
 const secondaryBtnClass =
-  "w-full rounded-xl bg-neutral-100 px-4 py-3 text-base font-semibold text-neutral-900 ring-1 ring-neutral-200 active:scale-[0.98]";
+  "w-full rounded-xl bg-neutral-100 px-4 py-3 text-base font-semibold text-neutral-900 ring-1 ring-neutral-200 active:scale-[0.98] dark:bg-neutral-800 dark:text-neutral-100 dark:ring-neutral-700";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -34,10 +34,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-8 bg-white px-4 py-10 text-neutral-900">
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-8 bg-white px-4 py-10 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
       <header className="text-center">
         <h1 className="font-serif text-5xl font-semibold italic">Kazhutha</h1>
-        <p className="mt-2 text-sm text-neutral-500">കഴുത · play the Kerala card game with friends</p>
+        <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">കഴുത · play the Kerala card game with friends</p>
       </header>
 
       <form onSubmit={handleCreate} className={panelClass}>
@@ -54,10 +54,10 @@ export default function HomePage() {
         </button>
       </form>
 
-      <div className="flex w-full items-center gap-3 text-neutral-400">
-        <div className="h-px flex-1 bg-neutral-200" />
+      <div className="flex w-full items-center gap-3 text-neutral-400 dark:text-neutral-500">
+        <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
         <span className="text-xs font-medium uppercase tracking-wide">or</span>
-        <div className="h-px flex-1 bg-neutral-200" />
+        <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
       </div>
 
       <form onSubmit={handleJoin} className={panelClass}>
@@ -81,7 +81,7 @@ export default function HomePage() {
         </button>
       </form>
 
-      <p className="text-center text-xs text-neutral-400">No accounts. No install. Just share the link.</p>
+      <p className="text-center text-xs text-neutral-400 dark:text-neutral-500">No accounts. No install. Just share the link.</p>
     </div>
   );
 }

@@ -31,7 +31,7 @@ function NameGate({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-sm flex-col items-center justify-center gap-4 bg-white px-4 text-neutral-900">
+    <div className="mx-auto flex min-h-dvh max-w-sm flex-col items-center justify-center gap-4 bg-white px-4 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
       <h1 className="font-serif text-3xl font-semibold italic">Join the table</h1>
       <form onSubmit={handleSubmit} className="w-full">
         <input
@@ -40,11 +40,11 @@ function NameGate({ onDone }: { onDone: () => void }) {
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
           maxLength={24}
-          className="w-full rounded-xl bg-neutral-50 px-4 py-3 text-base outline-none ring-1 ring-neutral-200 focus:ring-neutral-400"
+          className="w-full rounded-xl bg-neutral-50 px-4 py-3 text-base outline-none ring-1 ring-neutral-200 focus:ring-neutral-400 dark:bg-neutral-800 dark:ring-neutral-700 dark:text-neutral-100 dark:focus:ring-neutral-500"
         />
         <button
           type="submit"
-          className="mt-3 w-full rounded-xl bg-neutral-900 px-4 py-3 text-base font-semibold text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)] active:scale-[0.98]"
+          className="mt-3 w-full rounded-xl bg-neutral-900 px-4 py-3 text-base font-semibold text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)] active:scale-[0.98] dark:bg-neutral-100 dark:text-neutral-900 dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]"
         >
           Continue
         </button>
@@ -59,7 +59,7 @@ function RoomBody() {
   const inLobby = state.phase === "lobby";
 
   return (
-    <div className={`min-h-dvh ${inLobby ? "bg-white text-neutral-900" : ""}`}>
+    <div className={`min-h-dvh ${inLobby ? "bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100" : ""}`}>
       {banner && <ConnectionBanner message={banner} onDismiss={dismissBanner} />}
       {inLobby ? <LobbyScreen /> : <GameScreen />}
     </div>

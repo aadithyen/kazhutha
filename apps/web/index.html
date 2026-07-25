@@ -14,6 +14,14 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icon-192.svg" />
     <title>Kazhutha | കഴുത</title>
+    <script>
+      try {
+        var t = localStorage.getItem("kazhutha:theme");
+        var dark =
+          t === "dark" || (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (dark) document.documentElement.classList.add("dark");
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

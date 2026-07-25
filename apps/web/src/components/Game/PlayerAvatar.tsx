@@ -45,12 +45,12 @@ export default function PlayerAvatar({
     <div className="relative shrink-0">
       <div
         ref={ref}
-        className={`flex items-center justify-center rounded-full border-2 bg-white font-serif italic text-neutral-800 transition-all duration-200 ${sizeClass} ${
+        className={`flex items-center justify-center rounded-full border-2 bg-white font-serif italic text-neutral-800 transition-all duration-200 dark:bg-neutral-800 dark:text-neutral-100 ${sizeClass} ${
           dim ? "opacity-45" : ""
         }`}
         style={{
           borderColor: color.border,
-          boxShadow: isTurn ? `0 0 0 2px #ffffff, 0 0 0 4px ${color.ring}` : undefined,
+          boxShadow: isTurn ? `0 0 0 2px var(--avatar-ring-gap), 0 0 0 4px ${color.ring}` : undefined,
         }}
         title={name}
         aria-label={name}
@@ -67,7 +67,7 @@ export default function PlayerAvatar({
       )}
       {showCountBadge && (
         <span
-          className={`absolute -right-0.5 -top-0.5 flex min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 font-sans font-semibold leading-none text-neutral-700 shadow-[0_1px_4px_rgba(15,23,42,0.18)] ${badgeSizeClass}`}
+          className={`absolute -right-0.5 -top-0.5 flex min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 font-sans font-semibold leading-none text-neutral-700 shadow-[0_1px_4px_rgba(15,23,42,0.18)] dark:bg-neutral-700 dark:text-neutral-100 ${badgeSizeClass}`}
           aria-label={`${handCount} cards`}
         >
           {handCount}
