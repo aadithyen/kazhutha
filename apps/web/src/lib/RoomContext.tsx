@@ -37,8 +37,10 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
   const [peers, setPeers] = useState<PeerInfo[]>([]);
   const [signalingConnected, setSignalingConnected] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
+  const effectGeneration = useRef(0);
 
   useEffect(() => {
+    const generation = ++effectGeneration.current;
     const unsubEngine = client.engine.subscribe(setState);
     const unsubRoom = client.on((ev) => {
       if (ev.type === "peers") setPeers(ev.peers);
@@ -59,7 +61,10 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
     return () => {
       unsubEngine();
       unsubRoom();
-      client.disconnect();
+      const closedGeneration = generation;
+      window.setTimeout(() => {
+        if (effectGeneration.current === closedGeneration) client.disconnect();
+      }, 0);
     };
   }, [client]);
 
