@@ -25,6 +25,9 @@ body {
 .hand-fan-scroll {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: none;
 }
 
 .hand-fan-scroll::-webkit-scrollbar {
