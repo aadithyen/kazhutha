@@ -1,4 +1,4 @@
-import { Card, rankLabel, SUIT_COLOR, SUIT_SYMBOLS } from "@kazhutha/shared";
+import { Card, Rank, rankLabel, SUIT_COLOR, SUIT_SYMBOLS } from "@kazhutha/shared";
 
 interface Props {
   card?: Card;
@@ -9,30 +9,160 @@ interface Props {
   size?: "sm" | "md" | "lg";
 }
 
-const SIZE_CLASSES: Record<NonNullable<Props["size"]>, { box: string; rank: string; suit: string; watermark: string }> = {
+const SIZE_CLASSES: Record<
+  NonNullable<Props["size"]>,
+  { box: string; corner: string; cornerSuit: string; pip: string; center: string; faceRank: string }
+> = {
   sm: {
-    box: "h-16 w-11",
-    rank: "text-[11px]",
-    suit: "text-[10px]",
-    watermark: "text-2xl",
+    box: "h-[4.5rem] w-12 rounded-lg",
+    corner: "text-[11px]",
+    cornerSuit: "text-[9px]",
+    pip: "text-[9px]",
+    center: "text-xl",
+    faceRank: "text-lg",
   },
   md: {
-    box: "h-[5.25rem] w-[3.75rem]",
-    rank: "text-sm",
-    suit: "text-xs",
-    watermark: "text-3xl",
+    box: "h-[6.75rem] w-[4.75rem] rounded-xl",
+    corner: "text-base",
+    cornerSuit: "text-xs",
+    pip: "text-sm",
+    center: "text-4xl",
+    faceRank: "text-3xl",
   },
   lg: {
-    box: "h-28 w-[4.75rem]",
-    rank: "text-base",
-    suit: "text-sm",
-    watermark: "text-4xl",
+    box: "h-[10rem] w-[7rem] rounded-2xl",
+    corner: "text-xl",
+    cornerSuit: "text-base",
+    pip: "text-xl",
+    center: "text-6xl",
+    faceRank: "text-5xl",
   },
 };
 
+interface Pip {
+  x: number;
+  y: number;
+  flip?: boolean;
+}
+
+/** Standard playing-card pip positions, in % of the pip area. Bottom-half pips render upside down. */
+const PIP_LAYOUTS: Partial<Record<Rank, Pip[]>> = {
+  2: [
+    { x: 50, y: 15 },
+    { x: 50, y: 85, flip: true },
+  ],
+  3: [
+    { x: 50, y: 15 },
+    { x: 50, y: 50 },
+    { x: 50, y: 85, flip: true },
+  ],
+  4: [
+    { x: 27, y: 15 },
+    { x: 73, y: 15 },
+    { x: 27, y: 85, flip: true },
+    { x: 73, y: 85, flip: true },
+  ],
+  5: [
+    { x: 27, y: 15 },
+    { x: 73, y: 15 },
+    { x: 50, y: 50 },
+    { x: 27, y: 85, flip: true },
+    { x: 73, y: 85, flip: true },
+  ],
+  6: [
+    { x: 27, y: 15 },
+    { x: 73, y: 15 },
+    { x: 27, y: 50 },
+    { x: 73, y: 50 },
+    { x: 27, y: 85, flip: true },
+    { x: 73, y: 85, flip: true },
+  ],
+  7: [
+    { x: 27, y: 15 },
+    { x: 73, y: 15 },
+    { x: 50, y: 32.5 },
+    { x: 27, y: 50 },
+    { x: 73, y: 50 },
+    { x: 27, y: 85, flip: true },
+    { x: 73, y: 85, flip: true },
+  ],
+  8: [
+    { x: 27, y: 15 },
+    { x: 73, y: 15 },
+    { x: 50, y: 32.5 },
+    { x: 27, y: 50 },
+    { x: 73, y: 50 },
+    { x: 50, y: 67.5, flip: true },
+    { x: 27, y: 85, flip: true },
+    { x: 73, y: 85, flip: true },
+  ],
+  9: [
+    { x: 27, y: 15 },
+    { x: 73, y: 15 },
+    { x: 27, y: 38.3 },
+    { x: 73, y: 38.3 },
+    { x: 50, y: 50 },
+    { x: 27, y: 61.7, flip: true },
+    { x: 73, y: 61.7, flip: true },
+    { x: 27, y: 85, flip: true },
+    { x: 73, y: 85, flip: true },
+  ],
+  10: [
+    { x: 27, y: 15 },
+    { x: 73, y: 15 },
+    { x: 50, y: 26.7 },
+    { x: 27, y: 38.3 },
+    { x: 73, y: 38.3 },
+    { x: 27, y: 61.7, flip: true },
+    { x: 73, y: 61.7, flip: true },
+    { x: 50, y: 73.3, flip: true },
+    { x: 27, y: 85, flip: true },
+    { x: 73, y: 85, flip: true },
+  ],
+};
+
+function CardFace({ card, dims }: { card: Card; dims: (typeof SIZE_CLASSES)["md"] }) {
+  const symbol = SUIT_SYMBOLS[card.suit];
+
+  if (card.rank === 14) {
+    return (
+      <span className={`pointer-events-none absolute inset-0 flex items-center justify-center ${dims.center} leading-none`}>
+        {symbol}
+      </span>
+    );
+  }
+
+  if (card.rank >= 11) {
+    return (
+      <span className="pointer-events-none absolute inset-[16%] flex flex-col items-center justify-center rounded border border-current/30 leading-none">
+        <span className={`${dims.faceRank} font-serif font-semibold`}>{rankLabel(card.rank)}</span>
+        <span className={dims.cornerSuit}>{symbol}</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="pointer-events-none absolute inset-x-[24%] inset-y-[10%] block" aria-hidden>
+      {PIP_LAYOUTS[card.rank]?.map((pip, i) => (
+        <span
+          key={i}
+          className={`absolute ${dims.pip} leading-none`}
+          style={{
+            left: `${pip.x}%`,
+            top: `${pip.y}%`,
+            transform: `translate(-50%, -50%)${pip.flip ? " rotate(180deg)" : ""}`,
+          }}
+        >
+          {symbol}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export default function PlayingCard({ card, faceDown, selected, disabled, onClick, size = "md" }: Props) {
   const dims = SIZE_CLASSES[size];
-  const base = `relative ${dims.box} rounded-xl border bg-white font-serif italic shadow-[0_2px_12px_rgba(15,23,42,0.08)] transition-all duration-150`;
+  const base = `relative ${dims.box} border bg-white font-serif shadow-[0_2px_12px_rgba(15,23,42,0.08)] transition-all duration-150`;
 
   if (faceDown || !card) {
     return (
@@ -60,16 +190,15 @@ export default function PlayingCard({ card, faceDown, selected, disabled, onClic
             : ""
       } ${disabled ? "opacity-35" : interactive ? "active:scale-[0.98]" : ""}`}
     >
-      <span className={`absolute left-1.5 top-1.5 leading-none ${dims.rank} font-semibold not-italic`}>
-        {rankLabel(card.rank)}
+      <span className="pointer-events-none absolute left-1.5 top-1.5 flex flex-col items-center leading-none">
+        <span className={`${dims.corner} font-semibold`}>{rankLabel(card.rank)}</span>
+        <span className={dims.cornerSuit}>{SUIT_SYMBOLS[card.suit]}</span>
       </span>
-      <span className={`absolute left-1.5 top-[1.35rem] leading-none ${dims.suit}`}>{SUIT_SYMBOLS[card.suit]}</span>
-      <span
-        className={`pointer-events-none absolute inset-0 flex items-center justify-center ${dims.watermark} opacity-[0.12]`}
-        aria-hidden
-      >
-        {SUIT_SYMBOLS[card.suit]}
+      <span className="pointer-events-none absolute bottom-1.5 right-1.5 flex rotate-180 flex-col items-center leading-none">
+        <span className={`${dims.corner} font-semibold`}>{rankLabel(card.rank)}</span>
+        <span className={dims.cornerSuit}>{SUIT_SYMBOLS[card.suit]}</span>
       </span>
+      <CardFace card={card} dims={dims} />
     </button>
   );
 }

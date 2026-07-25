@@ -4,10 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRoom } from "../../lib/RoomContext";
 import PlayingCard from "../PlayingCard";
 
-const CARD_WIDTH = 72;
-const CARD_SPREAD = 34;
-const MAX_ROTATION = 38;
-const FAN_SWAY = 22;
+const CARD_WIDTH = 112;
+const CARD_SPREAD = 54;
+const MAX_ROTATION = 32;
+const FAN_SWAY = 18;
+/** Dragged this far up (px) releases the card onto the pile. */
+const SWIPE_DISTANCE = 70;
+/** A quick upward flick (px/ms) plays even before reaching SWIPE_DISTANCE. */
+const SWIPE_VELOCITY = 0.55;
+const FLY_DURATION_MS = 220;
 
 function fanAngle(index: number, total: number, scrollBias: number): number {
   if (total <= 1) return scrollBias;
@@ -20,11 +25,27 @@ function fanLift(angle: number): number {
   return Math.abs(angle) * 0.35;
 }
 
+function cardId(card: Card): string {
+  return `${card.suit}${card.rank}`;
+}
+
 export default function Hand() {
   const { state, client } = useRoom();
   const [selected, setSelected] = useState<Card | null>(null);
   const [scrollBias, setScrollBias] = useState(0);
+  const [drag, setDrag] = useState<{ id: string; dy: number } | null>(null);
+  const [flying, setFlying] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    id: string;
+    card: Card;
+    startY: number;
+    lastY: number;
+    lastT: number;
+    velocity: number;
+    moved: boolean;
+  } | null>(null);
+  const suppressClickRef = useRef(false);
   const hand = state.hands[client.playerId] ?? [];
   const legalCards = getLegalCards(state, client.playerId);
   const myTurn = state.currentTurnId === client.playerId;
@@ -61,22 +82,85 @@ export default function Hand() {
     return () => el.removeEventListener("scroll", updateScrollBias);
   }, [updateScrollBias]);
 
-  function handleTap(card: Card) {
-    if (!myTurn) return;
-    if (selected && isSameCard(selected, card)) {
-      client.sendIntent({ type: "PlayCard", playerId: client.playerId, card });
+  const playCard = useCallback(
+    (card: Card) => {
       setSelected(null);
+      setDrag(null);
+      setFlying(cardId(card));
+      window.setTimeout(() => {
+        client.sendIntent({ type: "PlayCard", playerId: client.playerId, card });
+        setFlying(null);
+      }, FLY_DURATION_MS);
+    },
+    [client],
+  );
+
+  function handleTap(card: Card) {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    if (!myTurn || flying) return;
+    if (selected && isSameCard(selected, card)) {
+      playCard(card);
     } else {
       setSelected(card);
     }
   }
 
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, card: Card, legal: boolean) {
+    if (!legal || !myTurn || flying) return;
+    dragRef.current = {
+      id: cardId(card),
+      card,
+      startY: e.clientY,
+      lastY: e.clientY,
+      lastT: e.timeStamp,
+      velocity: 0,
+      moved: false,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const d = dragRef.current;
+    if (!d) return;
+    const dt = e.timeStamp - d.lastT;
+    if (dt > 0) {
+      d.velocity = (e.clientY - d.lastY) / dt;
+    }
+    d.lastY = e.clientY;
+    d.lastT = e.timeStamp;
+    const dy = e.clientY - d.startY;
+    if (Math.abs(dy) > 8) {
+      d.moved = true;
+    }
+    setDrag({ id: d.id, dy: Math.min(dy, 0) });
+  }
+
+  function handlePointerEnd(e: React.PointerEvent<HTMLDivElement>, cancelled: boolean) {
+    const d = dragRef.current;
+    if (!d) return;
+    dragRef.current = null;
+    if (d.moved) {
+      suppressClickRef.current = true;
+    }
+    const dy = e.clientY - d.startY;
+    const shouldPlay =
+      !cancelled && (dy <= -SWIPE_DISTANCE || (dy <= -24 && d.velocity <= -SWIPE_VELOCITY));
+    if (shouldPlay) {
+      playCard(d.card);
+    } else {
+      setDrag(null);
+    }
+  }
+
   if (hand.length === 0) {
-    return <div className="h-[50vh] min-h-48 bg-white" />;
+    return <div className="h-[45vh] min-h-52 bg-white" />;
   }
 
   return (
-    <section className="relative h-[50vh] min-h-48 shrink-0 bg-white">
+    <section className="relative h-[45vh] min-h-52 shrink-0 bg-white">
       <div
         ref={scrollRef}
         className="hand-fan-scroll h-full overflow-x-auto overflow-y-hidden touch-pan-x"
@@ -84,22 +168,34 @@ export default function Hand() {
       >
         <div className="relative mx-auto h-full" style={{ width: fanWidth, minWidth: "100%" }}>
           {hand.map((card, i) => {
+            const id = cardId(card);
             const legal = myTurn && legalCards.some((c) => isSameCard(c, card));
             const isSelected = !!selected && isSameCard(selected, card);
+            const isDragging = drag?.id === id;
+            const isFlying = flying === id;
             const angle = fanAngle(i, hand.length, scrollBias);
             const lift = fanLift(angle);
             const center = (hand.length - 1) / 2;
             const left = fanWidth / 2 + (i - center) * CARD_SPREAD - CARD_WIDTH / 2;
+            const dy = isFlying ? -420 : isDragging ? drag.dy : 0;
 
             return (
               <div
-                key={`${card.suit}${card.rank}-${i}`}
-                className="absolute bottom-6 origin-bottom transition-transform duration-150 ease-out"
+                key={`${id}-${i}`}
+                className={`absolute -bottom-8 origin-bottom ${
+                  isDragging ? "" : "transition-all duration-200 ease-out"
+                }`}
                 style={{
                   left,
-                  zIndex: isSelected ? hand.length + 1 : i,
-                  transform: `rotate(${angle}deg) translateY(${lift}px)`,
+                  zIndex: isSelected || isDragging || isFlying ? hand.length + 1 : i,
+                  transform: `rotate(${isFlying ? 0 : angle}deg) translateY(${lift + dy}px)`,
+                  opacity: isFlying ? 0 : 1,
+                  touchAction: legal ? "pan-x" : undefined,
                 }}
+                onPointerDown={(e) => handlePointerDown(e, card, legal)}
+                onPointerMove={handlePointerMove}
+                onPointerUp={(e) => handlePointerEnd(e, false)}
+                onPointerCancel={(e) => handlePointerEnd(e, true)}
               >
                 <PlayingCard
                   card={card}
