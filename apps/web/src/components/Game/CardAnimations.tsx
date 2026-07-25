@@ -7,6 +7,7 @@ import PlayingCard from "../PlayingCard";
 
 const FLY_DURATION_MS = 420;
 const FOLD_DURATION_MS = 480;
+export const ROUND_LINGER_MS = 3000;
 
 interface Point {
   x: number;
@@ -75,9 +76,13 @@ function AnimatedCard({
 export default function CardAnimations({
   pileCardRefs,
   setHiddenPileKeys,
+  lingerPile,
+  setLingerPile,
 }: {
   pileCardRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
   setHiddenPileKeys: React.Dispatch<React.SetStateAction<Set<string>>>;
+  lingerPile: PlayedCard[];
+  setLingerPile: React.Dispatch<React.SetStateAction<PlayedCard[]>>;
 }) {
   const { state, client } = useRoom();
   const { getAvatarCenter, getHandTarget } = usePlayerAvatars();
@@ -85,6 +90,7 @@ export default function CardAnimations({
   const prevPileRef = useRef(state.centerPile);
   const lastPositionsRef = useRef<Map<string, DOMRect>>(new Map());
   const pendingPlayInRef = useRef<PlayedCard[]>([]);
+  const lingerTimerRef = useRef<number | null>(null);
 
   function addHiddenKeys(keys: string[]) {
     if (keys.length === 0) return;
@@ -106,9 +112,10 @@ export default function CardAnimations({
   }
 
   useLayoutEffect(() => {
-    if (state.centerPile.length === 0) return;
+    const pile = state.centerPile.length > 0 ? state.centerPile : lingerPile;
+    if (pile.length === 0) return;
     const positions = new Map<string, DOMRect>();
-    state.centerPile.forEach((played, i) => {
+    pile.forEach((played, i) => {
       const key = pileKey(played, i);
       const el = pileCardRefs.current.get(key);
       if (el) positions.set(key, el.getBoundingClientRect());
@@ -116,7 +123,7 @@ export default function CardAnimations({
     if (positions.size > 0) {
       lastPositionsRef.current = positions;
     }
-  }, [state.centerPile, pileCardRefs]);
+  }, [state.centerPile, lingerPile, pileCardRefs]);
 
   useEffect(() => {
     const prev = prevPileRef.current;
@@ -126,15 +133,23 @@ export default function CardAnimations({
       pendingPlayInRef.current = curr.slice(prev.length);
     }
 
+    if (curr.length > 0) {
+      setLingerPile([]);
+      if (lingerTimerRef.current !== null) {
+        window.clearTimeout(lingerTimerRef.current);
+        lingerTimerRef.current = null;
+      }
+    }
+
     if (prev.length > 0 && curr.length === 0) {
       const result = state.lastRoundResult;
-      const positions = lastPositionsRef.current;
-      const items: FlyingCard[] = [];
 
       if (result?.kind === "vettu" && result.collectorId) {
         const collectorId = result.collectorId;
         const isMe = collectorId === client.playerId;
         const target = isMe ? getHandTarget() : getAvatarCenter(collectorId);
+        const positions = lastPositionsRef.current;
+        const items: FlyingCard[] = [];
         if (target) {
           prev.forEach((played, i) => {
             const key = pileKey(played, i);
@@ -151,31 +166,49 @@ export default function CardAnimations({
             });
           });
         }
+        if (items.length > 0) {
+          setFlying((f) => [...f, ...items]);
+        }
       } else if (result?.kind === "normal") {
-        prev.forEach((played, i) => {
-          const key = pileKey(played, i);
-          const rect = positions.get(key);
-          if (!rect) return;
-          const center = rectCenter(rect);
-          items.push({
-            key: `fold-${key}`,
-            card: played.card,
-            start: center,
-            end: { x: center.x, y: -120 },
-            faceDown: true,
-            scaleEnd: 0.4,
-            duration: FOLD_DURATION_MS,
+        setLingerPile(prev);
+        lingerTimerRef.current = window.setTimeout(() => {
+          lingerTimerRef.current = null;
+          setLingerPile([]);
+          const items: FlyingCard[] = [];
+          prev.forEach((played, i) => {
+            const key = pileKey(played, i);
+            const el = pileCardRefs.current.get(key);
+            const rect = el?.getBoundingClientRect();
+            if (!rect) return;
+            const center = rectCenter(rect);
+            items.push({
+              key: `fold-${key}`,
+              card: played.card,
+              start: center,
+              end: { x: center.x, y: -120 },
+              faceDown: true,
+              scaleEnd: 0.4,
+              duration: FOLD_DURATION_MS,
+            });
           });
-        });
-      }
-
-      if (items.length > 0) {
-        setFlying((f) => [...f, ...items]);
+          if (items.length > 0) {
+            setFlying((f) => [...f, ...items]);
+          }
+        }, ROUND_LINGER_MS);
       }
     }
 
     prevPileRef.current = curr;
-  }, [state.centerPile, state.lastRoundResult, client.playerId, getAvatarCenter, getHandTarget]);
+  }, [state.centerPile, state.lastRoundResult, client.playerId, getAvatarCenter, getHandTarget, pileCardRefs, setLingerPile]);
+
+  useEffect(() => {
+    return () => {
+      if (lingerTimerRef.current !== null) {
+        window.clearTimeout(lingerTimerRef.current);
+        lingerTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const pending = pendingPlayInRef.current;

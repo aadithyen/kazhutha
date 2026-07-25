@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { PlayedCard } from "@kazhutha/game";
 import { useRoom } from "../../lib/RoomContext";
 import PlayingCard from "../PlayingCard";
 import CardAnimations, { pileKey } from "./CardAnimations";
@@ -7,15 +8,22 @@ export default function CenterPile() {
   const { state } = useRoom();
   const pileCardRefs = useRef(new Map<string, HTMLDivElement>());
   const [hiddenPileKeys, setHiddenPileKeys] = useState<Set<string>>(() => new Set());
+  const [lingerPile, setLingerPile] = useState<PlayedCard[]>([]);
+  const displayPile = state.centerPile.length > 0 ? state.centerPile : lingerPile;
 
   return (
     <>
-      <CardAnimations pileCardRefs={pileCardRefs} setHiddenPileKeys={setHiddenPileKeys} />
+      <CardAnimations
+        pileCardRefs={pileCardRefs}
+        setHiddenPileKeys={setHiddenPileKeys}
+        lingerPile={lingerPile}
+        setLingerPile={setLingerPile}
+      />
       <div className="flex flex-1 flex-wrap items-center justify-center gap-3 px-4 py-6">
-        {state.centerPile.length === 0 ? (
+        {displayPile.length === 0 ? (
           <span className="text-sm text-neutral-400">Play to the center</span>
         ) : (
-          state.centerPile.map((played, i) => {
+          displayPile.map((played, i) => {
             const key = pileKey(played, i);
             const player = state.players.find((p) => p.id === played.playerId);
             const hidden = hiddenPileKeys.has(key);
