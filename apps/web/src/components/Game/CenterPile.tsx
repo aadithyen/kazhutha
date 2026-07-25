@@ -1,15 +1,23 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlayedCard } from "@kazhutha/game";
+import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
 import PlayingCard from "../PlayingCard";
 import CardAnimations, { pileKey } from "./CardAnimations";
 
 export default function CenterPile() {
   const { state } = useRoom();
+  const { registerPileTarget } = usePlayerAvatars();
+  const pileAreaRef = useRef<HTMLDivElement>(null);
   const pileCardRefs = useRef(new Map<string, HTMLDivElement>());
   const [hiddenPileKeys, setHiddenPileKeys] = useState<Set<string>>(() => new Set());
   const [lingerPile, setLingerPile] = useState<PlayedCard[]>([]);
   const displayPile = state.centerPile.length > 0 ? state.centerPile : lingerPile;
+
+  useEffect(() => {
+    registerPileTarget(pileAreaRef.current);
+    return () => registerPileTarget(null);
+  }, [registerPileTarget]);
 
   return (
     <>
@@ -19,7 +27,7 @@ export default function CenterPile() {
         lingerPile={lingerPile}
         setLingerPile={setLingerPile}
       />
-      <div className="flex flex-1 flex-wrap items-center justify-center gap-3 px-4 py-6">
+      <div ref={pileAreaRef} className="flex flex-1 flex-wrap items-center justify-center gap-3 px-4 py-6">
         {displayPile.length === 0 ? (
           <span className="text-sm text-neutral-400">Play to the center</span>
         ) : (
