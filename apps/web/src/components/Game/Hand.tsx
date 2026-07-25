@@ -1,6 +1,7 @@
 import { Card, cardId, HandSortMode, isSameCard, sortHand } from "@kazhutha/shared";
 import { getLegalCards } from "@kazhutha/game";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { getHandSortMode, storeHandSortMode } from "../../lib/preferences";
 import { useRoom } from "../../lib/RoomContext";
@@ -14,11 +15,21 @@ const FAN_SWAY = 18;
 const SWIPE_DISTANCE = 70;
 /** A quick upward flick (px/ms) plays even before reaching SWIPE_DISTANCE. */
 const SWIPE_VELOCITY = 0.55;
-const FLY_DURATION_MS = 220;
+const FLY_DURATION_MS = 280;
+const SNAPBACK_DURATION_MS = 180;
 
 interface Point {
   x: number;
   y: number;
+}
+
+interface CardOverlay {
+  card: Card;
+  x: number;
+  y: number;
+  angle: number;
+  phase: "drag" | "fly" | "snapback";
+  selected: boolean;
 }
 
 function rectCenter(rect: DOMRect): Point {
@@ -50,8 +61,9 @@ export default function Hand() {
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const [selected, setSelected] = useState<Card | null>(null);
   const [scrollBias, setScrollBias] = useState(0);
-  const [drag, setDrag] = useState<{ id: string; dy: number } | null>(null);
-  const [flying, setFlying] = useState<{ id: string; offset: Point } | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overlay, setOverlay] = useState<CardOverlay | null>(null);
+  const [pendingRemovalIds, setPendingRemovalIds] = useState<Set<string>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
     id: string;
@@ -61,6 +73,10 @@ export default function Hand() {
     lastT: number;
     velocity: number;
     moved: boolean;
+    originX: number;
+    originY: number;
+    angle: number;
+    selected: boolean;
   } | null>(null);
   const suppressClickRef = useRef(false);
   const [sortMode, setSortMode] = useState<HandSortMode>(() => getHandSortMode());
@@ -111,29 +127,73 @@ export default function Hand() {
     return () => registerHandTarget(null);
   }, [registerHandTarget, hand.length]);
 
-  const playCard = useCallback(
-    (card: Card) => {
-      const id = cardId(card);
-      const cardEl = cardRefs.current.get(id);
-      const pile = getPileTarget();
-      let offset: Point = { x: 0, y: -420 };
-      if (cardEl && pile) {
-        const from = rectCenter(cardEl.getBoundingClientRect());
-        offset = { x: pile.x - from.x, y: pile.y - from.y };
+  useEffect(() => {
+    const handIds = new Set(hand.map(cardId));
+    setPendingRemovalIds((prev) => {
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (handIds.has(id)) next.add(id);
       }
+      return next.size === prev.size ? prev : next;
+    });
+    setOverlay((prev) => {
+      if (!prev) return null;
+      return handIds.has(cardId(prev.card)) ? prev : null;
+    });
+  }, [hand]);
+
+  const beginFly = useCallback(
+    (card: Card, from: Point, selectedForOverlay: boolean) => {
+      const id = cardId(card);
+      const pile = getPileTarget();
+      const end = pile ?? { x: from.x, y: from.y - 420 };
+
       setSelected(null);
-      setDrag(null);
-      setFlying({ id, offset });
+      setDragId(null);
+      dragRef.current = null;
+      setPendingRemovalIds((prev) => new Set(prev).add(id));
+      setOverlay({
+        card,
+        x: from.x,
+        y: from.y,
+        angle: 0,
+        phase: "drag",
+        selected: selectedForOverlay,
+      });
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setOverlay({
+            card,
+            x: end.x,
+            y: end.y,
+            angle: 0,
+            phase: "fly",
+            selected: false,
+          });
+        });
+      });
+
       window.setTimeout(() => {
         client.sendIntent({ type: "PlayCard", playerId: client.playerId, card });
-        setFlying(null);
       }, FLY_DURATION_MS);
     },
     [client, getPileTarget],
   );
 
+  const playCard = useCallback(
+    (card: Card) => {
+      const cardEl = cardRefs.current.get(cardId(card));
+      const from = cardEl
+        ? rectCenter(cardEl.getBoundingClientRect())
+        : { x: window.innerWidth / 2, y: window.innerHeight - 120 };
+      beginFly(card, from, !!selected && isSameCard(selected, card));
+    },
+    [beginFly, selected],
+  );
+
   function tapCard(card: Card) {
-    if (!myTurn || flying) return;
+    if (!myTurn || overlay) return;
     if (selected && isSameCard(selected, card)) {
       playCard(card);
     } else {
@@ -146,8 +206,39 @@ export default function Hand() {
     tapCard(card);
   }
 
-  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, card: Card, legal: boolean) {
-    if (!legal || !myTurn || flying) return;
+  function updateDragOverlay(dy: number) {
+    const d = dragRef.current;
+    if (!d) return;
+    const pile = getPileTarget();
+    const amount = -Math.min(dy, 0);
+    let x = d.originX;
+    let y = d.originY;
+    if (pile) {
+      const dir = unitVectorToPile({ x: d.originX, y: d.originY }, pile);
+      x = d.originX + dir.x * amount;
+      y = d.originY + dir.y * amount;
+    } else {
+      y = d.originY + Math.min(dy, 0);
+    }
+    setOverlay({
+      card: d.card,
+      x,
+      y,
+      angle: d.angle,
+      phase: "drag",
+      selected: d.selected,
+    });
+  }
+
+  function handlePointerDown(
+    e: React.PointerEvent<HTMLDivElement>,
+    card: Card,
+    legal: boolean,
+    angle: number,
+  ) {
+    if (!legal || !myTurn || overlay) return;
+    const origin = rectCenter(e.currentTarget.getBoundingClientRect());
+    const isSelected = !!selected && isSameCard(selected, card);
     dragRef.current = {
       id: cardId(card),
       card,
@@ -156,6 +247,10 @@ export default function Hand() {
       lastT: e.timeStamp,
       velocity: 0,
       moved: false,
+      originX: origin.x,
+      originY: origin.y,
+      angle,
+      selected: isSelected,
     };
     e.currentTarget.setPointerCapture(e.pointerId);
   }
@@ -172,36 +267,88 @@ export default function Hand() {
     const dy = e.clientY - d.startY;
     if (Math.abs(dy) > 8) {
       d.moved = true;
+      setDragId(d.id);
+      updateDragOverlay(dy);
     }
-    setDrag({ id: d.id, dy: Math.min(dy, 0) });
+  }
+
+  function snapBackOverlay() {
+    const d = dragRef.current;
+    if (!d) {
+      setOverlay(null);
+      return;
+    }
+    setOverlay({
+      card: d.card,
+      x: d.originX,
+      y: d.originY,
+      angle: d.angle,
+      phase: "snapback",
+      selected: d.selected,
+    });
+    window.setTimeout(() => {
+      setOverlay(null);
+    }, SNAPBACK_DURATION_MS);
   }
 
   function handlePointerEnd(e: React.PointerEvent<HTMLDivElement>, cancelled: boolean) {
     const d = dragRef.current;
     if (!d) return;
     dragRef.current = null;
-    // Pointer capture retargets the derived click event to the wrapper, so the
-    // card button's onClick never fires; handle both tap and swipe here and
-    // swallow any click that does slip through.
     suppressClickRef.current = true;
     window.setTimeout(() => {
       suppressClickRef.current = false;
     }, 0);
     if (cancelled) {
-      setDrag(null);
+      setDragId(null);
+      snapBackOverlay();
       return;
     }
     const dy = e.clientY - d.startY;
     const shouldPlay = dy <= -SWIPE_DISTANCE || (dy <= -24 && d.velocity <= -SWIPE_VELOCITY);
     if (shouldPlay) {
-      playCard(d.card);
+      const pile = getPileTarget();
+      const amount = -Math.min(dy, 0);
+      let fromX = d.originX;
+      let fromY = d.originY;
+      if (pile) {
+        const dir = unitVectorToPile({ x: d.originX, y: d.originY }, pile);
+        fromX = d.originX + dir.x * amount;
+        fromY = d.originY + dir.y * amount;
+      } else {
+        fromY = d.originY + Math.min(dy, 0);
+      }
+      beginFly(d.card, { x: fromX, y: fromY }, d.selected);
     } else if (!d.moved) {
-      setDrag(null);
+      setDragId(null);
+      setOverlay(null);
       tapCard(d.card);
     } else {
-      setDrag(null);
+      setDragId(null);
+      snapBackOverlay();
     }
   }
+
+  const overlayPortal =
+    overlay &&
+    createPortal(
+      <div
+        className="pointer-events-none fixed z-50 will-change-[left,top,transform]"
+        style={{
+          left: overlay.x,
+          top: overlay.y,
+          transform: `translate(-50%, -50%) rotate(${overlay.phase === "fly" ? 0 : overlay.angle}deg)`,
+          transition:
+            overlay.phase === "drag"
+              ? undefined
+              : `left ${overlay.phase === "fly" ? FLY_DURATION_MS : SNAPBACK_DURATION_MS}ms ease-out, top ${overlay.phase === "fly" ? FLY_DURATION_MS : SNAPBACK_DURATION_MS}ms ease-out, transform ${overlay.phase === "fly" ? FLY_DURATION_MS : SNAPBACK_DURATION_MS}ms ease-out, opacity ${overlay.phase === "fly" ? FLY_DURATION_MS : SNAPBACK_DURATION_MS}ms ease-out`,
+          opacity: overlay.phase === "fly" ? 0 : 1,
+        }}
+      >
+        <PlayingCard card={overlay.card} selected={overlay.selected} size="lg" />
+      </div>,
+      document.body,
+    );
 
   if (hand.length === 0) {
     return <div className="h-[45vh] min-h-52 bg-white" />;
@@ -209,6 +356,7 @@ export default function Hand() {
 
   return (
     <section className="relative h-[45vh] min-h-52 shrink-0 bg-white">
+      {overlayPortal}
       <div className="absolute inset-x-0 top-2 z-10 flex justify-center">
         <div
           className="inline-flex rounded-full border border-neutral-200 bg-white/90 p-0.5 text-[11px] shadow-sm backdrop-blur-sm"
@@ -243,31 +391,13 @@ export default function Hand() {
             const id = cardId(card);
             const legal = myTurn && legalCards.some((c) => isSameCard(c, card));
             const isSelected = !!selected && isSameCard(selected, card);
-            const isDragging = drag?.id === id;
-            const isFlying = flying?.id === id;
+            const isDragSource = dragId === id;
+            const isPendingRemoval = pendingRemovalIds.has(id);
+            const isHidden = isDragSource || isPendingRemoval;
             const angle = fanAngle(i, hand.length, scrollBias);
             const lift = fanLift(angle);
             const center = (hand.length - 1) / 2;
             const left = fanWidth / 2 + (i - center) * CARD_SPREAD - CARD_WIDTH / 2;
-
-            let offsetX = 0;
-            let offsetY = 0;
-            if (isFlying) {
-              offsetX = flying.offset.x;
-              offsetY = flying.offset.y;
-            } else if (isDragging) {
-              const cardEl = cardRefs.current.get(id);
-              const pile = getPileTarget();
-              if (cardEl && pile) {
-                const from = rectCenter(cardEl.getBoundingClientRect());
-                const dir = unitVectorToPile(from, pile);
-                const amount = -drag.dy;
-                offsetX = dir.x * amount;
-                offsetY = dir.y * amount;
-              } else {
-                offsetY = drag.dy;
-              }
-            }
 
             return (
               <div
@@ -277,34 +407,26 @@ export default function Hand() {
                   else cardRefs.current.delete(id);
                 }}
                 className={`absolute -bottom-8 origin-bottom ${
-                  isDragging ? "" : "transition-all duration-200 ease-out"
+                  isHidden ? "opacity-0" : "transition-all duration-200 ease-out"
                 }`}
                 style={{
                   left,
-                  zIndex: isSelected || isDragging || isFlying ? hand.length + 1 : i,
-                  transform: `rotate(${isFlying ? 0 : angle}deg) translateY(${lift}px)`,
+                  zIndex: isSelected || isDragSource ? hand.length + 1 : i,
+                  transform: `rotate(${angle}deg) translateY(${lift}px)`,
                   touchAction: legal ? "pan-x" : undefined,
                 }}
-                onPointerDown={(e) => handlePointerDown(e, card, legal)}
+                onPointerDown={(e) => handlePointerDown(e, card, legal, angle)}
                 onPointerMove={handlePointerMove}
                 onPointerUp={(e) => handlePointerEnd(e, false)}
                 onPointerCancel={(e) => handlePointerEnd(e, true)}
               >
-                <div
-                  className={isDragging ? "" : "transition-all duration-200 ease-out"}
-                  style={{
-                    transform: `translate(${offsetX}px, ${offsetY}px)`,
-                    opacity: isFlying ? 0 : 1,
-                  }}
-                >
-                  <PlayingCard
-                    card={card}
-                    selected={isSelected}
-                    disabled={!legal}
-                    onClick={legal ? () => handleClick(card) : undefined}
-                    size="lg"
-                  />
-                </div>
+                <PlayingCard
+                  card={card}
+                  selected={isSelected}
+                  disabled={!legal}
+                  onClick={legal ? () => handleClick(card) : undefined}
+                  size="lg"
+                />
               </div>
             );
           })}
