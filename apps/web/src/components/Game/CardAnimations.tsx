@@ -143,6 +143,7 @@ export default function CardAnimations({
 
     if (prev.length > 0 && curr.length === 0) {
       const result = state.lastRoundResult;
+      const completedPile = result?.pile.length ? result.pile : prev;
 
       if (result?.kind === "vettu" && result.collectorId) {
         const collectorId = result.collectorId;
@@ -151,7 +152,7 @@ export default function CardAnimations({
         const positions = lastPositionsRef.current;
         const items: FlyingCard[] = [];
         if (target) {
-          prev.forEach((played, i) => {
+          completedPile.forEach((played, i) => {
             const key = pileKey(played, i);
             const rect = positions.get(key);
             if (!rect) return;
@@ -170,15 +171,16 @@ export default function CardAnimations({
           setFlying((f) => [...f, ...items]);
         }
       } else if (result?.kind === "normal") {
-        setLingerPile(prev);
+        setHiddenPileKeys(new Set());
+        setLingerPile(completedPile);
+        const pileForFold = completedPile;
         lingerTimerRef.current = window.setTimeout(() => {
           lingerTimerRef.current = null;
-          setLingerPile([]);
+          const positions = lastPositionsRef.current;
           const items: FlyingCard[] = [];
-          prev.forEach((played, i) => {
+          pileForFold.forEach((played, i) => {
             const key = pileKey(played, i);
-            const el = pileCardRefs.current.get(key);
-            const rect = el?.getBoundingClientRect();
+            const rect = positions.get(key);
             if (!rect) return;
             const center = rectCenter(rect);
             items.push({
@@ -191,6 +193,7 @@ export default function CardAnimations({
               duration: FOLD_DURATION_MS,
             });
           });
+          setLingerPile([]);
           if (items.length > 0) {
             setFlying((f) => [...f, ...items]);
           }
@@ -199,7 +202,7 @@ export default function CardAnimations({
     }
 
     prevPileRef.current = curr;
-  }, [state.centerPile, state.lastRoundResult, client.playerId, getAvatarCenter, getHandTarget, pileCardRefs, setLingerPile]);
+  }, [state.centerPile, state.lastRoundResult, client.playerId, getAvatarCenter, getHandTarget, setHiddenPileKeys, setLingerPile]);
 
   useEffect(() => {
     return () => {
