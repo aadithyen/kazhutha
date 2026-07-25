@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { useRoom } from "../../lib/RoomContext";
 import { PlayerAvatarProvider } from "../../lib/PlayerAvatarContext";
+import { preloadSounds } from "../../lib/sounds";
 import CenterPile from "./CenterPile";
 import GameOverScreen from "./GameOverScreen";
 import Hand from "./Hand";
@@ -9,6 +11,10 @@ import TurnBanner, { useHandSortMode } from "./TurnBanner";
 export default function GameScreen() {
   const { state } = useRoom();
   const { sortMode, changeSortMode } = useHandSortMode();
+
+  useEffect(() => {
+    preloadSounds();
+  }, []);
 
   return (
     <PlayerAvatarProvider>

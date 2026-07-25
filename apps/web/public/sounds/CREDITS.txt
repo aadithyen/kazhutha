@@ -1,0 +1,4 @@
+Sound effects in this folder are from Kenney's Foley Sounds pack (Woosh).
+License: Creative Commons Zero (CC0) 1.0
+https://creativecommons.org/publicdomain/zero/1.0/
+https://kenney.nl/assets/foley-sounds

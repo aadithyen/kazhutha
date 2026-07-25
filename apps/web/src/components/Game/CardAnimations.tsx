@@ -3,6 +3,7 @@ import { PlayedCard } from "@kazhutha/game";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
+import { playSound } from "../../lib/sounds";
 import PlayingCard from "../PlayingCard";
 
 const FLY_DURATION_MS = 420;
@@ -168,6 +169,7 @@ export default function CardAnimations({
           });
         }
         if (items.length > 0) {
+          playSound("vettuCollect");
           setFlying((f) => [...f, ...items]);
         }
       } else if (result?.kind === "normal") {
@@ -195,6 +197,7 @@ export default function CardAnimations({
           });
           setLingerPile([]);
           if (items.length > 0) {
+            playSound("cardFold");
             setFlying((f) => [...f, ...items]);
           }
         }, ROUND_LINGER_MS);
@@ -247,6 +250,7 @@ export default function CardAnimations({
       addHiddenKeys(hiddenKeys);
     }
     if (items.length > 0) {
+      playSound("cardPlay");
       setFlying((f) => [...f, ...items]);
     }
   }, [state.centerPile, client.playerId, getAvatarCenter, pileCardRefs]);

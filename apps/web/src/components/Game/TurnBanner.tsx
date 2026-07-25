@@ -1,6 +1,6 @@
 import { HandSortMode, SUIT_SYMBOLS } from "@kazhutha/shared";
 import { useState } from "react";
-import { getHandSortMode, storeHandSortMode } from "../../lib/preferences";
+import { getHandSortMode, getSoundMuted, storeHandSortMode, storeSoundMuted } from "../../lib/preferences";
 import { useRoom } from "../../lib/RoomContext";
 import HandPreferences from "./HandPreferences";
 
@@ -11,6 +11,7 @@ interface Props {
 
 export default function TurnBanner({ sortMode, onSortModeChange }: Props) {
   const { state, client } = useRoom();
+  const { soundMuted, changeSoundMuted } = useSoundMuted();
   const turnPlayer = state.players.find((p) => p.id === state.currentTurnId);
   const isMyTurn = state.currentTurnId === client.playerId;
   const vettu = state.lastRoundResult?.kind === "vettu" && Date.now() - state.lastRoundResult.at < 2000;
@@ -39,6 +40,8 @@ export default function TurnBanner({ sortMode, onSortModeChange }: Props) {
           countVisible={myCountVisible}
           onCountVisibleChange={changeCountVisible}
           showCountToggle={showCountToggle}
+          soundMuted={soundMuted}
+          onSoundMutedChange={changeSoundMuted}
         />
       </span>
     </div>
@@ -54,4 +57,15 @@ export function useHandSortMode() {
   }
 
   return { sortMode, changeSortMode };
+}
+
+export function useSoundMuted() {
+  const [soundMuted, setSoundMuted] = useState(() => getSoundMuted());
+
+  function changeSoundMuted(muted: boolean) {
+    setSoundMuted(muted);
+    storeSoundMuted(muted);
+  }
+
+  return { soundMuted, changeSoundMuted };
 }

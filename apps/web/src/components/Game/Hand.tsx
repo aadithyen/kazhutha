@@ -11,6 +11,7 @@ import {
 } from "../../lib/cardLayout";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
+import { playSound } from "../../lib/sounds";
 import PlayingCard from "../PlayingCard";
 
 const CARD_WIDTH = CARD_LG.width;
@@ -305,6 +306,7 @@ export default function Hand({ sortMode }: Props) {
       dragRef.current = null;
       setPendingRemovalIds((prev) => new Set(prev).add(id));
       setLocalFlyActive(true);
+      playSound("cardPlay");
       setOverlay({
         card,
         x: from.x,
