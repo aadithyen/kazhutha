@@ -26,8 +26,7 @@ export class PeerLink {
     };
     this.pc.onconnectionstatechange = () => {
       const state = this.pc.connectionState;
-      if (state === "connected") this.opts.onStatus("connected");
-      else if (state === "disconnected" || state === "failed" || state === "closed") {
+      if (state === "disconnected" || state === "failed" || state === "closed") {
         this.opts.onStatus("disconnected");
       }
     };
