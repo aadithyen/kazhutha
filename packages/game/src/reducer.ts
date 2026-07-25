@@ -25,6 +25,16 @@ export function nextActor(state: GameState): string | null {
   return null;
 }
 
+/** Active player with an empty hand waiting for the current round to finish normally. */
+export function isStraggler(state: GameState, playerId: string): boolean {
+  return (
+    state.phase === "playing" &&
+    state.activePlayers.includes(playerId) &&
+    !state.finishedPlayers.includes(playerId) &&
+    (state.hands[playerId]?.length ?? 0) === 0
+  );
+}
+
 /** First still-active player at or after `fromId` in the fixed seating order. */
 export function firstActiveFrom(turnOrder: string[], activePlayers: string[], fromId: string): string {
   const idx = turnOrder.indexOf(fromId);
