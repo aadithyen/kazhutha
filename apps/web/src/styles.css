@@ -38,3 +38,62 @@ body {
   perspective: 800px;
   transform-style: preserve-3d;
 }
+
+.vettu-banner-text {
+  font-family: "Noto Sans Malayalam", var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(1.75rem, 7vw, 3.25rem);
+  line-height: 1.2;
+}
+
+.vettu-banner-enter {
+  animation: vettu-banner-wipe-in ease forwards;
+}
+
+.vettu-banner-exit {
+  animation: vettu-banner-wipe-out ease forwards;
+}
+
+.vettu-dim-enter {
+  opacity: 0;
+  animation: vettu-dim-in ease forwards;
+}
+
+.vettu-dim-exit {
+  animation: vettu-dim-out ease forwards;
+}
+
+@keyframes vettu-dim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vettu-dim-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vettu-banner-wipe-in {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes vettu-banner-wipe-out {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 100% 0);
+  }
+}
