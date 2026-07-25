@@ -7,13 +7,15 @@ export default function GameOverScreen() {
   const kazhutha = state.players.find((p) => p.id === state.kazhuthaId);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-slate-950/95 px-6 text-center">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-white/95 px-6 text-center backdrop-blur-sm">
       <span className="text-6xl">🐴</span>
-      <h2 className="text-2xl font-bold text-amber-400">{kazhutha?.name ?? "Someone"} is the Kazhutha!</h2>
-      <p className="text-sm text-slate-400">Everyone else escaped. Better luck next round.</p>
+      <h2 className="font-serif text-3xl font-semibold italic text-neutral-900">
+        {kazhutha?.name ?? "Someone"} is the Kazhutha!
+      </h2>
+      <p className="text-sm text-neutral-500">Everyone else escaped. Better luck next round.</p>
       <button
         onClick={() => navigate("/")}
-        className="mt-2 rounded-lg bg-amber-400 px-6 py-3 font-semibold text-slate-900"
+        className="mt-2 rounded-xl bg-neutral-900 px-6 py-3 font-semibold text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)]"
       >
         Back home
       </button>

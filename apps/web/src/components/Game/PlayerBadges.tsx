@@ -50,18 +50,18 @@ export default function PlayerBadges() {
               isTurn ? "bg-neutral-100 ring-1 ring-neutral-300" : "bg-neutral-50"
             } ${isFinished ? "opacity-50" : ""}`}
           >
-            <span className="truncate font-serif text-xs font-semibold italic">
+            <span className="truncate text-xs font-semibold">
               {player.name}
               {isMe ? " (you)" : ""}
             </span>
-            <span className="mt-1 font-serif text-[10px] italic text-neutral-500">{status}</span>
-            {isLeader && !isFinished && <span className="mt-0.5 font-serif text-[10px] italic text-neutral-600">Leader</span>}
+            <span className="mt-1 text-[10px] text-neutral-500">{status}</span>
+            {isLeader && !isFinished && <span className="mt-0.5 text-[10px] text-neutral-600">Leader</span>}
             {!player.connected && <span className="mt-0.5 text-[10px] text-rose-500">offline</span>}
             {isMe && isPlaying && !isFinished && (
               <button
                 type="button"
                 onClick={toggleMyCountVisibility}
-                className="mt-1 font-serif text-[10px] italic text-neutral-600 underline decoration-neutral-300 underline-offset-2"
+                className="mt-1 text-[10px] text-neutral-600 underline decoration-neutral-300 underline-offset-2"
               >
                 {myCountVisible ? "Hide count" : "Reveal count"}
               </button>
