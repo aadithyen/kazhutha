@@ -1,5 +1,6 @@
 import { Card, createDeck, isAceOfSpades, Player, randomSeed, shuffle } from "@kazhutha/shared";
 import { GameEvent, Intent } from "./events";
+import { electActingHost, electSuccessorHost, isHostConnected } from "./host";
 import { applyEvents } from "./reducer";
 import { GameState } from "./state";
 import { isCardLegal, isVettuPlay } from "./validators";
@@ -10,10 +11,14 @@ export type HostResult = { ok: true; events: GameEvent[] } | { ok: false; reason
 const ok = (events: GameEvent[]): HostResult => ({ ok: true, events });
 const fail = (reason: string): HostResult => ({ ok: false, reason });
 
+function isLobbyHost(state: GameState, playerId: string): boolean {
+  return state.hostId === playerId;
+}
+
 /**
- * Only ever runs on the room host. Validates an intent against the
+ * Only ever runs on the room authority peer. Validates an intent against the
  * authoritative state and returns the batch of events to broadcast, or a
- * rejection. All events are pure data so every peer (including the host)
+ * rejection. All events are pure data so every peer (including the authority)
  * reaches identical state by folding them through the same reducer.
  */
 export function processIntent(state: GameState, intent: Intent): HostResult {
@@ -29,7 +34,15 @@ export function processIntent(state: GameState, intent: Intent): HostResult {
             connected: true,
             ready: false,
           };
-      return ok([{ type: "PlayerJoined", player }]);
+      const events: GameEvent[] = [{ type: "PlayerJoined", player }];
+      if (
+        intent.playerId === state.hostId &&
+        state.actingHostId &&
+        state.phase !== "lobby"
+      ) {
+        events.push({ type: "ActingHostReleased" });
+      }
+      return ok(events);
     }
 
     case "SetReady": {
@@ -39,13 +52,13 @@ export function processIntent(state: GameState, intent: Intent): HostResult {
     }
 
     case "ChangeRules": {
-      if (intent.playerId !== state.hostId) return fail("Only the host can change rules");
+      if (!isLobbyHost(state, intent.playerId)) return fail("Only the host can change rules");
       if (state.phase !== "lobby") return fail("Rules can only change before the game starts");
       return ok([{ type: "RulesChanged", rules: intent.rules }]);
     }
 
     case "KickPlayer": {
-      if (intent.playerId !== state.hostId) return fail("Only the host can kick players");
+      if (!isLobbyHost(state, intent.playerId)) return fail("Only the host can kick players");
       if (intent.target === state.hostId) return fail("Host cannot kick themselves");
       return ok([{ type: "PlayerKicked", playerId: intent.target }]);
     }
@@ -73,7 +86,7 @@ export function processIntent(state: GameState, intent: Intent): HostResult {
 }
 
 function startGame(state: GameState, requesterId: string): HostResult {
-  if (requesterId !== state.hostId) return fail("Only the host can start the game");
+  if (!isLobbyHost(state, requesterId)) return fail("Only the host can start the game");
   if (state.phase !== "lobby") return fail("Game already started");
   const connected = state.players.filter((p) => p.connected);
   if (connected.length < 2) return fail("Need at least 2 players");
@@ -112,28 +125,35 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
   const playedEvent: GameEvent = { type: "CardPlayed", playerId, card };
   const vettu = isVettuPlay(state, playerId, card);
   const afterPlay = applyEvents(state, [playedEvent]);
+  const events: GameEvent[] = [playedEvent];
+
+  if (playerId === state.hostId && (afterPlay.hands[playerId]?.length ?? 0) === 0) {
+    const successor = electSuccessorHost(afterPlay, playerId);
+    if (successor) {
+      events.push({ type: "HostSuccessorAssigned", successorHostId: successor });
+    }
+  }
 
   if (vettu) {
     const vettuEvent: GameEvent = { type: "VettuOccurred", playerId, card };
     const collectorId = afterPlay.highestCard?.playerId ?? state.leaderId!;
-    const collectedCards = afterPlay.centerPile.map((p) => p.card);
-    const collectedEvent: GameEvent = { type: "CardsCollected", collectorId, cards: collectedCards };
+    const collectedEvent: GameEvent = { type: "CardsCollected", collectorId, cards: afterPlay.centerPile.map((p) => p.card) };
     const roundStartedEvent: GameEvent = {
       type: "RoundStarted",
       leaderId: collectorId,
       roundNumber: state.roundNumber + 1,
     };
-    return ok([playedEvent, vettuEvent, collectedEvent, roundStartedEvent]);
+  return ok([...events, vettuEvent, collectedEvent, roundStartedEvent]);
   }
 
   if (nextActor(afterPlay) !== null) {
-    return ok([playedEvent]);
+    return ok(events);
   }
 
   const winnerId = afterPlay.highestCard!.playerId;
   const finishedEvent: GameEvent = { type: "RoundFinished", winnerId };
   const afterFinish = applyEvents(afterPlay, [finishedEvent]);
-  const events: GameEvent[] = [playedEvent, finishedEvent];
+  events.push(finishedEvent);
 
   let exitCandidates = state.activePlayers.filter((id) => (afterFinish.hands[id]?.length ?? 0) === 0);
   if (exitCandidates.length === state.activePlayers.length) {
@@ -146,6 +166,15 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
     const evt: GameEvent = { type: "PlayerExited", playerId: id, order: state.finishedPlayers.length + i + 1 };
     events.push(evt);
     runningState = applyEvents(runningState, [evt]);
+    if (id === state.hostId) {
+      const successor =
+        runningState.successorHostId ?? electSuccessorHost(runningState, id);
+      if (successor) {
+        const transfer: GameEvent = { type: "HostTransferred", newHostId: successor };
+        events.push(transfer);
+        runningState = applyEvents(runningState, [transfer]);
+      }
+    }
   });
 
   const remaining = runningState.activePlayers;
@@ -158,4 +187,15 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
   const nextLeader = remaining.includes(winnerId) ? winnerId : firstActiveFrom(state.turnOrder, remaining, winnerId);
   events.push({ type: "RoundStarted", leaderId: nextLeader, roundNumber: state.roundNumber + 1 });
   return ok(events);
+}
+
+/** Authority applies when host disconnects during play; all peers run same election locally. */
+export function eventsForHostDisconnect(state: GameState): GameEvent[] {
+  if (state.phase === "lobby") return [];
+  if (!state.hostId) return [];
+  if (state.actingHostId) return [];
+  if (isHostConnected(state)) return [];
+  const elected = electActingHost(state, state.hostId);
+  if (!elected) return [];
+  return [{ type: "ActingHostElected", actingHostId: elected }];
 }

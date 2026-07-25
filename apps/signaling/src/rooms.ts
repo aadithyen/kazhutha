@@ -36,6 +36,13 @@ export class RoomRegistry {
     if (room.peers.size === 0) this.rooms.delete(code);
   }
 
+  transferHost(code: string, newHostId: string): boolean {
+    const room = this.rooms.get(code);
+    if (!room || !room.peers.has(newHostId)) return false;
+    room.hostId = newHostId;
+    return true;
+  }
+
   roomCount(): number {
     return this.rooms.size;
   }

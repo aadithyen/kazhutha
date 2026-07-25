@@ -21,12 +21,14 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
   const clientRef = useRef<RoomClient | null>(null);
 
   if (!clientRef.current) {
+    const persistedState = RoomClient.loadPersistedState(roomCode);
     clientRef.current = new RoomClient({
       signalingUrl: getSignalingUrl(),
       roomCode,
       playerId,
       name,
       iceServers: getIceServers(),
+      persistedState,
     });
   }
   const client = clientRef.current;
@@ -40,8 +42,17 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
     const unsubEngine = client.engine.subscribe(setState);
     const unsubRoom = client.on((ev) => {
       if (ev.type === "peers") setPeers(ev.peers);
-      else if (ev.type === "hostLeft") setBanner("Host disconnected. Ask them to recreate the room.");
-      else if (ev.type === "error") setBanner(ev.message);
+      else if (ev.type === "hostLeft") {
+        setBanner("Host disconnected. Acting host continues the game until they return.");
+      } else if (ev.type === "actingHost") {
+        if (ev.actingHostId === client.playerId) {
+          setBanner("You are acting host until the room host returns.");
+        } else {
+          setBanner("Acting host elected. Game continues.");
+        }
+      } else if (ev.type === "hostReconnected") {
+        setBanner("Host reconnected. Game resumed.");
+      } else if (ev.type === "error") setBanner(ev.message);
       else if (ev.type === "signalingStatus") setSignalingConnected(ev.connected);
     });
     client.connect();

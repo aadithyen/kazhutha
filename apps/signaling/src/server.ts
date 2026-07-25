@@ -22,6 +22,15 @@ function send(ws: WebSocket, msg: ServerToClient) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
 }
 
+function broadcastRoom(roomCode: string, msg: ServerToClient, exceptPeerId?: string) {
+  const room = registry.get(roomCode);
+  if (!room) return;
+  for (const peer of room.peers.values()) {
+    if (peer.peerId === exceptPeerId) continue;
+    send(peer.ws, msg);
+  }
+}
+
 wss.on("connection", (ws) => {
   let roomCode: string | null = null;
   let peerId: string | null = null;
@@ -44,7 +53,11 @@ wss.on("connection", (ws) => {
       peerId = msg.peerId;
       joined = true;
 
-      send(ws, { type: "joined", peerId: msg.peerId, hostId: room.hostId, role });
+      const peers = Array.from(room.peers.values())
+        .filter((p) => p.peerId !== msg.peerId)
+        .map((p) => ({ peerId: p.peerId, name: p.name }));
+
+      send(ws, { type: "joined", peerId: msg.peerId, hostId: room.hostId, role, peers });
 
       for (const peer of room.peers.values()) {
         if (peer.peerId === msg.peerId) continue;
@@ -60,6 +73,12 @@ wss.on("connection", (ws) => {
     if (msg.type === "signal") {
       const target = room.peers.get(msg.to);
       if (target) send(target.ws, { type: "signal", from: peerId, data: msg.data });
+      return;
+    }
+
+    if (msg.type === "sync-host") {
+      if (!registry.transferHost(roomCode, msg.newHostId)) return;
+      broadcastRoom(roomCode, { type: "host-changed", hostId: msg.newHostId });
       return;
     }
 

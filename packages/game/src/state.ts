@@ -21,6 +21,10 @@ export interface LastRoundResult {
 export interface GameState {
   roomCode: string;
   hostId: string | null;
+  /** Temporary authority while hostId player is disconnected during play. */
+  actingHostId: string | null;
+  /** Next host once current host exits after clearing their hand. */
+  successorHostId: string | null;
   players: Player[];
   rules: RuleConfig;
   phase: GamePhase;
@@ -47,6 +51,8 @@ export function createInitialState(roomCode: string): GameState {
   return {
     roomCode,
     hostId: null,
+    actingHostId: null,
+    successorHostId: null,
     players: [],
     rules: DEFAULT_RULES,
     phase: "lobby",
