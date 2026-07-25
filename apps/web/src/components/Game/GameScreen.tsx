@@ -14,7 +14,7 @@ export default function GameScreen() {
       <div className="flex min-h-dvh flex-col bg-white text-neutral-900">
         <PlayerBadges />
         <TurnBanner />
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col overflow-visible">
           <CenterPile />
         </div>
         <Hand />
