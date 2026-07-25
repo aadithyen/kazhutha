@@ -7,6 +7,7 @@ import GameOverScreen from "./GameOverScreen";
 import Hand from "./Hand";
 import PlayerBadges from "./PlayerBadges";
 import TurnBanner, { useHandSortMode } from "./TurnBanner";
+import VettuBanner from "./VettuBanner";
 
 export default function GameScreen() {
   const { state } = useRoom();
@@ -26,6 +27,7 @@ export default function GameScreen() {
         <Hand sortMode={sortMode} />
         <TurnBanner sortMode={sortMode} onSortModeChange={changeSortMode} />
         {state.phase === "finished" && <GameOverScreen />}
+        <VettuBanner />
       </div>
     </PlayerAvatarProvider>
   );

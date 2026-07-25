@@ -14,7 +14,6 @@ export default function TurnBanner({ sortMode, onSortModeChange }: Props) {
   const { soundMuted, changeSoundMuted } = useSoundMuted();
   const turnPlayer = state.players.find((p) => p.id === state.currentTurnId);
   const isMyTurn = state.currentTurnId === client.playerId;
-  const vettu = state.lastRoundResult?.kind === "vettu" && Date.now() - state.lastRoundResult.at < 2000;
   const myCountVisible = state.cardCountVisible[client.playerId] ?? false;
   const showCountToggle = state.phase === "playing" && !state.finishedPlayers.includes(client.playerId);
 
@@ -32,7 +31,6 @@ export default function TurnBanner({ sortMode, onSortModeChange }: Props) {
         {isMyTurn ? "Your turn" : turnPlayer ? `${turnPlayer.name}'s turn` : "Waiting…"}
       </span>
       <span className="flex items-center gap-2 text-neutral-400">
-        {vettu && <span className="rounded bg-rose-50 px-2 py-0.5 font-bold text-rose-600">VETTU!</span>}
         {state.leadSuit && <span>Lead: {SUIT_SYMBOLS[state.leadSuit]}</span>}
         <HandPreferences
           sortMode={sortMode}
