@@ -59,6 +59,14 @@ export function processIntent(state: GameState, intent: Intent): HostResult {
     case "RequestSnapshot":
       return ok([{ type: "StateSnapshot", state }]);
 
+    case "SetCardCountVisible": {
+      if (state.phase !== "playing") return fail("Can only change card count visibility during a game");
+      if (!state.players.some((p) => p.id === intent.playerId)) return fail("Unknown player");
+      return ok([
+        { type: "CardCountVisibilityChanged", playerId: intent.playerId, visible: intent.visible },
+      ]);
+    }
+
     default:
       return fail("Unknown intent");
   }

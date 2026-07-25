@@ -89,6 +89,12 @@ export interface GameFinishedEvent {
   kazhuthaId: string;
 }
 
+export interface CardCountVisibilityChangedEvent {
+  type: "CardCountVisibilityChanged";
+  playerId: string;
+  visible: boolean;
+}
+
 export interface StateSnapshotEvent {
   type: "StateSnapshot";
   state: GameState;
@@ -111,6 +117,7 @@ export type GameEvent =
   | CardsCollectedEvent
   | PlayerExitedEvent
   | GameFinishedEvent
+  | CardCountVisibilityChangedEvent
   | StateSnapshotEvent;
 
 export type GameEventType = GameEvent["type"];
@@ -123,7 +130,8 @@ export type Intent =
   | { type: "KickPlayer"; playerId: string; target: string }
   | { type: "StartGame"; playerId: string }
   | { type: "PlayCard"; playerId: string; card: Card }
-  | { type: "RequestSnapshot"; playerId: string };
+  | { type: "RequestSnapshot"; playerId: string }
+  | { type: "SetCardCountVisible"; playerId: string; visible: boolean };
 
 export interface IntentRejected {
   type: "IntentRejected";

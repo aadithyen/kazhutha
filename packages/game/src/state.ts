@@ -36,6 +36,8 @@ export interface GameState {
   kazhuthaId: string | null;
   seed: number | null;
   lastRoundResult: LastRoundResult | null;
+  /** When false, other players see this player's hand size as hidden. Own count always visible locally. */
+  cardCountVisible: Record<string, boolean>;
   eventLog: GameEvent[];
 }
 
@@ -60,6 +62,7 @@ export function createInitialState(roomCode: string): GameState {
     kazhuthaId: null,
     seed: null,
     lastRoundResult: null,
+    cardCountVisible: {},
     eventLog: [],
   };
 }

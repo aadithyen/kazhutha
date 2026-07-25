@@ -86,6 +86,7 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
         activePlayers: event.turnOrder.slice(),
         finishedPlayers: [],
         kazhuthaId: null,
+        cardCountVisible: Object.fromEntries(event.turnOrder.map((id) => [id, false])),
       };
 
     case "CardsShuffled":
@@ -174,6 +175,12 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
 
     case "GameFinished":
       return { ...state, phase: "finished", kazhuthaId: event.kazhuthaId, currentTurnId: null };
+
+    case "CardCountVisibilityChanged":
+      return {
+        ...state,
+        cardCountVisible: { ...state.cardCountVisible, [event.playerId]: event.visible },
+      };
 
     case "StateSnapshot":
       return event.state;
