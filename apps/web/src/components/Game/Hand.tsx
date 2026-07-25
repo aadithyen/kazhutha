@@ -10,13 +10,11 @@ import {
   unitVectorToPile,
 } from "../../lib/cardLayout";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
-import { getHandSortMode, storeHandSortMode } from "../../lib/preferences";
 import { useRoom } from "../../lib/RoomContext";
 import PlayingCard from "../PlayingCard";
-import HandPreferences from "./HandPreferences";
 
 const CARD_WIDTH = CARD_LG.width;
-const CARD_SPREAD = 60;
+const CARD_SPREAD = 68;
 const MAX_ROTATION = 32;
 const FAN_SWAY = 18;
 /** Below this scroll range (px), fan sway + horizontal scroll gestures stay off. */
@@ -52,7 +50,11 @@ function fanLift(angle: number): number {
   return Math.abs(angle) * 0.35;
 }
 
-export default function Hand() {
+interface Props {
+  sortMode: HandSortMode;
+}
+
+export default function Hand({ sortMode }: Props) {
   const { state, client } = useRoom();
   const { registerHandTarget, getPlaySlotTarget, setLocalFlyActive } = usePlayerAvatars();
   const handTargetRef = useRef<HTMLDivElement>(null);
@@ -84,27 +86,10 @@ export default function Hand() {
     target: HTMLDivElement | null;
   } | null>(null);
   const suppressClickRef = useRef(false);
-  const [sortMode, setSortMode] = useState<HandSortMode>(() => getHandSortMode());
   const rawHand = state.hands[client.playerId] ?? [];
   const hand = useMemo(() => sortHand(rawHand, sortMode), [rawHand, sortMode]);
   const legalCards = getLegalCards(state, client.playerId);
   const myTurn = state.currentTurnId === client.playerId;
-
-  const myCountVisible = state.cardCountVisible[client.playerId] ?? false;
-  const showCountToggle = state.phase === "playing" && !state.finishedPlayers.includes(client.playerId);
-
-  function changeCountVisible(visible: boolean) {
-    client.sendIntent({
-      type: "SetCardCountVisible",
-      playerId: client.playerId,
-      visible,
-    });
-  }
-
-  function changeSortMode(mode: HandSortMode) {
-    setSortMode(mode);
-    storeHandSortMode(mode);
-  }
 
   const fanWidth = useMemo(() => {
     const spread = Math.max(hand.length - 1, 0) * CARD_SPREAD;
@@ -466,23 +451,16 @@ export default function Hand() {
     );
 
   if (hand.length === 0) {
-    return <div className="h-[52vh] min-h-60 bg-white" />;
+    return <div className="h-[58vh] min-h-72 bg-white" />;
   }
 
   return (
-    <section className="relative h-[52vh] min-h-60 shrink-0 overflow-hidden bg-white">
+    <section className="relative h-[58vh] min-h-72 shrink-0 overflow-hidden bg-white">
       {overlayPortal}
-      <HandPreferences
-        sortMode={sortMode}
-        onSortModeChange={changeSortMode}
-        countVisible={myCountVisible}
-        onCountVisibleChange={changeCountVisible}
-        showCountToggle={showCountToggle}
-      />
-      <div ref={handTargetRef} className="pointer-events-none absolute inset-x-0 top-8 h-1" aria-hidden />
+      <div ref={handTargetRef} className="pointer-events-none absolute inset-x-0 top-4 h-1" aria-hidden />
       <div
         ref={scrollRef}
-        className={`hand-fan-scroll h-full select-none overflow-y-hidden pt-3 ${
+        className={`hand-fan-scroll h-full select-none overflow-y-hidden ${
           canFanScroll ? "touch-pan-x overflow-x-auto" : "overflow-x-hidden"
         }`}
         aria-label="Your hand — scroll horizontally to fan through cards"
@@ -507,7 +485,7 @@ export default function Hand() {
                   if (el) cardRefs.current.set(id, el);
                   else cardRefs.current.delete(id);
                 }}
-                className={`absolute -bottom-8 origin-bottom ${
+                className={`absolute bottom-2 origin-bottom ${
                   isScrolling ? "" : "transition-[left,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 } ${isHidden ? "pointer-events-none opacity-0" : ""}`}
                 style={{
@@ -522,7 +500,7 @@ export default function Hand() {
               >
                 {isDragSource ? (
                   <div
-                    className="flex h-[12rem] w-[8.4rem] items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300/80 bg-neutral-50/60"
+                    className="flex h-[15rem] w-[10.5rem] items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300/80 bg-neutral-50/60"
                     aria-hidden
                   />
                 ) : (
