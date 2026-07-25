@@ -19,6 +19,8 @@ const CARD_WIDTH = CARD_LG.width;
 const CARD_SPREAD = 60;
 const MAX_ROTATION = 32;
 const FAN_SWAY = 18;
+/** Below this scroll range (px), fan sway + horizontal scroll gestures stay off. */
+const MIN_FAN_SCROLL = 12;
 /** Dragged this far up (px) releases the card onto the pile. */
 const SWIPE_DISTANCE = 70;
 /** A quick upward flick (px/ms) plays even before reaching SWIPE_DISTANCE. */
@@ -58,6 +60,7 @@ export default function Hand() {
   const [selected, setSelected] = useState<Card | null>(null);
   const [scrollBias, setScrollBias] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [canFanScroll, setCanFanScroll] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<CardOverlay | null>(null);
   const [pendingRemovalIds, setPendingRemovalIds] = useState<Set<string>>(() => new Set());
@@ -113,8 +116,13 @@ export default function Hand() {
     const el = scrollRef.current;
     if (!el) return;
     const max = el.scrollWidth - el.clientWidth;
-    if (max <= 0) {
+    const scrollable = max >= MIN_FAN_SCROLL;
+    setCanFanScroll(scrollable);
+    if (!scrollable) {
+      if (el.scrollLeft !== 0) el.scrollLeft = 0;
       setScrollBias(0);
+      setIsScrolling(false);
+      clearTimeout(scrollEndTimerRef.current);
       return;
     }
     const progress = el.scrollLeft / max;
@@ -127,7 +135,8 @@ export default function Hand() {
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
+    const max = el.scrollWidth - el.clientWidth;
+    el.scrollLeft = max >= MIN_FAN_SCROLL ? max / 2 : 0;
     updateScrollBias();
   }, [hand.length, updateScrollBias]);
 
@@ -135,7 +144,12 @@ export default function Hand() {
     const el = scrollRef.current;
     if (!el) return;
     el.addEventListener("scroll", updateScrollBias, { passive: true });
-    return () => el.removeEventListener("scroll", updateScrollBias);
+    const ro = new ResizeObserver(() => updateScrollBias());
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", updateScrollBias);
+      ro.disconnect();
+    };
   }, [updateScrollBias]);
 
   useEffect(() => {
@@ -312,8 +326,13 @@ export default function Hand() {
       if (Math.abs(dx) < GESTURE_LOCK_PX && Math.abs(dy) < GESTURE_LOCK_PX) return;
 
       if (Math.abs(dx) >= Math.abs(dy)) {
-        d.mode = "scroll";
-        e.currentTarget.setPointerCapture(e.pointerId);
+        const el = scrollRef.current;
+        const max = el ? el.scrollWidth - el.clientWidth : 0;
+        if (max >= MIN_FAN_SCROLL) {
+          d.mode = "scroll";
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }
+        return;
       } else if (dy < 0) {
         d.mode = "drag";
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -463,7 +482,9 @@ export default function Hand() {
       <div ref={handTargetRef} className="pointer-events-none absolute inset-x-0 top-8 h-1" aria-hidden />
       <div
         ref={scrollRef}
-        className="hand-fan-scroll h-full select-none overflow-x-auto overflow-y-hidden touch-pan-x pt-3"
+        className={`hand-fan-scroll h-full select-none overflow-y-hidden pt-3 ${
+          canFanScroll ? "touch-pan-x overflow-x-auto" : "overflow-x-hidden"
+        }`}
         aria-label="Your hand — scroll horizontally to fan through cards"
       >
         <div className="relative mx-auto h-full" style={{ width: fanWidth, minWidth: "100%" }}>
