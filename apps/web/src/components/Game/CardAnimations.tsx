@@ -1,6 +1,7 @@
 import { Card } from "@kazhutha/shared";
-import { PlayedCard } from "@kazhutha/game";
+import { LastRoundResult, PlayedCard } from "@kazhutha/game";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { estimatePileCardRect, rectCenter } from "../../lib/cardLayout";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
 import { playSound } from "../../lib/sounds";
@@ -30,8 +31,20 @@ export function pileKey(played: PlayedCard, index: number): string {
   return `${played.playerId}-${played.card.suit}${played.card.rank}-${index}`;
 }
 
-function rectCenter(rect: DOMRect): Point {
-  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+function resolvePileCardRect(
+  pile: PlayedCard[],
+  index: number,
+  pileCardRefs: Map<string, HTMLDivElement>,
+  cached: Map<string, DOMRect>,
+  pileCenter: Point | null,
+): DOMRect | null {
+  const key = pileKey(pile[index], index);
+  const el = pileCardRefs.get(key);
+  if (el) return el.getBoundingClientRect();
+  const cachedRect = cached.get(key);
+  if (cachedRect) return cachedRect;
+  if (!pileCenter) return null;
+  return estimatePileCardRect(index, pile.length, pileCenter);
 }
 
 function AnimatedCard({
@@ -86,11 +99,13 @@ export default function CardAnimations({
   setLingerPile: React.Dispatch<React.SetStateAction<PlayedCard[]>>;
 }) {
   const { state, client } = useRoom();
-  const { getAvatarCenter, getHandTarget } = usePlayerAvatars();
+  const { getAvatarCenter, getHandTarget, getPileTarget } = usePlayerAvatars();
   const [flying, setFlying] = useState<FlyingCard[]>([]);
   const prevPileRef = useRef(state.centerPile);
   const lastPositionsRef = useRef<Map<string, DOMRect>>(new Map());
   const pendingPlayInRef = useRef<PlayedCard[]>([]);
+  const processedRoundAtRef = useRef<number | null>(null);
+  const pendingVettuAtRef = useRef<number | null>(null);
   const lingerTimerRef = useRef<number | null>(null);
 
   function addHiddenKeys(keys: string[]) {
@@ -112,6 +127,57 @@ export default function CardAnimations({
     });
   }
 
+  function buildFoldItems(pile: PlayedCard[], roundAt: number): FlyingCard[] {
+    if (processedRoundAtRef.current !== roundAt) return [];
+    const pileCenter = getPileTarget();
+    const cached = lastPositionsRef.current;
+    const items: FlyingCard[] = [];
+    pile.forEach((played, i) => {
+      const rect = resolvePileCardRect(pile, i, pileCardRefs.current, cached, pileCenter);
+      if (!rect) return;
+      const center = rectCenter(rect);
+      const key = pileKey(played, i);
+      items.push({
+        key: `fold-${key}`,
+        card: played.card,
+        start: center,
+        end: { x: center.x, y: -120 },
+        faceDown: true,
+        scaleEnd: 0.4,
+        duration: FOLD_DURATION_MS,
+      });
+    });
+    return items;
+  }
+
+  function buildCollectItems(result: LastRoundResult): FlyingCard[] {
+    const collectorId = result.collectorId;
+    if (!collectorId) return [];
+    const pile = result.pile;
+    const isMe = collectorId === client.playerId;
+    const target = isMe ? getHandTarget() : getAvatarCenter(collectorId);
+    if (!target) return [];
+
+    const pileCenter = getPileTarget();
+    const cached = lastPositionsRef.current;
+    const items: FlyingCard[] = [];
+    pile.forEach((played, i) => {
+      const rect = resolvePileCardRect(pile, i, pileCardRefs.current, cached, pileCenter);
+      if (!rect) return;
+      const key = pileKey(played, i);
+      items.push({
+        key: `collect-${key}`,
+        card: played.card,
+        start: rectCenter(rect),
+        end: target,
+        faceDown: false,
+        scaleEnd: isMe ? 0.55 : 0.3,
+        duration: FLY_DURATION_MS,
+      });
+    });
+    return items;
+  }
+
   useLayoutEffect(() => {
     const pile = state.centerPile.length > 0 ? state.centerPile : lingerPile;
     if (pile.length === 0) return;
@@ -126,6 +192,52 @@ export default function CardAnimations({
     }
   }, [state.centerPile, lingerPile, pileCardRefs]);
 
+  useLayoutEffect(() => {
+    const result = state.lastRoundResult;
+    if (!result || result.pile.length === 0) return;
+    if (result.at === processedRoundAtRef.current) return;
+    if (state.centerPile.length > 0) return;
+
+    processedRoundAtRef.current = result.at;
+    setHiddenPileKeys(new Set());
+    setLingerPile(result.pile);
+
+    if (result.kind === "normal") {
+      const roundAt = result.at;
+      const pileForFold = result.pile;
+      lingerTimerRef.current = window.setTimeout(() => {
+        lingerTimerRef.current = null;
+        const items = buildFoldItems(pileForFold, roundAt);
+        setLingerPile([]);
+        if (items.length > 0) {
+          playSound("cardFold");
+          setFlying((f) => [...f, ...items]);
+        }
+      }, ROUND_LINGER_MS);
+      return;
+    }
+
+    if (result.kind === "vettu" && result.collectorId) {
+      pendingVettuAtRef.current = result.at;
+    }
+  }, [state.centerPile, state.lastRoundResult, setHiddenPileKeys, setLingerPile]);
+
+  useLayoutEffect(() => {
+    const pendingAt = pendingVettuAtRef.current;
+    if (pendingAt === null || lingerPile.length === 0) return;
+
+    const result = state.lastRoundResult;
+    if (!result || result.at !== pendingAt || result.kind !== "vettu" || !result.collectorId) return;
+
+    pendingVettuAtRef.current = null;
+    const items = buildCollectItems(result);
+    setLingerPile([]);
+    if (items.length > 0) {
+      playSound("vettuCollect");
+      setFlying((f) => [...f, ...items]);
+    }
+  }, [lingerPile, state.lastRoundResult, client.playerId, getAvatarCenter, getHandTarget, getPileTarget, setLingerPile]);
+
   useEffect(() => {
     const prev = prevPileRef.current;
     const curr = state.centerPile;
@@ -136,76 +248,15 @@ export default function CardAnimations({
 
     if (curr.length > 0) {
       setLingerPile([]);
+      pendingVettuAtRef.current = null;
       if (lingerTimerRef.current !== null) {
         window.clearTimeout(lingerTimerRef.current);
         lingerTimerRef.current = null;
       }
     }
 
-    if (prev.length > 0 && curr.length === 0) {
-      const result = state.lastRoundResult;
-      const completedPile = result?.pile.length ? result.pile : prev;
-
-      if (result?.kind === "vettu" && result.collectorId) {
-        const collectorId = result.collectorId;
-        const isMe = collectorId === client.playerId;
-        const target = isMe ? getHandTarget() : getAvatarCenter(collectorId);
-        const positions = lastPositionsRef.current;
-        const items: FlyingCard[] = [];
-        if (target) {
-          completedPile.forEach((played, i) => {
-            const key = pileKey(played, i);
-            const rect = positions.get(key);
-            if (!rect) return;
-            items.push({
-              key: `collect-${key}`,
-              card: played.card,
-              start: rectCenter(rect),
-              end: target,
-              faceDown: false,
-              scaleEnd: isMe ? 0.55 : 0.3,
-              duration: FLY_DURATION_MS,
-            });
-          });
-        }
-        if (items.length > 0) {
-          playSound("vettuCollect");
-          setFlying((f) => [...f, ...items]);
-        }
-      } else if (result?.kind === "normal") {
-        setHiddenPileKeys(new Set());
-        setLingerPile(completedPile);
-        const pileForFold = completedPile;
-        lingerTimerRef.current = window.setTimeout(() => {
-          lingerTimerRef.current = null;
-          const positions = lastPositionsRef.current;
-          const items: FlyingCard[] = [];
-          pileForFold.forEach((played, i) => {
-            const key = pileKey(played, i);
-            const rect = positions.get(key);
-            if (!rect) return;
-            const center = rectCenter(rect);
-            items.push({
-              key: `fold-${key}`,
-              card: played.card,
-              start: center,
-              end: { x: center.x, y: -120 },
-              faceDown: true,
-              scaleEnd: 0.4,
-              duration: FOLD_DURATION_MS,
-            });
-          });
-          setLingerPile([]);
-          if (items.length > 0) {
-            playSound("cardFold");
-            setFlying((f) => [...f, ...items]);
-          }
-        }, ROUND_LINGER_MS);
-      }
-    }
-
     prevPileRef.current = curr;
-  }, [state.centerPile, state.lastRoundResult, client.playerId, getAvatarCenter, getHandTarget, setHiddenPileKeys, setLingerPile]);
+  }, [state.centerPile, setLingerPile]);
 
   useEffect(() => {
     return () => {
