@@ -60,6 +60,10 @@ export class RoomClient {
   private recoveringHost = false;
   private snapshotRequested = false;
 
+  private authorityTarget(): string | null {
+    return getAuthorityId(this.engine.getState()) ?? this.signalingHostId;
+  }
+
   constructor(opts: RoomClientOptions) {
     this.playerId = opts.playerId;
     this.name = opts.name;
@@ -95,7 +99,7 @@ export class RoomClient {
       this.handleIntentAsAuthority(intent, null);
       return;
     }
-    const authorityId = getAuthorityId(this.engine.getState());
+    const authorityId = this.authorityTarget();
     const link = authorityId ? this.links.get(authorityId) : null;
     link?.send({ kind: "intent", intent });
   }
@@ -158,20 +162,24 @@ export class RoomClient {
         this.signalingHostId = msg.hostId;
         for (const peer of msg.peers) this.peerNames.set(peer.peerId, peer.name);
         const state = this.engine.getState();
-        const hasGame = state.phase !== "lobby" || state.players.length > 0;
 
         if (msg.role === "host" && msg.peerId === msg.hostId) {
-          if (hasGame) {
+          if (state.phase !== "lobby") {
+            // Mid-game host reconnect: pull state from acting host before resuming authority.
             this.recoveringHost = true;
             this.syncAuthorityFromState();
             for (const peer of msg.peers) this.ensureLinkAsAnswerer(peer.peerId);
             if (!state.hostId) {
               this.seedLobbyAsHost();
             }
-          } else if (msg.peers.length === 0) {
-            this.seedLobbyAsHost();
+          } else if (state.hostId === msg.peerId && state.players.length > 0) {
+            // Lobby host rejoined (e.g. React StrictMode remount) — keep authority, wire peers.
+            this.recoveringHost = false;
+            this.snapshotRequested = false;
+            this.isAuthority = true;
+            for (const peer of msg.peers) this.ensureLinkAsAnswerer(peer.peerId);
           } else {
-            this.recoveringHost = true;
+            this.seedLobbyAsHost();
             for (const peer of msg.peers) this.ensureLinkAsAnswerer(peer.peerId);
           }
         } else {
@@ -276,6 +284,8 @@ export class RoomClient {
 
   private connectToAuthority(authorityId: string) {
     if (authorityId === this.playerId) return;
+    const status = this.peerStatus.get(authorityId);
+    if (status === "connected" || status === "connecting") return;
     this.links.get(authorityId)?.close();
     const link = new PeerLink({
       peerId: authorityId,
@@ -306,9 +316,9 @@ export class RoomClient {
     this.peerStatus.set(peerId, status);
     this.emit({ type: "peers", peers: this.getPeers() });
 
-    const authorityId = getAuthorityId(this.engine.getState());
+    const authorityId = this.authorityTarget();
 
-    if (!this.isAuthority && status === "connected" && peerId === authorityId) {
+    if (!this.isAuthority && status === "connected" && authorityId && peerId === authorityId) {
       this.sendIntent({ type: "JoinRoom", playerId: this.playerId, name: this.name });
     }
 

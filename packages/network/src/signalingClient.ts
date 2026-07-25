@@ -16,6 +16,11 @@ export class SignalingClient {
   connect(joinPayload: ClientToServer) {
     this.closedByUser = false;
     this.joinPayload = joinPayload;
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.send(joinPayload);
+      return;
+    }
+    if (this.ws?.readyState === WebSocket.CONNECTING) return;
     this.open();
   }
 

@@ -16,6 +16,7 @@ export class PeerLink {
   private opts: PeerLinkOptions;
   private pendingCandidates: RTCIceCandidateInit[] = [];
   private remoteDescSet = false;
+  private outbox: PeerMessage[] = [];
 
   constructor(opts: PeerLinkOptions) {
     this.opts = opts;
@@ -26,8 +27,7 @@ export class PeerLink {
     };
     this.pc.onconnectionstatechange = () => {
       const state = this.pc.connectionState;
-      if (state === "connected") this.opts.onStatus("connected");
-      else if (state === "disconnected" || state === "failed" || state === "closed") {
+      if (state === "disconnected" || state === "failed" || state === "closed") {
         this.opts.onStatus("disconnected");
       }
     };
@@ -76,7 +76,12 @@ export class PeerLink {
 
   private bindChannel(channel: RTCDataChannel) {
     this.channel = channel;
-    channel.onopen = () => this.opts.onStatus("connected");
+    channel.onopen = () => {
+      const queued = this.outbox;
+      this.outbox = [];
+      for (const msg of queued) this.send(msg);
+      this.opts.onStatus("connected");
+    };
     channel.onclose = () => this.opts.onStatus("disconnected");
     channel.onmessage = (ev) => {
       try {
@@ -88,9 +93,11 @@ export class PeerLink {
   }
 
   send(msg: PeerMessage) {
-    if (this.channel && this.channel.readyState === "open") {
+    if (this.channel?.readyState === "open") {
       this.channel.send(JSON.stringify(msg));
+      return;
     }
+    this.outbox.push(msg);
   }
 
   close() {
