@@ -570,11 +570,11 @@ export default function Hand({ sortMode }: Props) {
     );
 
   if (hand.length === 0) {
-    return <div className="h-[58vh] min-h-72 bg-white" />;
+    return <div className="h-[58vh] min-h-72 bg-white dark:bg-neutral-950" />;
   }
 
   return (
-    <section className="relative h-[58vh] min-h-72 shrink-0 overflow-hidden bg-white">
+    <section className="relative h-[58vh] min-h-72 shrink-0 overflow-hidden bg-white dark:bg-neutral-950">
       {overlayPortal}
       <div ref={handTargetRef} className="pointer-events-none absolute inset-x-0 top-4 h-1" aria-hidden />
       <div
@@ -619,7 +619,7 @@ export default function Hand({ sortMode }: Props) {
               >
                 {isDragSource ? (
                   <div
-                    className="flex h-[15rem] w-[10.5rem] items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300/80 bg-neutral-50/60"
+                    className="flex h-[15rem] w-[10.5rem] items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300/80 bg-neutral-50/60 dark:border-neutral-600/80 dark:bg-neutral-800/60"
                     aria-hidden
                   />
                 ) : (

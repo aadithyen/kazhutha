@@ -19,7 +19,7 @@ export default function GameScreen() {
 
   return (
     <PlayerAvatarProvider>
-      <div className="flex min-h-dvh flex-col bg-white text-neutral-900">
+      <div className="flex min-h-dvh flex-col bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
         <PlayerBadges />
         <div className="flex min-h-0 flex-1 flex-col overflow-visible">
           <CenterPile />

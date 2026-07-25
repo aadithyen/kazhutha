@@ -1,5 +1,6 @@
 import type { HandSortMode } from "@kazhutha/shared";
 import { useEffect, useRef, useState } from "react";
+import type { ThemePreference } from "../../lib/theme";
 
 interface Props {
   sortMode: HandSortMode;
@@ -9,6 +10,8 @@ interface Props {
   showCountToggle: boolean;
   soundMuted: boolean;
   onSoundMutedChange: (muted: boolean) => void;
+  themePreference: ThemePreference;
+  onThemePreferenceChange: (theme: ThemePreference) => void;
 }
 
 function PreferencesIcon() {
@@ -23,6 +26,12 @@ function PreferencesIcon() {
   );
 }
 
+const THEME_LABELS: Record<ThemePreference, string> = {
+  light: "Light",
+  dark: "Dark",
+  system: "Auto",
+};
+
 export default function HandPreferences({
   sortMode,
   onSortModeChange,
@@ -31,6 +40,8 @@ export default function HandPreferences({
   showCountToggle,
   soundMuted,
   onSoundMutedChange,
+  themePreference,
+  onThemePreferenceChange,
 }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -60,7 +71,7 @@ export default function HandPreferences({
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400 transition-colors hover:text-neutral-700"
+        className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400 transition-colors hover:text-neutral-700 dark:text-neutral-500 dark:hover:text-neutral-200"
       >
         <PreferencesIcon />
       </button>
@@ -68,11 +79,37 @@ export default function HandPreferences({
         <div
           role="dialog"
           aria-label="Hand preferences"
-          className="absolute bottom-full right-0 z-30 mb-2 w-52 rounded-xl border border-neutral-200 bg-white p-3 shadow-lg"
+          className="absolute bottom-full right-0 z-30 mb-2 w-52 rounded-xl border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:shadow-black/40"
         >
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Arrangement</p>
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+            Appearance
+          </p>
           <div
-            className="mb-3 inline-flex w-full rounded-full border border-neutral-200 bg-neutral-50 p-0.5 text-[11px]"
+            className="mb-3 inline-flex w-full rounded-full border border-neutral-200 bg-neutral-50 p-0.5 text-[11px] dark:border-neutral-700 dark:bg-neutral-800"
+            role="group"
+            aria-label="Color theme"
+          >
+            {(["light", "dark", "system"] as const).map((theme) => (
+              <button
+                key={theme}
+                type="button"
+                onClick={() => onThemePreferenceChange(theme)}
+                aria-pressed={themePreference === theme}
+                className={`flex-1 rounded-full px-2 py-1 transition-colors ${
+                  themePreference === theme
+                    ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
+                    : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+                }`}
+              >
+                {THEME_LABELS[theme]}
+              </button>
+            ))}
+          </div>
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+            Arrangement
+          </p>
+          <div
+            className="mb-3 inline-flex w-full rounded-full border border-neutral-200 bg-neutral-50 p-0.5 text-[11px] dark:border-neutral-700 dark:bg-neutral-800"
             role="group"
             aria-label="Hand sort order"
           >
@@ -83,7 +120,9 @@ export default function HandPreferences({
                 onClick={() => onSortModeChange(mode)}
                 aria-pressed={sortMode === mode}
                 className={`flex-1 rounded-full px-2 py-1 capitalize transition-colors ${
-                  sortMode === mode ? "bg-neutral-900 text-white" : "text-neutral-600 hover:text-neutral-900"
+                  sortMode === mode
+                    ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
+                    : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
                 }`}
               >
                 {mode}
@@ -92,26 +131,30 @@ export default function HandPreferences({
           </div>
           {showCountToggle && (
             <>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Visibility</p>
-              <label className="mb-3 flex cursor-pointer items-center justify-between gap-3 text-sm text-neutral-700">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Visibility
+              </p>
+              <label className="mb-3 flex cursor-pointer items-center justify-between gap-3 text-sm text-neutral-700 dark:text-neutral-300">
                 <span>Show card count</span>
                 <input
                   type="checkbox"
                   checked={countVisible}
                   onChange={(e) => onCountVisibleChange(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400"
+                  className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400 dark:border-neutral-600 dark:bg-neutral-800 dark:focus:ring-neutral-500"
                 />
               </label>
             </>
           )}
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Audio</p>
-          <label className="flex cursor-pointer items-center justify-between gap-3 text-sm text-neutral-700">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+            Audio
+          </p>
+          <label className="flex cursor-pointer items-center justify-between gap-3 text-sm text-neutral-700 dark:text-neutral-300">
             <span>Sound effects</span>
             <input
               type="checkbox"
               checked={!soundMuted}
               onChange={(e) => onSoundMutedChange(!e.target.checked)}
-              className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400"
+              className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400 dark:border-neutral-600 dark:bg-neutral-800 dark:focus:ring-neutral-500"
             />
           </label>
         </div>
