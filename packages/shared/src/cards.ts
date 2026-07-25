@@ -46,3 +46,21 @@ export function isAceOfSpades(card: Card): boolean {
 export function compareRank(a: Card, b: Card): number {
   return a.rank - b.rank;
 }
+
+export type HandSortMode = "suit" | "value";
+
+function suitIndex(suit: Card["suit"]): number {
+  return SUITS.indexOf(suit);
+}
+
+/** Sort hand for display: by suit (then rank) or by value (then suit). */
+export function sortHand(cards: Card[], mode: HandSortMode): Card[] {
+  return [...cards].sort((a, b) => {
+    if (mode === "suit") {
+      const suitDiff = suitIndex(a.suit) - suitIndex(b.suit);
+      return suitDiff !== 0 ? suitDiff : a.rank - b.rank;
+    }
+    const rankDiff = a.rank - b.rank;
+    return rankDiff !== 0 ? rankDiff : suitIndex(a.suit) - suitIndex(b.suit);
+  });
+}
