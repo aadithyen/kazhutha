@@ -120,7 +120,7 @@ interface Props {
 
 export default function Hand({ sortMode }: Props) {
   const { state, client } = useRoom();
-  const { registerHandTarget, getPlaySlotTarget, setLocalFlyActive } = usePlayerAvatars();
+  const { registerHandTarget, getPlaySlotTarget, setLocalFlyActive, pileSettling } = usePlayerAvatars();
   const handTargetRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const [selected, setSelected] = useState<Card | null>(null);
@@ -155,6 +155,7 @@ export default function Hand({ sortMode }: Props) {
   const hand = useMemo(() => sortHand(rawHand, sortMode), [rawHand, sortMode]);
   const legalCards = getLegalCards(state, client.playerId);
   const myTurn = state.currentTurnId === client.playerId;
+  const canPlay = myTurn && !pileSettling;
 
   const fanWidth = useMemo(() => {
     const spread = Math.max(hand.length - 1, 0) * CARD_SPREAD;
@@ -350,7 +351,7 @@ export default function Hand({ sortMode }: Props) {
   );
 
   function tapCard(card: Card) {
-    if (!myTurn || overlay) return;
+    if (!canPlay || overlay) return;
     if (selected && isSameCard(selected, card)) {
       playCard(card);
     } else {
@@ -397,7 +398,7 @@ export default function Hand({ sortMode }: Props) {
     legal: boolean,
     angle: number,
   ) {
-    if (!legal || !myTurn || overlay) return;
+    if (!legal || !canPlay || overlay) return;
     const origin = rectCenter(e.currentTarget.getBoundingClientRect());
     const isSelected = !!selected && isSameCard(selected, card);
     dragRef.current = {
@@ -586,7 +587,7 @@ export default function Hand({ sortMode }: Props) {
         <div className="relative mx-auto h-full" style={{ width: fanWidth, minWidth: "100%" }}>
           {hand.map((card, i) => {
             const id = cardId(card);
-            const legal = myTurn && legalCards.some((c) => isSameCard(c, card));
+            const legal = canPlay && legalCards.some((c) => isSameCard(c, card));
             const isSelected = !!selected && isSameCard(selected, card);
             const isDragSource = dragId === id;
             const isPendingRemoval = pendingRemovalIds.has(id);
