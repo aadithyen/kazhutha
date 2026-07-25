@@ -2,16 +2,16 @@ import { getSoundMuted } from "./preferences";
 
 export type SoundEffect = "cardPlay" | "cardFold" | "vettuCollect";
 
-const SOUND_FILES: Record<SoundEffect, string> = {
-  cardPlay: "/sounds/card-play.ogg",
-  cardFold: "/sounds/card-fold.ogg",
-  vettuCollect: "/sounds/vettu-collect.ogg",
-};
+interface SoundConfig {
+  src: string;
+  volume: number;
+  playbackRate?: number;
+}
 
-const VOLUMES: Record<SoundEffect, number> = {
-  cardPlay: 0.35,
-  cardFold: 0.3,
-  vettuCollect: 0.45,
+const SOUNDS: Record<SoundEffect, SoundConfig> = {
+  cardPlay: { src: "/sounds/card-play.ogg", volume: 0.24, playbackRate: 0.95 },
+  cardFold: { src: "/sounds/card-fold.ogg", volume: 0.18, playbackRate: 0.72 },
+  vettuCollect: { src: "/sounds/vettu-collect.ogg", volume: 0.45 },
 };
 
 const templates = new Map<SoundEffect, HTMLAudioElement>();
@@ -19,7 +19,7 @@ const templates = new Map<SoundEffect, HTMLAudioElement>();
 function getTemplate(id: SoundEffect): HTMLAudioElement {
   let template = templates.get(id);
   if (!template) {
-    template = new Audio(SOUND_FILES[id]);
+    template = new Audio(SOUNDS[id].src);
     template.preload = "auto";
     templates.set(id, template);
   }
@@ -27,14 +27,16 @@ function getTemplate(id: SoundEffect): HTMLAudioElement {
 }
 
 export function preloadSounds() {
-  (Object.keys(SOUND_FILES) as SoundEffect[]).forEach((id) => {
+  (Object.keys(SOUNDS) as SoundEffect[]).forEach((id) => {
     getTemplate(id).load();
   });
 }
 
 export function playSound(id: SoundEffect) {
   if (getSoundMuted()) return;
+  const config = SOUNDS[id];
   const audio = getTemplate(id).cloneNode(true) as HTMLAudioElement;
-  audio.volume = VOLUMES[id];
+  audio.volume = config.volume;
+  audio.playbackRate = config.playbackRate ?? 1;
   void audio.play().catch(() => {});
 }
