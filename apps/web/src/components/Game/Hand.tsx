@@ -95,17 +95,18 @@ export default function Hand() {
     [client],
   );
 
-  function handleTap(card: Card) {
-    if (suppressClickRef.current) {
-      suppressClickRef.current = false;
-      return;
-    }
+  function tapCard(card: Card) {
     if (!myTurn || flying) return;
     if (selected && isSameCard(selected, card)) {
       playCard(card);
     } else {
       setSelected(card);
     }
+  }
+
+  function handleClick(card: Card) {
+    if (suppressClickRef.current) return;
+    tapCard(card);
   }
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, card: Card, legal: boolean) {
@@ -142,14 +143,24 @@ export default function Hand() {
     const d = dragRef.current;
     if (!d) return;
     dragRef.current = null;
-    if (d.moved) {
-      suppressClickRef.current = true;
+    // Pointer capture retargets the derived click event to the wrapper, so the
+    // card button's onClick never fires; handle both tap and swipe here and
+    // swallow any click that does slip through.
+    suppressClickRef.current = true;
+    window.setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 0);
+    if (cancelled) {
+      setDrag(null);
+      return;
     }
     const dy = e.clientY - d.startY;
-    const shouldPlay =
-      !cancelled && (dy <= -SWIPE_DISTANCE || (dy <= -24 && d.velocity <= -SWIPE_VELOCITY));
+    const shouldPlay = dy <= -SWIPE_DISTANCE || (dy <= -24 && d.velocity <= -SWIPE_VELOCITY);
     if (shouldPlay) {
       playCard(d.card);
+    } else if (!d.moved) {
+      setDrag(null);
+      tapCard(d.card);
     } else {
       setDrag(null);
     }
@@ -201,7 +212,7 @@ export default function Hand() {
                   card={card}
                   selected={isSelected}
                   disabled={!legal}
-                  onClick={legal ? () => handleTap(card) : undefined}
+                  onClick={legal ? () => handleClick(card) : undefined}
                   size="lg"
                 />
               </div>
