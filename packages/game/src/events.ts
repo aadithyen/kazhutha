@@ -100,6 +100,25 @@ export interface StateSnapshotEvent {
   state: GameState;
 }
 
+export interface ActingHostElectedEvent {
+  type: "ActingHostElected";
+  actingHostId: string;
+}
+
+export interface ActingHostReleasedEvent {
+  type: "ActingHostReleased";
+}
+
+export interface HostSuccessorAssignedEvent {
+  type: "HostSuccessorAssigned";
+  successorHostId: string;
+}
+
+export interface HostTransferredEvent {
+  type: "HostTransferred";
+  newHostId: string;
+}
+
 export type GameEvent =
   | RoomCreatedEvent
   | PlayerJoinedEvent
@@ -118,7 +137,11 @@ export type GameEvent =
   | PlayerExitedEvent
   | GameFinishedEvent
   | CardCountVisibilityChangedEvent
-  | StateSnapshotEvent;
+  | StateSnapshotEvent
+  | ActingHostElectedEvent
+  | ActingHostReleasedEvent
+  | HostSuccessorAssignedEvent
+  | HostTransferredEvent;
 
 export type GameEventType = GameEvent["type"];
 

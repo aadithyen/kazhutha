@@ -193,6 +193,24 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
     case "StateSnapshot":
       return event.state;
 
+    case "ActingHostElected":
+      return { ...state, actingHostId: event.actingHostId };
+
+    case "ActingHostReleased":
+      return { ...state, actingHostId: null };
+
+    case "HostSuccessorAssigned":
+      return { ...state, successorHostId: event.successorHostId };
+
+    case "HostTransferred":
+      return {
+        ...state,
+        hostId: event.newHostId,
+        actingHostId: null,
+        successorHostId: null,
+        players: state.players.map((p) => ({ ...p, isHost: p.id === event.newHostId })),
+      };
+
     default:
       return state;
   }
