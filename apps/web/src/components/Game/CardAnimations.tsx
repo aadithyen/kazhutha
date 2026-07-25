@@ -109,7 +109,6 @@ export default function CardAnimations({
   const lastPositionsRef = useRef<Map<string, DOMRect>>(new Map());
   const pendingPlayInRef = useRef<PlayedCard[]>([]);
   const processedRoundAtRef = useRef<number | null>(null);
-  const pendingVettuAtRef = useRef<number | null>(null);
   const lingerTimerRef = useRef<number | null>(null);
 
   function syncPileSettling(nextLinger: PlayedCard[], nextFlying: FlyingCard[]) {
@@ -213,13 +212,14 @@ export default function CardAnimations({
     setLingerPile(result.pile);
     syncPileSettling(result.pile, flying);
 
-    if (result.kind === "normal") {
-      const roundAt = result.at;
-      const pileForFold = result.pile;
-      lingerTimerRef.current = window.setTimeout(() => {
-        lingerTimerRef.current = null;
-        const items = buildFoldItems(pileForFold, roundAt);
-        setLingerPile([]);
+    const roundAt = result.at;
+    const pileSnapshot = result.pile;
+    lingerTimerRef.current = window.setTimeout(() => {
+      lingerTimerRef.current = null;
+      setLingerPile([]);
+
+      if (result.kind === "normal") {
+        const items = buildFoldItems(pileSnapshot, roundAt);
         syncPileSettling([], items);
         if (items.length > 0) {
           playSound("cardFold");
@@ -231,37 +231,25 @@ export default function CardAnimations({
         } else {
           setPileSettling(false);
         }
-      }, ROUND_LINGER_MS);
-      return;
-    }
+        return;
+      }
 
-    if (result.kind === "vettu" && result.collectorId) {
-      pendingVettuAtRef.current = result.at;
-    }
+      if (result.kind === "vettu" && result.collectorId) {
+        const items = buildCollectItems(result);
+        syncPileSettling([], items);
+        if (items.length > 0) {
+          playSound("vettuCollect");
+          setFlying((f) => {
+            const next = [...f, ...items];
+            syncPileSettling([], next);
+            return next;
+          });
+        } else {
+          setPileSettling(false);
+        }
+      }
+    }, ROUND_LINGER_MS);
   }, [state.centerPile, state.lastRoundResult, setHiddenPileKeys, setLingerPile]);
-
-  useLayoutEffect(() => {
-    const pendingAt = pendingVettuAtRef.current;
-    if (pendingAt === null || lingerPile.length === 0) return;
-
-    const result = state.lastRoundResult;
-    if (!result || result.at !== pendingAt || result.kind !== "vettu" || !result.collectorId) return;
-
-    pendingVettuAtRef.current = null;
-    const items = buildCollectItems(result);
-    setLingerPile([]);
-    syncPileSettling([], items);
-    if (items.length > 0) {
-      playSound("vettuCollect");
-      setFlying((f) => {
-        const next = [...f, ...items];
-        syncPileSettling([], next);
-        return next;
-      });
-    } else {
-      setPileSettling(false);
-    }
-  }, [lingerPile, state.lastRoundResult, client.playerId, getAvatarCenter, getHandTarget, getPileTarget, setLingerPile, setPileSettling]);
 
   useEffect(() => {
     const prev = prevPileRef.current;
@@ -273,7 +261,6 @@ export default function CardAnimations({
 
     if (curr.length > 0) {
       setLingerPile([]);
-      pendingVettuAtRef.current = null;
       setPileSettling(false);
       if (lingerTimerRef.current !== null) {
         window.clearTimeout(lingerTimerRef.current);
