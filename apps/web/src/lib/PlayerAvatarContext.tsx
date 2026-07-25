@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useCallback, useContext, useMemo, useRef } from "react";
+import { createContext, ReactNode, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 interface Point {
   x: number;
@@ -9,9 +9,13 @@ interface PlayerAvatarContextValue {
   registerAvatar: (playerId: string, el: HTMLElement | null) => void;
   registerHandTarget: (el: HTMLElement | null) => void;
   registerPileTarget: (el: HTMLElement | null) => void;
+  registerPlaySlotTarget: (el: HTMLElement | null) => void;
+  setLocalFlyActive: (active: boolean) => void;
+  localFlyActive: boolean;
   getAvatarCenter: (playerId: string) => Point | null;
   getHandTarget: () => Point | null;
   getPileTarget: () => Point | null;
+  getPlaySlotTarget: () => Point | null;
 }
 
 const PlayerAvatarContext = createContext<PlayerAvatarContextValue | null>(null);
@@ -20,6 +24,12 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
   const avatarsRef = useRef(new Map<string, HTMLElement>());
   const handTargetRef = useRef<HTMLElement | null>(null);
   const pileTargetRef = useRef<HTMLElement | null>(null);
+  const playSlotTargetRef = useRef<HTMLElement | null>(null);
+  const [localFlyActive, setLocalFlyActiveState] = useState(false);
+
+  const setLocalFlyActive = useCallback((active: boolean) => {
+    setLocalFlyActiveState(active);
+  }, []);
 
   const registerAvatar = useCallback((playerId: string, el: HTMLElement | null) => {
     if (el) avatarsRef.current.set(playerId, el);
@@ -32,6 +42,10 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
 
   const registerPileTarget = useCallback((el: HTMLElement | null) => {
     pileTargetRef.current = el;
+  }, []);
+
+  const registerPlaySlotTarget = useCallback((el: HTMLElement | null) => {
+    playSlotTargetRef.current = el;
   }, []);
 
   const getAvatarCenter = useCallback((playerId: string): Point | null => {
@@ -59,16 +73,38 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   }, []);
 
+  const getPlaySlotTarget = useCallback((): Point | null => {
+    const el = playSlotTargetRef.current;
+    if (!el) return getPileTarget();
+    const rect = el.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }, [getPileTarget]);
+
   const value = useMemo(
     () => ({
       registerAvatar,
       registerHandTarget,
       registerPileTarget,
+      registerPlaySlotTarget,
+      setLocalFlyActive,
+      localFlyActive,
       getAvatarCenter,
       getHandTarget,
       getPileTarget,
+      getPlaySlotTarget,
     }),
-    [registerAvatar, registerHandTarget, registerPileTarget, getAvatarCenter, getHandTarget, getPileTarget],
+    [
+      registerAvatar,
+      registerHandTarget,
+      registerPileTarget,
+      registerPlaySlotTarget,
+      setLocalFlyActive,
+      localFlyActive,
+      getAvatarCenter,
+      getHandTarget,
+      getPileTarget,
+      getPlaySlotTarget,
+    ],
   );
 
   return <PlayerAvatarContext.Provider value={value}>{children}</PlayerAvatarContext.Provider>;
