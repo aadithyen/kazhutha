@@ -9,8 +9,9 @@ interface Props {
   isTurn?: boolean;
   isFinished?: boolean;
   dimmed?: boolean;
-  countRevealed?: boolean;
+  showHandCount?: boolean;
   handCount?: number;
+  finishRank?: number;
 }
 
 export default function PlayerAvatar({
@@ -20,8 +21,9 @@ export default function PlayerAvatar({
   isTurn = false,
   isFinished = false,
   dimmed = false,
-  countRevealed = false,
+  showHandCount = false,
   handCount,
+  finishRank,
 }: Props) {
   const { registerAvatar } = usePlayerAvatars();
   const ref = useRef<HTMLDivElement>(null);
@@ -35,7 +37,9 @@ export default function PlayerAvatar({
   }, [playerId, registerAvatar]);
 
   const sizeClass = size === "sm" ? "h-9 w-9 text-xs" : "h-11 w-11 text-sm";
-  const badgeSizeClass = size === "sm" ? "h-4 min-w-4 text-[9px]" : "h-5 min-w-5 text-[10px]";
+  const badgeSizeClass = size === "sm" ? "h-4 text-[9px]" : "h-5 text-[10px]";
+  const showWinBadge = isFinished && finishRank !== undefined;
+  const showCountBadge = !showWinBadge && showHandCount && handCount !== undefined;
 
   return (
     <div className="relative shrink-0">
@@ -53,9 +57,17 @@ export default function PlayerAvatar({
       >
         {initials}
       </div>
-      {countRevealed && handCount !== undefined && (
+      {showWinBadge && (
         <span
-          className={`absolute -right-0.5 -top-0.5 flex items-center justify-center rounded-full bg-white px-0.5 font-sans font-semibold leading-none text-neutral-700 shadow-[0_1px_4px_rgba(15,23,42,0.18)] ${badgeSizeClass}`}
+          className={`absolute -right-1 -top-1 flex items-center justify-center rounded-full bg-emerald-600 px-1.5 font-sans font-semibold leading-none text-white shadow-[0_1px_4px_rgba(15,23,42,0.18)] ${badgeSizeClass}`}
+          aria-label={`Finished #${finishRank}`}
+        >
+          #{finishRank}
+        </span>
+      )}
+      {showCountBadge && (
+        <span
+          className={`absolute -right-0.5 -top-0.5 flex min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 font-sans font-semibold leading-none text-neutral-700 shadow-[0_1px_4px_rgba(15,23,42,0.18)] ${badgeSizeClass}`}
           aria-label={`${handCount} cards`}
         >
           {handCount}

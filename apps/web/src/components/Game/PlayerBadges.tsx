@@ -1,21 +1,6 @@
 import { useRoom } from "../../lib/RoomContext";
 import PlayerAvatar from "./PlayerAvatar";
 
-function handStatus(
-  id: string,
-  clientPlayerId: string,
-  handCount: number,
-  cardCountVisible: Record<string, boolean>,
-  isKazhutha: boolean,
-  isFinished: boolean,
-  finishedIndex: number,
-): string {
-  if (isKazhutha) return "🐴 Kazhutha";
-  if (isFinished) return `Out #${finishedIndex + 1}`;
-  if (id === clientPlayerId || cardCountVisible[id]) return `${handCount} cards`;
-  return "Hidden";
-}
-
 export default function PlayerBadges() {
   const { state, client } = useRoom();
   const order = state.turnOrder.length > 0 ? state.turnOrder : state.players.map((p) => p.id);
@@ -28,10 +13,9 @@ export default function PlayerBadges() {
         const isTurn = state.currentTurnId === id;
         const finishedIndex = state.finishedPlayers.indexOf(id);
         const isFinished = finishedIndex !== -1;
-        const isKazhutha = state.kazhuthaId === id;
         const handCount = state.hands[id]?.length ?? 0;
-        const countRevealed = state.cardCountVisible[id] ?? false;
-        const status = handStatus(id, client.playerId, handCount, state.cardCountVisible, isKazhutha, isFinished, finishedIndex);
+        const countVisibleToOthers = state.cardCountVisible[id] ?? false;
+        const showHandCount = !isFinished && (isMe || countVisibleToOthers);
 
         return (
           <div key={id} className="flex min-w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
@@ -40,14 +24,14 @@ export default function PlayerBadges() {
               name={player.name}
               isTurn={isTurn && !isFinished}
               isFinished={isFinished}
-              countRevealed={countRevealed}
+              showHandCount={showHandCount}
               handCount={handCount}
+              finishRank={isFinished ? finishedIndex + 1 : undefined}
             />
             <span className="max-w-[72px] truncate text-[11px] font-medium text-neutral-800">
               {player.name}
               {isMe ? " (you)" : ""}
             </span>
-            <span className="text-[10px] leading-tight text-neutral-500">{status}</span>
             {!player.connected && <span className="text-[10px] text-rose-500">offline</span>}
           </div>
         );
