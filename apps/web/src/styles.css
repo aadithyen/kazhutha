@@ -2,6 +2,7 @@
 
 @theme {
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
 }
 
 html,
@@ -18,4 +19,13 @@ body {
 
 * {
   -webkit-tap-highlight-color: transparent;
+}
+
+.hand-fan-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hand-fan-scroll::-webkit-scrollbar {
+  display: none;
 }
