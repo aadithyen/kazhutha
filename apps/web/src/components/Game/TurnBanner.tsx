@@ -16,7 +16,7 @@ export default function TurnBanner({ sortMode, onSortModeChange }: Props) {
   const { themePreference, changeThemePreference } = useThemePreference();
   const turnPlayer = state.players.find((p) => p.id === state.currentTurnId);
   const isMyTurn = state.currentTurnId === client.playerId;
-  const myCountVisible = state.cardCountVisible[client.playerId] ?? false;
+  const myCountVisible = state.cardCountVisible[client.playerId] ?? true;
   const showCountToggle = state.phase === "playing" && !state.finishedPlayers.includes(client.playerId);
 
   function changeCountVisible(visible: boolean) {

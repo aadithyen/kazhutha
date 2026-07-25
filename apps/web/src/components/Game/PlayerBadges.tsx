@@ -14,7 +14,7 @@ export default function PlayerBadges() {
         const finishedIndex = state.finishedPlayers.indexOf(id);
         const isFinished = finishedIndex !== -1;
         const handCount = state.hands[id]?.length ?? 0;
-        const countVisibleToOthers = state.cardCountVisible[id] ?? false;
+        const countVisibleToOthers = state.cardCountVisible[id] ?? true;
         const showHandCount = !isFinished && (isMe || countVisibleToOthers);
 
         return (

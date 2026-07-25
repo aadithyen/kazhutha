@@ -42,7 +42,7 @@ export interface GameState {
   kazhuthaId: string | null;
   seed: number | null;
   lastRoundResult: LastRoundResult | null;
-  /** When false, other players see this player's hand size as hidden. Own count always visible locally. */
+  /** When true (default), other players see this player's hand size. Per-game; resets each GameStarted. */
   cardCountVisible: Record<string, boolean>;
   eventLog: GameEvent[];
 }
