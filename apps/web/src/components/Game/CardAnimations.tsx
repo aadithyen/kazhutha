@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { estimatePileCardRect, rectCenter } from "../../lib/cardLayout";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
+import { playSound } from "../../lib/sounds";
 import PlayingCard from "../PlayingCard";
 
 const FLY_DURATION_MS = 420;
@@ -209,6 +210,7 @@ export default function CardAnimations({
         const items = buildFoldItems(pileForFold, roundAt);
         setLingerPile([]);
         if (items.length > 0) {
+          playSound("cardFold");
           setFlying((f) => [...f, ...items]);
         }
       }, ROUND_LINGER_MS);
@@ -231,6 +233,7 @@ export default function CardAnimations({
     const items = buildCollectItems(result);
     setLingerPile([]);
     if (items.length > 0) {
+      playSound("vettuCollect");
       setFlying((f) => [...f, ...items]);
     }
   }, [lingerPile, state.lastRoundResult, client.playerId, getAvatarCenter, getHandTarget, getPileTarget, setLingerPile]);
@@ -298,6 +301,7 @@ export default function CardAnimations({
       addHiddenKeys(hiddenKeys);
     }
     if (items.length > 0) {
+      playSound("cardPlay");
       setFlying((f) => [...f, ...items]);
     }
   }, [state.centerPile, client.playerId, getAvatarCenter, pileCardRefs]);

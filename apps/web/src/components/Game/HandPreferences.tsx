@@ -7,6 +7,8 @@ interface Props {
   countVisible: boolean;
   onCountVisibleChange: (visible: boolean) => void;
   showCountToggle: boolean;
+  soundMuted: boolean;
+  onSoundMutedChange: (muted: boolean) => void;
 }
 
 function PreferencesIcon() {
@@ -27,6 +29,8 @@ export default function HandPreferences({
   countVisible,
   onCountVisibleChange,
   showCountToggle,
+  soundMuted,
+  onSoundMutedChange,
 }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -89,7 +93,7 @@ export default function HandPreferences({
           {showCountToggle && (
             <>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Visibility</p>
-              <label className="flex cursor-pointer items-center justify-between gap-3 text-sm text-neutral-700">
+              <label className="mb-3 flex cursor-pointer items-center justify-between gap-3 text-sm text-neutral-700">
                 <span>Show card count</span>
                 <input
                   type="checkbox"
@@ -100,6 +104,16 @@ export default function HandPreferences({
               </label>
             </>
           )}
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Audio</p>
+          <label className="flex cursor-pointer items-center justify-between gap-3 text-sm text-neutral-700">
+            <span>Sound effects</span>
+            <input
+              type="checkbox"
+              checked={!soundMuted}
+              onChange={(e) => onSoundMutedChange(!e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400"
+            />
+          </label>
         </div>
       )}
     </div>
