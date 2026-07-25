@@ -12,7 +12,7 @@ interface Props {
 
 const SIZE_CLASSES: Record<
   NonNullable<Props["size"]>,
-  { box: string; corner: string; cornerSuit: string; pip: string; center: string; faceRank: string }
+  { box: string; corner: string; cornerSuit: string; pip: string; center: string }
 > = {
   sm: {
     box: "h-[4.5rem] w-12 rounded-lg",
@@ -20,7 +20,6 @@ const SIZE_CLASSES: Record<
     cornerSuit: "text-[9px]",
     pip: "text-[9px]",
     center: "text-xl",
-    faceRank: "text-lg",
   },
   md: {
     box: "h-[6.75rem] w-[4.75rem] rounded-xl",
@@ -28,7 +27,6 @@ const SIZE_CLASSES: Record<
     cornerSuit: "text-xs",
     pip: "text-sm",
     center: "text-4xl",
-    faceRank: "text-3xl",
   },
   lg: {
     box: "h-[10rem] w-[7rem] rounded-2xl",
@@ -36,7 +34,6 @@ const SIZE_CLASSES: Record<
     cornerSuit: "text-base",
     pip: "text-xl",
     center: "text-6xl",
-    faceRank: "text-5xl",
   },
 };
 
