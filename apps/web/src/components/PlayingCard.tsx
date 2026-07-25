@@ -1,4 +1,5 @@
 import { Card, Rank, rankLabel, SUIT_COLOR, SUIT_SYMBOLS } from "@kazhutha/shared";
+import CourtCardArt from "./CourtCardArt";
 
 interface Props {
   card?: Card;
@@ -132,11 +133,11 @@ function CardFace({ card, dims }: { card: Card; dims: (typeof SIZE_CLASSES)["md"
     );
   }
 
-  if (card.rank >= 11) {
+  if (card.rank >= 11 && card.rank <= 13) {
     return (
-      <span className="pointer-events-none absolute inset-[16%] flex flex-col items-center justify-center rounded border border-current/30 leading-none">
-        <span className={`${dims.faceRank} font-serif font-semibold`}>{rankLabel(card.rank)}</span>
-        <span className={dims.cornerSuit}>{symbol}</span>
+      <span className="pointer-events-none absolute inset-[12%] flex flex-col items-center justify-center rounded border border-current/25 leading-none">
+        <CourtCardArt rank={card.rank as 11 | 12 | 13} className="h-[72%] w-[72%]" />
+        <span className={`${dims.cornerSuit} mt-0.5 opacity-80`}>{symbol}</span>
       </span>
     );
   }
@@ -188,7 +189,7 @@ export default function PlayingCard({ card, faceDown, selected, disabled, onClic
           : interactive
             ? "hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(15,23,42,0.12)]"
             : ""
-      } ${disabled ? "opacity-35" : interactive ? "active:scale-[0.98]" : ""}`}
+      } ${disabled ? "brightness-[0.58] saturate-[0.45]" : interactive ? "active:scale-[0.98]" : ""}`}
     >
       <span className="pointer-events-none absolute left-1.5 top-1.5 flex flex-col items-center leading-none">
         <span className={`${dims.corner} font-semibold`}>{rankLabel(card.rank)}</span>
