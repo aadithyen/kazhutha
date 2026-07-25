@@ -13,6 +13,21 @@ export function rectCenter(rect: DOMRect): Point {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
 
+const PILE_CARD_GAP = 12;
+
+/** Fallback center when batched events skip rendering a pile card before round end. */
+export function estimatePileCardCenter(index: number, total: number, pileCenter: Point): Point {
+  const step = CARD_MD.width + PILE_CARD_GAP;
+  const span = total * step - PILE_CARD_GAP;
+  const startX = pileCenter.x - span / 2 + CARD_MD.width / 2;
+  return { x: startX + index * step, y: pileCenter.y };
+}
+
+export function estimatePileCardRect(index: number, total: number, pileCenter: Point): DOMRect {
+  const center = estimatePileCardCenter(index, total, pileCenter);
+  return new DOMRect(center.x - CARD_MD.width / 2, center.y - CARD_MD.height / 2, CARD_MD.width, CARD_MD.height);
+}
+
 export function unitVectorToPile(from: Point, pile: Point): Point {
   const dx = pile.x - from.x;
   const dy = pile.y - from.y;
