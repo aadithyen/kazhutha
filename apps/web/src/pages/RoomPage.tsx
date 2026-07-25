@@ -40,11 +40,11 @@ function NameGate({ onDone }: { onDone: () => void }) {
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
           maxLength={24}
-          className="w-full rounded-xl bg-neutral-50 px-4 py-3 font-serif text-base italic outline-none ring-1 ring-neutral-200 focus:ring-neutral-400"
+          className="w-full rounded-xl bg-neutral-50 px-4 py-3 text-base outline-none ring-1 ring-neutral-200 focus:ring-neutral-400"
         />
         <button
           type="submit"
-          className="mt-3 w-full rounded-xl bg-neutral-900 px-4 py-3 font-serif text-base font-semibold not-italic text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)] active:scale-[0.98]"
+          className="mt-3 w-full rounded-xl bg-neutral-900 px-4 py-3 text-base font-semibold text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)] active:scale-[0.98]"
         >
           Continue
         </button>
