@@ -4,3 +4,10 @@ packages:
 
 onlyBuiltDependencies:
   - esbuild
+
+# pnpm 11 defaults this to 1440 (reject anything published < 24h ago), which
+# makes frozen-lockfile installs non-deterministic as transitive deps get
+# patch-bumped. We pin the pnpm version via "packageManager" in package.json
+# (where the default is 0/off) — this is belt-and-suspenders in case that
+# pin is ever bypassed.
+minimumReleaseAge: 0
