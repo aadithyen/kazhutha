@@ -26,11 +26,11 @@ export default function PlayerBadges() {
         if (!player) return null;
         const isMe = id === client.playerId;
         const isTurn = state.currentTurnId === id;
-        const isLeader = state.leaderId === id;
         const finishedIndex = state.finishedPlayers.indexOf(id);
         const isFinished = finishedIndex !== -1;
         const isKazhutha = state.kazhuthaId === id;
         const handCount = state.hands[id]?.length ?? 0;
+        const countRevealed = state.cardCountVisible[id] ?? false;
         const status = handStatus(id, client.playerId, handCount, state.cardCountVisible, isKazhutha, isFinished, finishedIndex);
 
         return (
@@ -40,13 +40,14 @@ export default function PlayerBadges() {
               name={player.name}
               isTurn={isTurn && !isFinished}
               isFinished={isFinished}
+              countRevealed={countRevealed}
+              handCount={handCount}
             />
             <span className="max-w-[72px] truncate text-[11px] font-medium text-neutral-800">
               {player.name}
               {isMe ? " (you)" : ""}
             </span>
             <span className="text-[10px] leading-tight text-neutral-500">{status}</span>
-            {isLeader && !isFinished && <span className="text-[10px] font-medium text-neutral-600">Leader</span>}
             {!player.connected && <span className="text-[10px] text-rose-500">offline</span>}
           </div>
         );

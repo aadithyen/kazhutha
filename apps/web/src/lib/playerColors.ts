@@ -1,21 +1,21 @@
 export interface PlayerColor {
-  bg: string;
+  border: string;
   text: string;
   ring: string;
 }
 
-/** Bright accent colors — no pure red/blue/yellow primaries; fits neutral + rose theme. */
+/** Pastel accents for white backgrounds — soft borders with readable initials. */
 const PLAYER_COLORS: PlayerColor[] = [
-  { bg: "#14b8a6", text: "#ffffff", ring: "#0d9488" },
-  { bg: "#8b5cf6", text: "#ffffff", ring: "#7c3aed" },
-  { bg: "#f472b6", text: "#ffffff", ring: "#ec4899" },
-  { bg: "#34d399", text: "#064e3b", ring: "#10b981" },
-  { bg: "#fb923c", text: "#ffffff", ring: "#f97316" },
-  { bg: "#38bdf8", text: "#0c4a6e", ring: "#0ea5e9" },
-  { bg: "#a78bfa", text: "#ffffff", ring: "#8b5cf6" },
-  { bg: "#2dd4bf", text: "#134e4a", ring: "#14b8a6" },
-  { bg: "#fbbf24", text: "#78350f", ring: "#f59e0b" },
-  { bg: "#e879f9", text: "#ffffff", ring: "#d946ef" },
+  { border: "#7ecfc0", text: "#2d6a5f", ring: "#5bb8a8" },
+  { border: "#c4b5fd", text: "#5b4b8a", ring: "#a78bfa" },
+  { border: "#f9a8d4", text: "#9d3b6e", ring: "#f472b6" },
+  { border: "#86efac", text: "#2f6b45", ring: "#4ade80" },
+  { border: "#fdba74", text: "#9a4a12", ring: "#fb923c" },
+  { border: "#7dd3fc", text: "#1e5f7a", ring: "#38bdf8" },
+  { border: "#d8b4fe", text: "#6b3f8f", ring: "#c084fc" },
+  { border: "#5eead4", text: "#1f6b62", ring: "#2dd4bf" },
+  { border: "#fde68a", text: "#8a6b1a", ring: "#fbbf24" },
+  { border: "#f0abfc", text: "#8a3b8f", ring: "#e879f9" },
 ];
 
 function hashPlayerId(id: string): number {
