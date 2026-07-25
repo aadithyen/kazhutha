@@ -41,12 +41,11 @@ export default function PlayerAvatar({
     <div className="relative shrink-0">
       <div
         ref={ref}
-        className={`flex items-center justify-center rounded-full border-2 bg-white font-serif italic transition-all duration-200 ${sizeClass} ${
+        className={`flex items-center justify-center rounded-full border-2 bg-white font-serif italic text-neutral-800 transition-all duration-200 ${sizeClass} ${
           dim ? "opacity-45" : ""
         }`}
         style={{
           borderColor: color.border,
-          color: color.text,
           boxShadow: isTurn ? `0 0 0 2px #ffffff, 0 0 0 4px ${color.ring}` : undefined,
         }}
         title={name}
