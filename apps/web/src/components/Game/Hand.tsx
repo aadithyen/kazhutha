@@ -1,7 +1,8 @@
-import { Card, isSameCard } from "@kazhutha/shared";
+import { Card, cardId, HandSortMode, isSameCard, sortHand } from "@kazhutha/shared";
 import { getLegalCards } from "@kazhutha/game";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
+import { getHandSortMode, storeHandSortMode } from "../../lib/preferences";
 import { useRoom } from "../../lib/RoomContext";
 import PlayingCard from "../PlayingCard";
 
@@ -26,10 +27,6 @@ function fanLift(angle: number): number {
   return Math.abs(angle) * 0.35;
 }
 
-function cardId(card: Card): string {
-  return `${card.suit}${card.rank}`;
-}
-
 export default function Hand() {
   const { state, client } = useRoom();
   const { registerHandTarget } = usePlayerAvatars();
@@ -49,9 +46,16 @@ export default function Hand() {
     moved: boolean;
   } | null>(null);
   const suppressClickRef = useRef(false);
-  const hand = state.hands[client.playerId] ?? [];
+  const [sortMode, setSortMode] = useState<HandSortMode>(() => getHandSortMode());
+  const rawHand = state.hands[client.playerId] ?? [];
+  const hand = useMemo(() => sortHand(rawHand, sortMode), [rawHand, sortMode]);
   const legalCards = getLegalCards(state, client.playerId);
   const myTurn = state.currentTurnId === client.playerId;
+
+  function changeSortMode(mode: HandSortMode) {
+    setSortMode(mode);
+    storeHandSortMode(mode);
+  }
 
   const fanWidth = useMemo(() => {
     const spread = Math.max(hand.length - 1, 0) * CARD_SPREAD;
@@ -180,6 +184,29 @@ export default function Hand() {
 
   return (
     <section className="relative h-[45vh] min-h-52 shrink-0 bg-white">
+      <div className="absolute inset-x-0 top-2 z-10 flex justify-center">
+        <div
+          className="inline-flex rounded-full border border-neutral-200 bg-white/90 p-0.5 text-[11px] shadow-sm backdrop-blur-sm"
+          role="group"
+          aria-label="Hand sort order"
+        >
+          {(["suit", "value"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => changeSortMode(mode)}
+              aria-pressed={sortMode === mode}
+              className={`rounded-full px-3 py-1 capitalize transition-colors ${
+                sortMode === mode
+                  ? "bg-neutral-900 text-white"
+                  : "text-neutral-600 hover:text-neutral-900"
+              }`}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+      </div>
       <div ref={handTargetRef} className="pointer-events-none absolute inset-x-0 top-8 h-1" aria-hidden />
       <div
         ref={scrollRef}
