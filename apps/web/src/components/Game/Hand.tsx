@@ -1,5 +1,5 @@
 import { Card, cardId, HandSortMode, isSameCard, sortHand } from "@kazhutha/shared";
-import { getLegalCards } from "@kazhutha/game";
+import { getLegalCards, isLeadPlay } from "@kazhutha/game";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -50,6 +50,69 @@ function fanLift(angle: number): number {
   return Math.abs(angle) * 0.35;
 }
 
+function cardCenterX(index: number, handLen: number, fanWidth: number): number {
+  const center = (handLen - 1) / 2;
+  return fanWidth / 2 + (index - center) * CARD_SPREAD;
+}
+
+function isCardIndexVisible(
+  scrollEl: HTMLDivElement,
+  index: number,
+  handLen: number,
+  fanWidth: number,
+): boolean {
+  const cx = cardCenterX(index, handLen, fanWidth);
+  const pad = CARD_WIDTH * 0.3;
+  const viewLeft = scrollEl.scrollLeft;
+  const viewRight = scrollEl.scrollLeft + scrollEl.clientWidth;
+  return cx >= viewLeft + pad && cx <= viewRight - pad;
+}
+
+function scrollToCardIndex(
+  scrollEl: HTMLDivElement,
+  index: number,
+  handLen: number,
+  fanWidth: number,
+): void {
+  const cx = cardCenterX(index, handLen, fanWidth);
+  const max = scrollEl.scrollWidth - scrollEl.clientWidth;
+  scrollEl.scrollLeft = Math.max(0, Math.min(max, cx - scrollEl.clientWidth / 2));
+}
+
+function pickAutoScrollIndex(
+  hand: Card[],
+  legalCards: Card[],
+  sortMode: HandSortMode,
+  leadSuit: Card["suit"] | null | undefined,
+  leading: boolean,
+): number {
+  if (legalCards.length === 0) return -1;
+
+  const legalIds = new Set(legalCards.map(cardId));
+  const hasLeadSuit = !!leadSuit && legalCards.some((c) => c.suit === leadSuit);
+
+  if (sortMode === "suit") {
+    if (hasLeadSuit && !leading) {
+      const suitIdx = hand.findIndex((c) => c.suit === leadSuit);
+      if (suitIdx >= 0) return suitIdx;
+    }
+    return hand.findIndex((c) => legalIds.has(cardId(c)));
+  }
+
+  let bestIdx = -1;
+  let bestRank = -1;
+  for (let i = 0; i < hand.length; i++) {
+    const c = hand[i];
+    if (!legalIds.has(cardId(c))) continue;
+    if (hasLeadSuit && !leading && c.suit !== leadSuit) continue;
+    if (c.rank > bestRank) {
+      bestRank = c.rank;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
 interface Props {
   sortMode: HandSortMode;
 }
@@ -68,6 +131,7 @@ export default function Hand({ sortMode }: Props) {
   const [pendingRemovalIds, setPendingRemovalIds] = useState<Set<string>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollEndTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const autoScrollKeyRef = useRef<string | null>(null);
   const dragRef = useRef<{
     id: string;
     card: Card;
@@ -123,7 +187,59 @@ export default function Hand({ sortMode }: Props) {
     const max = el.scrollWidth - el.clientWidth;
     el.scrollLeft = max >= MIN_FAN_SCROLL ? max / 2 : 0;
     updateScrollBias();
+    autoScrollKeyRef.current = null;
   }, [hand.length, updateScrollBias]);
+
+  useEffect(() => {
+    if (!myTurn || legalCards.length === 0) {
+      autoScrollKeyRef.current = null;
+      return;
+    }
+
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const max = el.scrollWidth - el.clientWidth;
+    if (max < MIN_FAN_SCROLL) return;
+    if (dragRef.current) return;
+
+    const leading = isLeadPlay(state);
+    const scrollKey = `${state.currentTurnId}|${state.leadSuit ?? ""}|${sortMode}|${legalCards.map(cardId).sort().join()}`;
+
+    const anyLegalVisible = hand.some((card, i) => {
+      if (!legalCards.some((c) => isSameCard(c, card))) return false;
+      return isCardIndexVisible(el, i, hand.length, fanWidth);
+    });
+
+    if (anyLegalVisible) {
+      autoScrollKeyRef.current = scrollKey;
+      return;
+    }
+
+    if (autoScrollKeyRef.current === scrollKey) return;
+
+    const targetIdx = pickAutoScrollIndex(hand, legalCards, sortMode, state.leadSuit, leading);
+    if (targetIdx < 0) return;
+
+    autoScrollKeyRef.current = scrollKey;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const scrollEl = scrollRef.current;
+        if (!scrollEl || dragRef.current) return;
+        scrollToCardIndex(scrollEl, targetIdx, hand.length, fanWidth);
+        updateScrollBias();
+      });
+    });
+  }, [
+    myTurn,
+    hand,
+    legalCards,
+    sortMode,
+    state,
+    fanWidth,
+    updateScrollBias,
+  ]);
 
   useEffect(() => {
     const el = scrollRef.current;
