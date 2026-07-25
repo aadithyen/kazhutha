@@ -13,6 +13,8 @@ export interface LastRoundResult {
   winnerId?: string;
   collectorId?: string;
   vettuBy?: string;
+  /** Full center pile at round end (CardPlayed + RoundFinished/CardsCollected may batch). */
+  pile: PlayedCard[];
   at: number;
 }
 

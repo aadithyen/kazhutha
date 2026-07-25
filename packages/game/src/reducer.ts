@@ -146,23 +146,31 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
     case "VettuOccurred":
       return {
         ...state,
-        lastRoundResult: { kind: "vettu", vettuBy: event.playerId, at: Date.now() },
+        lastRoundResult: {
+          kind: "vettu",
+          vettuBy: event.playerId,
+          pile: state.centerPile,
+          at: Date.now(),
+        },
       };
 
-    case "RoundFinished":
+    case "RoundFinished": {
+      const pile = state.centerPile;
       return {
         ...state,
         centerPile: [],
-        lastRoundResult: { kind: "normal", winnerId: event.winnerId, at: Date.now() },
+        lastRoundResult: { kind: "normal", winnerId: event.winnerId, pile, at: Date.now() },
       };
+    }
 
     case "CardsCollected": {
       const existing = state.hands[event.collectorId] ?? [];
+      const pile = state.centerPile;
       return {
         ...state,
         hands: { ...state.hands, [event.collectorId]: [...existing, ...event.cards] },
         centerPile: [],
-        lastRoundResult: { kind: "vettu", collectorId: event.collectorId, at: Date.now() },
+        lastRoundResult: { kind: "vettu", collectorId: event.collectorId, pile, at: Date.now() },
       };
     }
 
