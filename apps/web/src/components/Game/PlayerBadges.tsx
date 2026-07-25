@@ -30,7 +30,7 @@ export default function PlayerBadges() {
   }
 
   return (
-    <div className="flex gap-2 overflow-x-auto px-3 py-2">
+    <div className="flex gap-2 overflow-x-auto border-b border-neutral-100 px-3 py-2">
       {order.map((id) => {
         const player = state.players.find((p) => p.id === id);
         if (!player) return null;
@@ -47,21 +47,21 @@ export default function PlayerBadges() {
           <div
             key={id}
             className={`flex min-w-[84px] shrink-0 flex-col items-center rounded-xl px-3 py-2 text-center ${
-              isTurn ? "bg-amber-400/20 ring-1 ring-amber-400" : "bg-slate-800/60"
+              isTurn ? "bg-neutral-100 ring-1 ring-neutral-300" : "bg-neutral-50"
             } ${isFinished ? "opacity-50" : ""}`}
           >
-            <span className="truncate text-xs font-semibold">
+            <span className="truncate font-serif text-xs font-semibold italic">
               {player.name}
               {isMe ? " (you)" : ""}
             </span>
-            <span className="mt-1 text-[10px] text-slate-400">{status}</span>
-            {isLeader && !isFinished && <span className="mt-0.5 text-[10px] text-amber-300">Leader</span>}
-            {!player.connected && <span className="mt-0.5 text-[10px] text-red-400">offline</span>}
+            <span className="mt-1 font-serif text-[10px] italic text-neutral-500">{status}</span>
+            {isLeader && !isFinished && <span className="mt-0.5 font-serif text-[10px] italic text-neutral-600">Leader</span>}
+            {!player.connected && <span className="mt-0.5 text-[10px] text-rose-500">offline</span>}
             {isMe && isPlaying && !isFinished && (
               <button
                 type="button"
                 onClick={toggleMyCountVisibility}
-                className="mt-1 text-[10px] text-amber-300 underline decoration-amber-300/40 underline-offset-2"
+                className="mt-1 font-serif text-[10px] italic text-neutral-600 underline decoration-neutral-300 underline-offset-2"
               >
                 {myCountVisible ? "Hide count" : "Reveal count"}
               </button>

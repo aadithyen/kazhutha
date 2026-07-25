@@ -30,14 +30,20 @@ export default function InvitePanel() {
   }
 
   return (
-    <div className="rounded-2xl bg-slate-800/60 p-4 shadow-lg">
-      <p className="text-xs uppercase text-slate-400">Room code</p>
-      <p className="text-3xl font-bold tracking-widest text-amber-400">{state.roomCode}</p>
+    <div className="rounded-xl border border-neutral-100 bg-white p-4 shadow-[0_2px_12px_rgba(15,23,42,0.06)]">
+      <p className="font-serif text-xs font-semibold uppercase tracking-wide text-neutral-400">Room code</p>
+      <p className="font-serif text-4xl font-semibold tracking-[0.2em] text-neutral-900">{state.roomCode}</p>
       <div className="mt-3 flex gap-2">
-        <button onClick={copyLink} className="flex-1 rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold">
+        <button
+          onClick={copyLink}
+          className="flex-1 rounded-xl bg-neutral-100 px-3 py-2 font-serif text-sm font-semibold not-italic text-neutral-900 ring-1 ring-neutral-200"
+        >
           {copied ? "Copied!" : "Copy link"}
         </button>
-        <button onClick={share} className="flex-1 rounded-lg bg-amber-400 px-3 py-2 text-sm font-semibold text-slate-900">
+        <button
+          onClick={share}
+          className="flex-1 rounded-xl bg-neutral-900 px-3 py-2 font-serif text-sm font-semibold not-italic text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)]"
+        >
           Share
         </button>
       </div>
