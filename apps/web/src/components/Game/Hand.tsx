@@ -24,6 +24,9 @@ const SWIPE_DISTANCE = 70;
 const SWIPE_VELOCITY = 0.55;
 const FLY_DURATION_MS = 320;
 const SNAPBACK_DURATION_MS = 200;
+const GESTURE_LOCK_PX = 8;
+
+type GestureMode = "pending" | "scroll" | "drag";
 
 interface CardOverlay {
   card: Card;
@@ -53,22 +56,28 @@ export default function Hand() {
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const [selected, setSelected] = useState<Card | null>(null);
   const [scrollBias, setScrollBias] = useState(0);
+  const [isScrolling, setIsScrolling] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<CardOverlay | null>(null);
   const [pendingRemovalIds, setPendingRemovalIds] = useState<Set<string>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollEndTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const dragRef = useRef<{
     id: string;
     card: Card;
+    startX: number;
     startY: number;
+    lastX: number;
     lastY: number;
     lastT: number;
     velocity: number;
     moved: boolean;
+    mode: GestureMode;
     originX: number;
     originY: number;
     angle: number;
     selected: boolean;
+    target: HTMLDivElement | null;
   } | null>(null);
   const suppressClickRef = useRef(false);
   const [sortMode, setSortMode] = useState<HandSortMode>(() => getHandSortMode());
@@ -98,6 +107,9 @@ export default function Hand() {
     }
     const progress = el.scrollLeft / max;
     setScrollBias((progress - 0.5) * 2 * FAN_SWAY);
+    setIsScrolling(true);
+    clearTimeout(scrollEndTimerRef.current);
+    scrollEndTimerRef.current = setTimeout(() => setIsScrolling(false), 120);
   }, []);
 
   useEffect(() => {
@@ -113,6 +125,14 @@ export default function Hand() {
     el.addEventListener("scroll", updateScrollBias, { passive: true });
     return () => el.removeEventListener("scroll", updateScrollBias);
   }, [updateScrollBias]);
+
+  useEffect(() => {
+    const preventTouchScroll = (e: TouchEvent) => {
+      if (dragRef.current?.mode === "drag") e.preventDefault();
+    };
+    document.addEventListener("touchmove", preventTouchScroll, { passive: false });
+    return () => document.removeEventListener("touchmove", preventTouchScroll);
+  }, []);
 
   useEffect(() => {
     registerHandTarget(handTargetRef.current);
@@ -209,11 +229,6 @@ export default function Hand() {
     }
   }
 
-  function handleClick(card: Card) {
-    if (suppressClickRef.current) return;
-    tapCard(card);
-  }
-
   function updateDragOverlay(dy: number) {
     const d = dragRef.current;
     if (!d) return;
@@ -243,6 +258,10 @@ export default function Hand() {
     });
   }
 
+  function resetDragTarget(target: HTMLDivElement | null) {
+    if (target) target.style.touchAction = "";
+  }
+
   function handlePointerDown(
     e: React.PointerEvent<HTMLDivElement>,
     card: Card,
@@ -255,22 +274,55 @@ export default function Hand() {
     dragRef.current = {
       id: cardId(card),
       card,
+      startX: e.clientX,
       startY: e.clientY,
+      lastX: e.clientX,
       lastY: e.clientY,
       lastT: e.timeStamp,
       velocity: 0,
       moved: false,
+      mode: "pending",
       originX: origin.x,
       originY: origin.y,
       angle,
       selected: isSelected,
+      target: e.currentTarget,
     };
-    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     const d = dragRef.current;
     if (!d) return;
+
+    if (d.mode === "pending") {
+      const dx = e.clientX - d.startX;
+      const dy = e.clientY - d.startY;
+      if (Math.abs(dx) < GESTURE_LOCK_PX && Math.abs(dy) < GESTURE_LOCK_PX) return;
+
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        d.mode = "scroll";
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } else if (dy < 0) {
+        d.mode = "drag";
+        e.currentTarget.setPointerCapture(e.pointerId);
+        e.currentTarget.style.touchAction = "none";
+      } else {
+        dragRef.current = null;
+        return;
+      }
+    }
+
+    if (d.mode === "scroll") {
+      const dx = e.clientX - d.lastX;
+      const el = scrollRef.current;
+      if (el) {
+        el.scrollLeft -= dx;
+        updateScrollBias();
+      }
+      d.lastX = e.clientX;
+      return;
+    }
+
     const dt = e.timeStamp - d.lastT;
     if (dt > 0) {
       d.velocity = (e.clientY - d.lastY) / dt;
@@ -278,15 +330,15 @@ export default function Hand() {
     d.lastY = e.clientY;
     d.lastT = e.timeStamp;
     const dy = e.clientY - d.startY;
-    if (Math.abs(dy) > 8) {
+    if (Math.abs(dy) > GESTURE_LOCK_PX) {
       d.moved = true;
       setDragId(d.id);
       updateDragOverlay(dy);
     }
   }
 
-  function snapBackOverlay() {
-    const d = dragRef.current;
+  function snapBackOverlay(from?: NonNullable<typeof dragRef.current>) {
+    const d = from ?? dragRef.current;
     if (!d) {
       setOverlay(null);
       return;
@@ -309,14 +361,31 @@ export default function Hand() {
   function handlePointerEnd(e: React.PointerEvent<HTMLDivElement>, cancelled: boolean) {
     const d = dragRef.current;
     if (!d) return;
+    const target = d.target;
+    if (target?.hasPointerCapture(e.pointerId)) {
+      target.releasePointerCapture(e.pointerId);
+    }
     dragRef.current = null;
+    resetDragTarget(target);
+    if (d.mode === "scroll") {
+      suppressClickRef.current = true;
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
+      return;
+    }
     suppressClickRef.current = true;
     window.setTimeout(() => {
       suppressClickRef.current = false;
     }, 0);
     if (cancelled) {
       setDragId(null);
-      snapBackOverlay();
+      if (d.mode === "drag") snapBackOverlay(d);
+      return;
+    }
+    if (d.mode === "pending") {
+      setDragId(null);
+      tapCard(d.card);
       return;
     }
     const dy = e.clientY - d.startY;
@@ -340,7 +409,7 @@ export default function Hand() {
       tapCard(d.card);
     } else {
       setDragId(null);
-      snapBackOverlay();
+      snapBackOverlay(d);
     }
   }
 
@@ -370,7 +439,7 @@ export default function Hand() {
   }
 
   return (
-    <section className="relative h-[45vh] min-h-52 shrink-0 overflow-visible bg-white">
+    <section className="relative h-[45vh] min-h-52 shrink-0 overflow-hidden bg-white">
       {overlayPortal}
       <div className="absolute inset-x-0 top-2 z-10 flex justify-center">
         <div
@@ -398,7 +467,7 @@ export default function Hand() {
       <div ref={handTargetRef} className="pointer-events-none absolute inset-x-0 top-8 h-1" aria-hidden />
       <div
         ref={scrollRef}
-        className="hand-fan-scroll h-full overflow-x-auto overflow-y-visible touch-pan-x pt-6"
+        className="hand-fan-scroll h-full select-none overflow-x-auto overflow-y-hidden touch-pan-x pt-6"
         aria-label="Your hand — scroll horizontally to fan through cards"
       >
         <div className="relative mx-auto h-full" style={{ width: fanWidth, minWidth: "100%" }}>
@@ -421,14 +490,13 @@ export default function Hand() {
                   if (el) cardRefs.current.set(id, el);
                   else cardRefs.current.delete(id);
                 }}
-                className={`absolute -bottom-8 origin-bottom transition-[left,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                  isHidden ? "pointer-events-none opacity-0" : ""
-                }`}
+                className={`absolute -bottom-8 origin-bottom ${
+                  isScrolling ? "" : "transition-[left,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                } ${isHidden ? "pointer-events-none opacity-0" : ""}`}
                 style={{
                   left,
                   zIndex: isSelected || isDragSource ? hand.length + 1 : i,
                   transform: `rotate(${angle}deg) translateY(${lift}px)`,
-                  touchAction: legal ? "pan-x" : undefined,
                 }}
                 onPointerDown={(e) => handlePointerDown(e, card, legal, angle)}
                 onPointerMove={handlePointerMove}
@@ -441,13 +509,9 @@ export default function Hand() {
                     aria-hidden
                   />
                 ) : (
-                  <PlayingCard
-                    card={card}
-                    selected={isSelected}
-                    disabled={!legal}
-                    onClick={legal ? () => handleClick(card) : undefined}
-                    size="lg"
-                  />
+                  <div className="pointer-events-none">
+                    <PlayingCard card={card} selected={isSelected} disabled={!legal} size="lg" />
+                  </div>
                 )}
               </div>
             );
