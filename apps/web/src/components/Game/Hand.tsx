@@ -2,12 +2,19 @@ import { Card, cardId, HandSortMode, isSameCard, sortHand } from "@kazhutha/shar
 import { getLegalCards } from "@kazhutha/game";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  CARD_LG,
+  clampOverlayPosition,
+  PILE_CARD_SCALE,
+  rectCenter,
+  unitVectorToPile,
+} from "../../lib/cardLayout";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { getHandSortMode, storeHandSortMode } from "../../lib/preferences";
 import { useRoom } from "../../lib/RoomContext";
 import PlayingCard from "../PlayingCard";
 
-const CARD_WIDTH = 112;
+const CARD_WIDTH = CARD_LG.width;
 const CARD_SPREAD = 54;
 const MAX_ROTATION = 32;
 const FAN_SWAY = 18;
@@ -15,32 +22,17 @@ const FAN_SWAY = 18;
 const SWIPE_DISTANCE = 70;
 /** A quick upward flick (px/ms) plays even before reaching SWIPE_DISTANCE. */
 const SWIPE_VELOCITY = 0.55;
-const FLY_DURATION_MS = 280;
-const SNAPBACK_DURATION_MS = 180;
-
-interface Point {
-  x: number;
-  y: number;
-}
+const FLY_DURATION_MS = 320;
+const SNAPBACK_DURATION_MS = 200;
 
 interface CardOverlay {
   card: Card;
   x: number;
   y: number;
   angle: number;
+  scale: number;
   phase: "drag" | "fly" | "snapback";
   selected: boolean;
-}
-
-function rectCenter(rect: DOMRect): Point {
-  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-}
-
-function unitVectorToPile(from: Point, pile: Point): Point {
-  const dx = pile.x - from.x;
-  const dy = pile.y - from.y;
-  const dist = Math.hypot(dx, dy) || 1;
-  return { x: dx / dist, y: dy / dist };
 }
 
 function fanAngle(index: number, total: number, scrollBias: number): number {
@@ -56,7 +48,7 @@ function fanLift(angle: number): number {
 
 export default function Hand() {
   const { state, client } = useRoom();
-  const { registerHandTarget, getPileTarget } = usePlayerAvatars();
+  const { registerHandTarget, getPlaySlotTarget, setLocalFlyActive } = usePlayerAvatars();
   const handTargetRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const [selected, setSelected] = useState<Card | null>(null);
@@ -138,25 +130,40 @@ export default function Hand() {
     });
     setOverlay((prev) => {
       if (!prev) return null;
-      return handIds.has(cardId(prev.card)) ? prev : null;
+      if (!handIds.has(cardId(prev.card))) {
+        setLocalFlyActive(false);
+        return null;
+      }
+      if (prev.phase === "fly") {
+        const onPile = state.centerPile.some(
+          (played) => played.playerId === client.playerId && isSameCard(played.card, prev.card),
+        );
+        if (onPile) {
+          setLocalFlyActive(false);
+          return null;
+        }
+      }
+      return prev;
     });
-  }, [hand]);
+  }, [hand, state.centerPile, client.playerId, setLocalFlyActive]);
 
   const beginFly = useCallback(
-    (card: Card, from: Point, selectedForOverlay: boolean) => {
+    (card: Card, from: { x: number; y: number }, selectedForOverlay: boolean) => {
       const id = cardId(card);
-      const pile = getPileTarget();
-      const end = pile ?? { x: from.x, y: from.y - 420 };
+      const slot = getPlaySlotTarget();
+      const end = slot ?? { x: from.x, y: from.y - 420 };
 
       setSelected(null);
       setDragId(null);
       dragRef.current = null;
       setPendingRemovalIds((prev) => new Set(prev).add(id));
+      setLocalFlyActive(true);
       setOverlay({
         card,
         x: from.x,
         y: from.y,
         angle: 0,
+        scale: 1,
         phase: "drag",
         selected: selectedForOverlay,
       });
@@ -168,6 +175,7 @@ export default function Hand() {
             x: end.x,
             y: end.y,
             angle: 0,
+            scale: PILE_CARD_SCALE,
             phase: "fly",
             selected: false,
           });
@@ -178,7 +186,7 @@ export default function Hand() {
         client.sendIntent({ type: "PlayCard", playerId: client.playerId, card });
       }, FLY_DURATION_MS);
     },
-    [client, getPileTarget],
+    [client, getPlaySlotTarget, setLocalFlyActive],
   );
 
   const playCard = useCallback(
@@ -209,22 +217,27 @@ export default function Hand() {
   function updateDragOverlay(dy: number) {
     const d = dragRef.current;
     if (!d) return;
-    const pile = getPileTarget();
+    const slot = getPlaySlotTarget();
     const amount = -Math.min(dy, 0);
+    const progress = Math.min(amount / SWIPE_DISTANCE, 1);
+    const dragAngle = d.angle * (1 - progress);
     let x = d.originX;
     let y = d.originY;
-    if (pile) {
-      const dir = unitVectorToPile({ x: d.originX, y: d.originY }, pile);
+    if (slot) {
+      const dir = unitVectorToPile({ x: d.originX, y: d.originY }, slot);
       x = d.originX + dir.x * amount;
       y = d.originY + dir.y * amount;
     } else {
       y = d.originY + Math.min(dy, 0);
     }
+    const scale = 1 - (1 - PILE_CARD_SCALE) * progress;
+    const clamped = clampOverlayPosition(x, y, dragAngle, CARD_LG.width * scale, CARD_LG.height * scale);
     setOverlay({
       card: d.card,
-      x,
-      y,
-      angle: d.angle,
+      x: clamped.x,
+      y: clamped.y,
+      angle: dragAngle,
+      scale,
       phase: "drag",
       selected: d.selected,
     });
@@ -283,11 +296,13 @@ export default function Hand() {
       x: d.originX,
       y: d.originY,
       angle: d.angle,
+      scale: 1,
       phase: "snapback",
       selected: d.selected,
     });
     window.setTimeout(() => {
       setOverlay(null);
+      setLocalFlyActive(false);
     }, SNAPBACK_DURATION_MS);
   }
 
@@ -307,12 +322,12 @@ export default function Hand() {
     const dy = e.clientY - d.startY;
     const shouldPlay = dy <= -SWIPE_DISTANCE || (dy <= -24 && d.velocity <= -SWIPE_VELOCITY);
     if (shouldPlay) {
-      const pile = getPileTarget();
+      const slot = getPlaySlotTarget();
       const amount = -Math.min(dy, 0);
       let fromX = d.originX;
       let fromY = d.originY;
-      if (pile) {
-        const dir = unitVectorToPile({ x: d.originX, y: d.originY }, pile);
+      if (slot) {
+        const dir = unitVectorToPile({ x: d.originX, y: d.originY }, slot);
         fromX = d.originX + dir.x * amount;
         fromY = d.originY + dir.y * amount;
       } else {
@@ -333,16 +348,16 @@ export default function Hand() {
     overlay &&
     createPortal(
       <div
-        className="pointer-events-none fixed z-50 will-change-[left,top,transform]"
+        className="pointer-events-none fixed z-[60] will-change-[left,top,transform,opacity]"
         style={{
           left: overlay.x,
           top: overlay.y,
-          transform: `translate(-50%, -50%) rotate(${overlay.phase === "fly" ? 0 : overlay.angle}deg)`,
+          transform: `translate(-50%, -50%) rotate(${overlay.phase === "fly" ? 0 : overlay.angle}deg) scale(${overlay.scale})`,
           transition:
             overlay.phase === "drag"
               ? undefined
-              : `left ${overlay.phase === "fly" ? FLY_DURATION_MS : SNAPBACK_DURATION_MS}ms ease-out, top ${overlay.phase === "fly" ? FLY_DURATION_MS : SNAPBACK_DURATION_MS}ms ease-out, transform ${overlay.phase === "fly" ? FLY_DURATION_MS : SNAPBACK_DURATION_MS}ms ease-out, opacity ${overlay.phase === "fly" ? FLY_DURATION_MS : SNAPBACK_DURATION_MS}ms ease-out`,
-          opacity: overlay.phase === "fly" ? 0 : 1,
+              : `left ${overlay.phase === "fly" ? FLY_DURATION_MS : SNAPBACK_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1), top ${overlay.phase === "fly" ? FLY_DURATION_MS : SNAPBACK_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1), transform ${overlay.phase === "fly" ? FLY_DURATION_MS : SNAPBACK_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity 120ms ease-out`,
+          opacity: overlay.phase === "fly" ? 0.98 : 1,
         }}
       >
         <PlayingCard card={overlay.card} selected={overlay.selected} size="lg" />
@@ -355,7 +370,7 @@ export default function Hand() {
   }
 
   return (
-    <section className="relative h-[45vh] min-h-52 shrink-0 bg-white">
+    <section className="relative h-[45vh] min-h-52 shrink-0 overflow-visible bg-white">
       {overlayPortal}
       <div className="absolute inset-x-0 top-2 z-10 flex justify-center">
         <div
@@ -383,7 +398,7 @@ export default function Hand() {
       <div ref={handTargetRef} className="pointer-events-none absolute inset-x-0 top-8 h-1" aria-hidden />
       <div
         ref={scrollRef}
-        className="hand-fan-scroll h-full overflow-x-auto overflow-y-hidden touch-pan-x"
+        className="hand-fan-scroll h-full overflow-x-auto overflow-y-visible touch-pan-x pt-6"
         aria-label="Your hand — scroll horizontally to fan through cards"
       >
         <div className="relative mx-auto h-full" style={{ width: fanWidth, minWidth: "100%" }}>
@@ -393,7 +408,7 @@ export default function Hand() {
             const isSelected = !!selected && isSameCard(selected, card);
             const isDragSource = dragId === id;
             const isPendingRemoval = pendingRemovalIds.has(id);
-            const isHidden = isDragSource || isPendingRemoval;
+            const isHidden = isPendingRemoval;
             const angle = fanAngle(i, hand.length, scrollBias);
             const lift = fanLift(angle);
             const center = (hand.length - 1) / 2;
@@ -401,13 +416,13 @@ export default function Hand() {
 
             return (
               <div
-                key={`${id}-${i}`}
+                key={id}
                 ref={(el) => {
                   if (el) cardRefs.current.set(id, el);
                   else cardRefs.current.delete(id);
                 }}
-                className={`absolute -bottom-8 origin-bottom ${
-                  isHidden ? "opacity-0" : "transition-all duration-200 ease-out"
+                className={`absolute -bottom-8 origin-bottom transition-[left,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  isHidden ? "pointer-events-none opacity-0" : ""
                 }`}
                 style={{
                   left,
@@ -420,13 +435,20 @@ export default function Hand() {
                 onPointerUp={(e) => handlePointerEnd(e, false)}
                 onPointerCancel={(e) => handlePointerEnd(e, true)}
               >
-                <PlayingCard
-                  card={card}
-                  selected={isSelected}
-                  disabled={!legal}
-                  onClick={legal ? () => handleClick(card) : undefined}
-                  size="lg"
-                />
+                {isDragSource ? (
+                  <div
+                    className="flex h-[10rem] w-[7rem] items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300/80 bg-neutral-50/60"
+                    aria-hidden
+                  />
+                ) : (
+                  <PlayingCard
+                    card={card}
+                    selected={isSelected}
+                    disabled={!legal}
+                    onClick={legal ? () => handleClick(card) : undefined}
+                    size="lg"
+                  />
+                )}
               </div>
             );
           })}
