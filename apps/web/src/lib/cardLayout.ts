@@ -1,5 +1,5 @@
 /** Pixel sizes for `PlayingCard` lg/md variants (16px root). */
-export const CARD_LG = { width: 112, height: 160 };
+export const CARD_LG = { width: 134, height: 192 };
 export const CARD_MD = { width: 76, height: 108 };
 
 export const PILE_CARD_SCALE = CARD_MD.width / CARD_LG.width;

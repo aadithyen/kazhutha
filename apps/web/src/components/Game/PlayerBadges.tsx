@@ -19,17 +19,6 @@ function handStatus(
 export default function PlayerBadges() {
   const { state, client } = useRoom();
   const order = state.turnOrder.length > 0 ? state.turnOrder : state.players.map((p) => p.id);
-  const isPlaying = state.phase === "playing";
-  const myCountVisible = state.cardCountVisible[client.playerId] ?? false;
-
-  function toggleMyCountVisibility() {
-    client.sendIntent({
-      type: "SetCardCountVisible",
-      playerId: client.playerId,
-      visible: !myCountVisible,
-    });
-  }
-
   return (
     <div className="flex gap-3 overflow-x-auto border-b border-neutral-100 px-3 py-3">
       {order.map((id) => {
@@ -59,15 +48,6 @@ export default function PlayerBadges() {
             <span className="text-[10px] leading-tight text-neutral-500">{status}</span>
             {isLeader && !isFinished && <span className="text-[10px] font-medium text-neutral-600">Leader</span>}
             {!player.connected && <span className="text-[10px] text-rose-500">offline</span>}
-            {isMe && isPlaying && !isFinished && (
-              <button
-                type="button"
-                onClick={toggleMyCountVisibility}
-                className="text-[10px] text-neutral-600 underline decoration-neutral-300 underline-offset-2"
-              >
-                {myCountVisible ? "Hide count" : "Reveal count"}
-              </button>
-            )}
           </div>
         );
       })}

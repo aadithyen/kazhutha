@@ -13,9 +13,10 @@ import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { getHandSortMode, storeHandSortMode } from "../../lib/preferences";
 import { useRoom } from "../../lib/RoomContext";
 import PlayingCard from "../PlayingCard";
+import HandPreferences from "./HandPreferences";
 
 const CARD_WIDTH = CARD_LG.width;
-const CARD_SPREAD = 54;
+const CARD_SPREAD = 60;
 const MAX_ROTATION = 32;
 const FAN_SWAY = 18;
 /** Dragged this far up (px) releases the card onto the pile. */
@@ -85,6 +86,17 @@ export default function Hand() {
   const hand = useMemo(() => sortHand(rawHand, sortMode), [rawHand, sortMode]);
   const legalCards = getLegalCards(state, client.playerId);
   const myTurn = state.currentTurnId === client.playerId;
+
+  const myCountVisible = state.cardCountVisible[client.playerId] ?? false;
+  const showCountToggle = state.phase === "playing" && !state.finishedPlayers.includes(client.playerId);
+
+  function changeCountVisible(visible: boolean) {
+    client.sendIntent({
+      type: "SetCardCountVisible",
+      playerId: client.playerId,
+      visible,
+    });
+  }
 
   function changeSortMode(mode: HandSortMode) {
     setSortMode(mode);
@@ -435,39 +447,23 @@ export default function Hand() {
     );
 
   if (hand.length === 0) {
-    return <div className="h-[45vh] min-h-52 bg-white" />;
+    return <div className="h-[52vh] min-h-60 bg-white" />;
   }
 
   return (
-    <section className="relative h-[45vh] min-h-52 shrink-0 overflow-hidden bg-white">
+    <section className="relative h-[52vh] min-h-60 shrink-0 overflow-hidden bg-white">
       {overlayPortal}
-      <div className="absolute inset-x-0 top-2 z-10 flex justify-center">
-        <div
-          className="inline-flex rounded-full border border-neutral-200 bg-white/90 p-0.5 text-[11px] shadow-sm backdrop-blur-sm"
-          role="group"
-          aria-label="Hand sort order"
-        >
-          {(["suit", "value"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => changeSortMode(mode)}
-              aria-pressed={sortMode === mode}
-              className={`rounded-full px-3 py-1 capitalize transition-colors ${
-                sortMode === mode
-                  ? "bg-neutral-900 text-white"
-                  : "text-neutral-600 hover:text-neutral-900"
-              }`}
-            >
-              {mode}
-            </button>
-          ))}
-        </div>
-      </div>
+      <HandPreferences
+        sortMode={sortMode}
+        onSortModeChange={changeSortMode}
+        countVisible={myCountVisible}
+        onCountVisibleChange={changeCountVisible}
+        showCountToggle={showCountToggle}
+      />
       <div ref={handTargetRef} className="pointer-events-none absolute inset-x-0 top-8 h-1" aria-hidden />
       <div
         ref={scrollRef}
-        className="hand-fan-scroll h-full select-none overflow-x-auto overflow-y-hidden touch-pan-x pt-6"
+        className="hand-fan-scroll h-full select-none overflow-x-auto overflow-y-hidden touch-pan-x pt-3"
         aria-label="Your hand — scroll horizontally to fan through cards"
       >
         <div className="relative mx-auto h-full" style={{ width: fanWidth, minWidth: "100%" }}>
@@ -505,7 +501,7 @@ export default function Hand() {
               >
                 {isDragSource ? (
                   <div
-                    className="flex h-[10rem] w-[7rem] items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300/80 bg-neutral-50/60"
+                    className="flex h-[12rem] w-[8.4rem] items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300/80 bg-neutral-50/60"
                     aria-hidden
                   />
                 ) : (
