@@ -1,0 +1,23 @@
+services:
+  signaling:
+    build:
+      context: ./apps/signaling
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+      args:
+        # Browser-reachable address of the signalling server. Defaults below
+        # assume both containers are published on localhost, matching the
+        # port mappings in this file. Override for LAN/internet deployments.
+        VITE_SIGNALING_URL: ${VITE_SIGNALING_URL:-ws://localhost:8080}
+        VITE_ICE_SERVERS: ${VITE_ICE_SERVERS:-}
+    ports:
+      - "3000:80"
+    depends_on:
+      - signaling
+    restart: unless-stopped
