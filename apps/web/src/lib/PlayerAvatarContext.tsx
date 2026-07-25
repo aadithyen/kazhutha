@@ -12,6 +12,8 @@ interface PlayerAvatarContextValue {
   registerPlaySlotTarget: (el: HTMLElement | null) => void;
   setLocalFlyActive: (active: boolean) => void;
   localFlyActive: boolean;
+  pileSettling: boolean;
+  setPileSettling: (settling: boolean) => void;
   getAvatarCenter: (playerId: string) => Point | null;
   getHandTarget: () => Point | null;
   getPileTarget: () => Point | null;
@@ -26,9 +28,14 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
   const pileTargetRef = useRef<HTMLElement | null>(null);
   const playSlotTargetRef = useRef<HTMLElement | null>(null);
   const [localFlyActive, setLocalFlyActiveState] = useState(false);
+  const [pileSettling, setPileSettlingState] = useState(false);
 
   const setLocalFlyActive = useCallback((active: boolean) => {
     setLocalFlyActiveState(active);
+  }, []);
+
+  const setPileSettling = useCallback((settling: boolean) => {
+    setPileSettlingState(settling);
   }, []);
 
   const registerAvatar = useCallback((playerId: string, el: HTMLElement | null) => {
@@ -88,6 +95,8 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
       registerPlaySlotTarget,
       setLocalFlyActive,
       localFlyActive,
+      pileSettling,
+      setPileSettling,
       getAvatarCenter,
       getHandTarget,
       getPileTarget,
@@ -100,6 +109,8 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
       registerPlaySlotTarget,
       setLocalFlyActive,
       localFlyActive,
+      pileSettling,
+      setPileSettling,
       getAvatarCenter,
       getHandTarget,
       getPileTarget,

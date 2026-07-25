@@ -8,7 +8,7 @@ import CardAnimations, { pileKey } from "./CardAnimations";
 
 export default function CenterPile() {
   const { state, client } = useRoom();
-  const { registerPileTarget, registerPlaySlotTarget, localFlyActive } = usePlayerAvatars();
+  const { registerPileTarget, registerPlaySlotTarget, localFlyActive, pileSettling } = usePlayerAvatars();
   const pileAreaRef = useRef<HTMLDivElement>(null);
   const playSlotRef = useRef<HTMLDivElement>(null);
   const pileCardRefs = useRef(new Map<string, HTMLDivElement>());
@@ -16,7 +16,7 @@ export default function CenterPile() {
   const [lingerPile, setLingerPile] = useState<PlayedCard[]>([]);
   const displayPile = state.centerPile.length > 0 ? state.centerPile : lingerPile;
   const myTurn = state.phase === "playing" && state.currentTurnId === client.playerId;
-  const showPlaySlot = myTurn || localFlyActive;
+  const showPlaySlot = (myTurn || localFlyActive) && !pileSettling;
 
   useEffect(() => {
     registerPileTarget(pileAreaRef.current);
