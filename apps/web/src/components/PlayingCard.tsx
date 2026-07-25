@@ -132,9 +132,9 @@ function CardFace({ card, dims }: { card: Card; dims: (typeof SIZE_CLASSES)["md"
 
   if (card.rank >= 11 && card.rank <= 13) {
     return (
-      <span className="pointer-events-none absolute inset-[12%] flex flex-col items-center justify-center rounded border border-current/25 leading-none">
-        <CourtCardArt rank={card.rank as 11 | 12 | 13} className="h-[72%] w-[72%]" />
-        <span className={`${dims.cornerSuit} mt-0.5 opacity-80`}>{symbol}</span>
+      <span className="pointer-events-none absolute inset-[10%] flex flex-col items-center justify-center rounded-md border border-current/20 bg-current/[0.03] leading-none">
+        <CourtCardArt rank={card.rank as 11 | 12 | 13} className="h-[76%] w-[76%]" />
+        <span className={`${dims.cornerSuit} -mt-0.5 opacity-70`}>{symbol}</span>
       </span>
     );
   }
