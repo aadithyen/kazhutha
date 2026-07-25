@@ -1,6 +1,7 @@
 import { Card, isSameCard } from "@kazhutha/shared";
 import { getLegalCards } from "@kazhutha/game";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
 import PlayingCard from "../PlayingCard";
 
@@ -31,6 +32,8 @@ function cardId(card: Card): string {
 
 export default function Hand() {
   const { state, client } = useRoom();
+  const { registerHandTarget } = usePlayerAvatars();
+  const handTargetRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<Card | null>(null);
   const [scrollBias, setScrollBias] = useState(0);
   const [drag, setDrag] = useState<{ id: string; dy: number } | null>(null);
@@ -81,6 +84,11 @@ export default function Hand() {
     el.addEventListener("scroll", updateScrollBias, { passive: true });
     return () => el.removeEventListener("scroll", updateScrollBias);
   }, [updateScrollBias]);
+
+  useEffect(() => {
+    registerHandTarget(handTargetRef.current);
+    return () => registerHandTarget(null);
+  }, [registerHandTarget, hand.length]);
 
   const playCard = useCallback(
     (card: Card) => {
@@ -172,6 +180,7 @@ export default function Hand() {
 
   return (
     <section className="relative h-[45vh] min-h-52 shrink-0 bg-white">
+      <div ref={handTargetRef} className="pointer-events-none absolute inset-x-0 top-8 h-1" aria-hidden />
       <div
         ref={scrollRef}
         className="hand-fan-scroll h-full overflow-x-auto overflow-y-hidden touch-pan-x"

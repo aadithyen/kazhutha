@@ -1,4 +1,5 @@
 import { useRoom } from "../../lib/RoomContext";
+import PlayerAvatar from "./PlayerAvatar";
 
 function handStatus(
   id: string,
@@ -30,7 +31,7 @@ export default function PlayerBadges() {
   }
 
   return (
-    <div className="flex gap-2 overflow-x-auto border-b border-neutral-100 px-3 py-2">
+    <div className="flex gap-3 overflow-x-auto border-b border-neutral-100 px-3 py-3">
       {order.map((id) => {
         const player = state.players.find((p) => p.id === id);
         if (!player) return null;
@@ -44,24 +45,25 @@ export default function PlayerBadges() {
         const status = handStatus(id, client.playerId, handCount, state.cardCountVisible, isKazhutha, isFinished, finishedIndex);
 
         return (
-          <div
-            key={id}
-            className={`flex min-w-[84px] shrink-0 flex-col items-center rounded-xl px-3 py-2 text-center ${
-              isTurn ? "bg-neutral-100 ring-1 ring-neutral-300" : "bg-neutral-50"
-            } ${isFinished ? "opacity-50" : ""}`}
-          >
-            <span className="truncate text-xs font-semibold">
+          <div key={id} className="flex min-w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
+            <PlayerAvatar
+              playerId={id}
+              name={player.name}
+              isTurn={isTurn && !isFinished}
+              isFinished={isFinished}
+            />
+            <span className="max-w-[72px] truncate text-[11px] font-medium text-neutral-800">
               {player.name}
               {isMe ? " (you)" : ""}
             </span>
-            <span className="mt-1 text-[10px] text-neutral-500">{status}</span>
-            {isLeader && !isFinished && <span className="mt-0.5 text-[10px] text-neutral-600">Leader</span>}
-            {!player.connected && <span className="mt-0.5 text-[10px] text-rose-500">offline</span>}
+            <span className="text-[10px] leading-tight text-neutral-500">{status}</span>
+            {isLeader && !isFinished && <span className="text-[10px] font-medium text-neutral-600">Leader</span>}
+            {!player.connected && <span className="text-[10px] text-rose-500">offline</span>}
             {isMe && isPlaying && !isFinished && (
               <button
                 type="button"
                 onClick={toggleMyCountVisibility}
-                className="mt-1 text-[10px] text-neutral-600 underline decoration-neutral-300 underline-offset-2"
+                className="text-[10px] text-neutral-600 underline decoration-neutral-300 underline-offset-2"
               >
                 {myCountVisible ? "Hide count" : "Reveal count"}
               </button>
