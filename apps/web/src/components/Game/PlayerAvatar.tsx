@@ -8,6 +8,7 @@ interface Props {
   size?: "sm" | "md";
   isTurn?: boolean;
   isFinished?: boolean;
+  pendingExit?: boolean;
   dimmed?: boolean;
   showHandCount?: boolean;
   handCount?: number;
@@ -20,6 +21,7 @@ export default function PlayerAvatar({
   size = "md",
   isTurn = false,
   isFinished = false,
+  pendingExit = false,
   dimmed = false,
   showHandCount = false,
   handCount,
@@ -39,7 +41,8 @@ export default function PlayerAvatar({
   const sizeClass = size === "sm" ? "h-9 w-9 text-xs" : "h-11 w-11 text-sm";
   const badgeSizeClass = size === "sm" ? "h-4 text-[9px]" : "h-5 text-[10px]";
   const showWinBadge = isFinished && finishRank !== undefined;
-  const showCountBadge = !showWinBadge && showHandCount && handCount !== undefined;
+  const showPendingExitBadge = pendingExit && !showWinBadge;
+  const showCountBadge = !showWinBadge && !showPendingExitBadge && showHandCount && handCount !== undefined;
 
   return (
     <div className="relative shrink-0">
@@ -63,6 +66,14 @@ export default function PlayerAvatar({
           aria-label={`Finished #${finishRank}`}
         >
           #{finishRank}
+        </span>
+      )}
+      {showPendingExitBadge && (
+        <span
+          className={`absolute -right-1 -top-1 flex items-center justify-center rounded-full bg-emerald-600 font-sans font-semibold leading-none text-white shadow-[0_1px_4px_rgba(15,23,42,0.18)] ${badgeSizeClass} ${size === "sm" ? "w-4" : "w-5"}`}
+          aria-label="Out of cards"
+        >
+          ✓
         </span>
       )}
       {showCountBadge && (
