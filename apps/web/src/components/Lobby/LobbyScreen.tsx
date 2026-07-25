@@ -20,7 +20,10 @@ export default function LobbyScreen() {
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4 px-4 py-6">
-      <h1 className="text-center font-serif text-3xl font-semibold italic text-neutral-900 dark:text-neutral-100">Lobby</h1>
+      <header className="text-center">
+        <h1 className="font-serif text-3xl font-semibold italic text-neutral-900 dark:text-neutral-100">Kazhutha</h1>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Lobby</p>
+      </header>
       <InvitePanel />
       <PlayerList />
       <RulesPanel />
