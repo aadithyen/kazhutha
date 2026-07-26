@@ -14,7 +14,7 @@ export default function GameOverScreen() {
       </h2>
       <p className="text-sm text-neutral-500 dark:text-neutral-400">Everyone else escaped. Better luck next round.</p>
       <button
-        onClick={() => navigate("/")}
+        onClick={() => navigate("/", { replace: true })}
         className="mt-2 rounded-xl bg-neutral-900 px-6 py-3 font-semibold text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)] dark:bg-neutral-100 dark:text-neutral-900 dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]"
       >
         Back home
