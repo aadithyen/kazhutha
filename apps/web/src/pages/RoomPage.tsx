@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import ConnectionBanner from "../components/ConnectionBanner";
 import GameScreen from "../components/Game/GameScreen";
 import LobbyScreen from "../components/Lobby/LobbyScreen";
@@ -10,7 +10,7 @@ export default function RoomPage() {
   const { code } = useParams<{ code: string }>();
   const [hasName, setHasName] = useState(!!getStoredName());
 
-  if (!code) return null;
+  if (!code) return <Navigate to="/" replace />;
   if (!hasName) return <NameGate onDone={() => setHasName(true)} />;
 
   return (
