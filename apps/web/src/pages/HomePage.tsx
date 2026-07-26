@@ -34,54 +34,67 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-8 bg-white px-4 py-10 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
-      <header className="text-center">
-        <h1 className="font-serif text-5xl font-semibold italic">Kazhutha</h1>
-        <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">കഴുത · play the Kerala card game with friends</p>
-      </header>
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-white px-4 py-10 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+      <div className="flex flex-1 flex-col items-center justify-center gap-8">
+        <header className="text-center">
+          <h1 className="font-serif text-5xl font-semibold italic">Kazhutha</h1>
+          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">കഴുത · play the Kerala card game with friends</p>
+        </header>
 
-      <form onSubmit={handleCreate} className={panelClass}>
-        <h2 className="mb-3 font-serif text-xl font-semibold italic">Create a room</h2>
-        <input
-          value={createName}
-          onChange={(e) => setCreateName(e.target.value)}
-          placeholder="Your name"
-          maxLength={24}
-          className={inputClass}
-        />
-        <button type="submit" className={`mt-3 ${primaryBtnClass}`}>
-          Create room
-        </button>
-      </form>
+        <form onSubmit={handleCreate} className={panelClass}>
+          <h2 className="mb-3 font-serif text-xl font-semibold italic">Create a room</h2>
+          <input
+            value={createName}
+            onChange={(e) => setCreateName(e.target.value)}
+            placeholder="Your name"
+            maxLength={24}
+            className={inputClass}
+          />
+          <button type="submit" className={`mt-3 ${primaryBtnClass}`}>
+            Create room
+          </button>
+        </form>
 
-      <div className="flex w-full items-center gap-3 text-neutral-400 dark:text-neutral-500">
-        <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
-        <span className="text-xs font-medium uppercase tracking-wide">or</span>
-        <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
+        <div className="flex w-full items-center gap-3 text-neutral-400 dark:text-neutral-500">
+          <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
+          <span className="text-xs font-medium uppercase tracking-wide">or</span>
+          <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
+        </div>
+
+        <form onSubmit={handleJoin} className={panelClass}>
+          <h2 className="mb-3 font-serif text-xl font-semibold italic">Join a room</h2>
+          <input
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value)}
+            placeholder="Room code"
+            maxLength={8}
+            className={`mb-3 ${inputClass} uppercase`}
+          />
+          <input
+            value={joinName}
+            onChange={(e) => setJoinName(e.target.value)}
+            placeholder="Your name"
+            maxLength={24}
+            className={inputClass}
+          />
+          <button type="submit" className={`mt-3 ${secondaryBtnClass}`}>
+            Join room
+          </button>
+        </form>
+
+        <p className="text-center text-xs text-neutral-400 dark:text-neutral-500">No accounts. No install. Just share the link.</p>
       </div>
 
-      <form onSubmit={handleJoin} className={panelClass}>
-        <h2 className="mb-3 font-serif text-xl font-semibold italic">Join a room</h2>
-        <input
-          value={joinCode}
-          onChange={(e) => setJoinCode(e.target.value)}
-          placeholder="Room code"
-          maxLength={8}
-          className={`mb-3 ${inputClass} uppercase`}
-        />
-        <input
-          value={joinName}
-          onChange={(e) => setJoinName(e.target.value)}
-          placeholder="Your name"
-          maxLength={24}
-          className={inputClass}
-        />
-        <button type="submit" className={`mt-3 ${secondaryBtnClass}`}>
-          Join room
-        </button>
-      </form>
-
-      <p className="text-center text-xs text-neutral-400 dark:text-neutral-500">No accounts. No install. Just share the link.</p>
+      <footer className="pt-6 text-center">
+        <a
+          href="https://github.com/aadithyen/kazhutha"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-neutral-400 underline-offset-2 hover:text-neutral-600 hover:underline dark:text-neutral-500 dark:hover:text-neutral-300"
+        >
+          Source
+        </a>
+      </footer>
     </div>
   );
 }
