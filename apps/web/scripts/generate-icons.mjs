@@ -16,15 +16,11 @@ function spadeAt(x, y, scale) {
 
 function buildIconSvg(size) {
   const radius = Math.round(size * 0.15625);
-  const center = spadeAt(size * 0.5, size * 0.39, size / 72);
-  const left = spadeAt(size * 0.31, size * 0.68, size / 96);
-  const right = spadeAt(size * 0.69, size * 0.68, size / 96);
+  const spade = spadeAt(size * 0.5, size * 0.5, (size * 0.62) / 72);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <rect width="${size}" height="${size}" rx="${radius}" fill="#0a0a0a"/>
-  ${center}
-  ${left}
-  ${right}
+  ${spade}
 </svg>
 `;
 }
