@@ -1,6 +1,6 @@
 import { getSoundMuted } from "./preferences";
 
-export type SoundEffect = "cardPlay" | "cardFold" | "vettuCollect";
+export type SoundEffect = "cardPlay" | "cardFold" | "vettuCollect" | "cardShuffle" | "cardDeal";
 
 interface SoundConfig {
   src: string;
@@ -12,6 +12,8 @@ const SOUNDS: Record<SoundEffect, SoundConfig> = {
   cardPlay: { src: "/sounds/card-play.ogg", volume: 0.24, playbackRate: 0.95 },
   cardFold: { src: "/sounds/card-fold.ogg", volume: 0.18, playbackRate: 0.72 },
   vettuCollect: { src: "/sounds/vettu-collect.ogg", volume: 0.45 },
+  cardShuffle: { src: "/sounds/card-shuffle.ogg", volume: 0.32, playbackRate: 1.05 },
+  cardDeal: { src: "/sounds/card-deal.ogg", volume: 0.14, playbackRate: 1.15 },
 };
 
 const templates = new Map<SoundEffect, HTMLAudioElement>();

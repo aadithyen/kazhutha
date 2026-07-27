@@ -122,7 +122,7 @@ interface Props {
 export default function Hand({ sortMode }: Props) {
   const { t } = useLocale();
   const { state, client } = useRoom();
-  const { registerHandTarget, getPlaySlotTarget, setLocalFlyActive, pileSettling } = usePlayerAvatars();
+  const { registerHandTarget, getPlaySlotTarget, setLocalFlyActive, pileSettling, dealAnimating, revealedHandCount } = usePlayerAvatars();
   const handTargetRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const [selected, setSelected] = useState<Card | null>(null);
@@ -155,15 +155,16 @@ export default function Hand({ sortMode }: Props) {
   const suppressClickRef = useRef(false);
   const rawHand = state.hands[client.playerId] ?? [];
   const hand = useMemo(() => sortHand(rawHand, sortMode), [rawHand, sortMode]);
+  const displayHand = dealAnimating ? rawHand.slice(0, revealedHandCount) : hand;
   const legalCards = getLegalCards(state, client.playerId);
   const myTurn = state.currentTurnId === client.playerId;
-  const canPlay = myTurn && !pileSettling;
+  const canPlay = myTurn && !pileSettling && !dealAnimating;
 
   const fanWidth = useMemo(() => {
-    const spread = Math.max(hand.length - 1, 0) * CARD_SPREAD;
+    const spread = Math.max(displayHand.length - 1, 0) * CARD_SPREAD;
     const wing = CARD_WIDTH * 0.55;
     return Math.max(spread + CARD_WIDTH + wing * 2, typeof window !== "undefined" ? window.innerWidth : 360);
-  }, [hand.length]);
+  }, [displayHand.length]);
 
   const updateScrollBias = useCallback(() => {
     const el = scrollRef.current;
@@ -571,7 +572,7 @@ export default function Hand({ sortMode }: Props) {
       document.body,
     );
 
-  if (hand.length === 0) {
+  if (!dealAnimating && hand.length === 0) {
     return <div className="h-[58vh] min-h-72 bg-white dark:bg-neutral-950" />;
   }
 
@@ -587,16 +588,16 @@ export default function Hand({ sortMode }: Props) {
         aria-label={t("game.handAriaLabel")}
       >
         <div className="relative mx-auto h-full" style={{ width: fanWidth, minWidth: "100%" }}>
-          {hand.map((card, i) => {
+          {displayHand.map((card, i) => {
             const id = cardId(card);
             const legal = canPlay && legalCards.some((c) => isSameCard(c, card));
             const isSelected = !!selected && isSameCard(selected, card);
             const isDragSource = dragId === id;
             const isPendingRemoval = pendingRemovalIds.has(id);
             const isHidden = isPendingRemoval;
-            const angle = fanAngle(i, hand.length, scrollBias);
+            const angle = fanAngle(i, displayHand.length, scrollBias);
             const lift = fanLift(angle);
-            const center = (hand.length - 1) / 2;
+            const center = (displayHand.length - 1) / 2;
             const left = fanWidth / 2 + (i - center) * CARD_SPREAD - CARD_WIDTH / 2;
 
             return (
@@ -611,7 +612,7 @@ export default function Hand({ sortMode }: Props) {
                 } ${isHidden ? "pointer-events-none opacity-0" : ""}`}
                 style={{
                   left,
-                  zIndex: isSelected || isDragSource ? hand.length + 1 : i,
+                  zIndex: isSelected || isDragSource ? displayHand.length + 1 : i,
                   transform: `rotate(${angle}deg) translateY(${lift}px)`,
                 }}
                 onPointerDown={(e) => handlePointerDown(e, card, legal, angle)}

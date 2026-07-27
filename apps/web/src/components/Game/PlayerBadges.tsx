@@ -1,11 +1,13 @@
 import { isStraggler } from "@kazhutha/game";
 import { useLocale } from "../../i18n";
+import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
 import PlayerAvatar from "./PlayerAvatar";
 
 export default function PlayerBadges() {
   const { t } = useLocale();
   const { state, client } = useRoom();
+  const { dealAnimating } = usePlayerAvatars();
   const order = state.turnOrder.length > 0 ? state.turnOrder : state.players.map((p) => p.id);
   return (
     <div className="flex gap-3 overflow-x-auto border-b border-neutral-100 px-3 py-3 dark:border-neutral-800">
@@ -20,7 +22,7 @@ export default function PlayerBadges() {
         const isOut = isFinished || isPendingExit;
         const handCount = state.hands[id]?.length ?? 0;
         const countVisibleToOthers = state.cardCountVisible[id] ?? false;
-        const showHandCount = !isOut && (isMe || countVisibleToOthers);
+        const showHandCount = !dealAnimating && !isOut && (isMe || countVisibleToOthers);
 
         return (
           <div key={id} className="flex min-w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
