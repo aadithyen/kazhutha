@@ -163,24 +163,23 @@ html[lang="ml"] .italic {
   animation: vettu-dim-out ease forwards;
 }
 
-@keyframes deal-shuffle-wiggle {
-  0%,
-  100% {
-    transform: rotate(0deg) translateX(0);
-  }
-  20% {
-    transform: rotate(-4deg) translateX(-10px);
-  }
-  45% {
-    transform: rotate(3deg) translateX(8px);
-  }
-  70% {
-    transform: rotate(-2deg) translateX(-5px);
-  }
-}
-
-.deal-shuffle {
-  animation: deal-shuffle-wiggle 520ms ease-in-out infinite;
+/* Physical card back hatch — readable on dark UI */
+.card-back-hatch {
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 5px,
+      rgba(23, 23, 23, 0.12) 5px,
+      rgba(23, 23, 23, 0.12) 6px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 5px,
+      rgba(23, 23, 23, 0.12) 5px,
+      rgba(23, 23, 23, 0.12) 6px
+    );
 }
 
 @keyframes vettu-dim-in {

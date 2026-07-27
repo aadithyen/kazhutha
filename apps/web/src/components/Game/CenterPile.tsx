@@ -70,7 +70,7 @@ export default function CenterPile() {
             );
           })
         )}
-        {showPlaySlot && (
+        {showPlaySlot && !dealAnimating && (
           <div
             data-flip-key="play-slot"
             className="flex flex-col items-center gap-1.5"

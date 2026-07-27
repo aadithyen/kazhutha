@@ -158,36 +158,14 @@ function CardFace({ card, dims }: { card: Card; dims: (typeof SIZE_CLASSES)["md"
   );
 }
 
+/** Physical card backs stay light in every theme so pattern + edge stay readable. */
 function CardBack({ className }: { className: string }) {
   return (
-    <div
-      className={`${className} relative overflow-hidden border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900`}
-      aria-hidden
-    >
-      <div className="absolute inset-[5px] rounded-[inherit] border border-neutral-300 bg-neutral-50 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)] dark:border-neutral-600 dark:bg-neutral-800 dark:shadow-[inset_0_1px_3px_rgba(0,0,0,0.25)]">
-        <div
-          className="absolute inset-[4px] rounded-md"
-          style={{
-            backgroundImage: `
-              repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 5px,
-                rgba(23, 23, 23, 0.1) 5px,
-                rgba(23, 23, 23, 0.1) 6px
-              ),
-              repeating-linear-gradient(
-                -45deg,
-                transparent,
-                transparent 5px,
-                rgba(23, 23, 23, 0.1) 5px,
-                rgba(23, 23, 23, 0.1) 6px
-              )
-            `,
-          }}
-        />
-        <div className="absolute inset-[20%] rounded-sm border border-neutral-400/60 bg-white shadow-[0_1px_4px_rgba(15,23,42,0.08)] dark:border-neutral-500/60 dark:bg-neutral-900 dark:shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
-          <div className="absolute inset-[16%] rounded-sm border border-neutral-300/70 dark:border-neutral-600/70" />
+    <div className={`${className} relative overflow-hidden border-neutral-300 bg-neutral-100`} aria-hidden>
+      <div className="absolute inset-[5px] rounded-[inherit] border border-neutral-300/90 bg-[#f4f4f5] shadow-[inset_0_1px_3px_rgba(15,23,42,0.06)]">
+        <div className="card-back-hatch absolute inset-[4px] rounded-md" />
+        <div className="absolute inset-[20%] rounded-sm border border-neutral-400/55 bg-white shadow-[0_1px_4px_rgba(15,23,42,0.08)]">
+          <div className="absolute inset-[16%] rounded-sm border border-neutral-300/70" />
         </div>
       </div>
     </div>
@@ -196,7 +174,8 @@ function CardBack({ className }: { className: string }) {
 
 export default function PlayingCard({ card, faceDown, selected, disabled, onClick, size = "md" }: Props) {
   const dims = SIZE_CLASSES[size];
-  const base = `relative ${dims.box} border bg-white font-serif shadow-[0_2px_12px_rgba(15,23,42,0.08)] transition-all duration-150 dark:bg-neutral-900 dark:shadow-[0_2px_12px_rgba(0,0,0,0.35)]`;
+  // Faces stay white in dark mode — cards are physical objects, not UI chrome.
+  const base = `relative ${dims.box} border border-neutral-200 bg-white font-serif shadow-[0_2px_12px_rgba(15,23,42,0.1)] transition-all duration-150 dark:shadow-[0_2px_14px_rgba(0,0,0,0.45)]`;
 
   if (faceDown || !card) {
     return <CardBack className={base} />;
@@ -211,7 +190,7 @@ export default function PlayingCard({ card, faceDown, selected, disabled, onClic
       type="button"
       onClick={onClick}
       disabled={disabled || !onClick}
-      className={`${base} border-neutral-200 ${color} ${
+      className={`${base} ${color} ${
         selected
           ? "-translate-y-3 border-neutral-400 shadow-[0_12px_28px_rgba(15,23,42,0.14)] ring-1 ring-neutral-300"
           : interactive
