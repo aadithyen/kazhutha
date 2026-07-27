@@ -54,15 +54,18 @@ body {
   transform-style: preserve-3d;
 }
 
-.vettu-banner-text {
-  font-family: var(--font-serif), "Noto Sans Malayalam", Georgia, "Times New Roman", serif;
-  font-style: italic;
-  font-size: clamp(1.75rem, 7vw, 3.25rem);
-  line-height: 1.2;
+.malayalam-title {
+  font-family: "Noto Sans Malayalam", var(--font-serif), Georgia, serif;
+  font-weight: 400;
+  font-style: normal;
 }
 
-html[lang="ml"] body {
-  font-family: "Noto Sans Malayalam", var(--font-sans), system-ui, sans-serif;
+.vettu-banner-text {
+  font-family: "Noto Sans Malayalam", var(--font-serif), Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  font-style: normal;
+  font-size: clamp(1.75rem, 7vw, 3.25rem);
+  line-height: 1.2;
 }
 
 .vettu-banner-enter {

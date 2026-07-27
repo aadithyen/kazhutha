@@ -2,6 +2,9 @@
   "meta": {
     "languageName": "English"
   },
+  "app": {
+    "title": "Kazhutha"
+  },
   "languagePicker": {
     "title": "Choose your language",
     "subtitle": "Pick English or Malayalam for the game interface."
