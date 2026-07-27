@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
 import { parseClientMessage, ServerToClient } from "./protocol.js";
-import { buildRoster, RoomRegistry } from "./rooms.js";
+import { RoomRegistry } from "./rooms.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const registry = new RoomRegistry();
@@ -22,16 +22,6 @@ function send(ws: WebSocket, msg: ServerToClient) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
 }
 
-function broadcastRoster(roomCode: string) {
-  const room = registry.get(roomCode);
-  if (!room || room.peers.size === 0) return;
-  const { hostId, roster } = buildRoster(room);
-  const msg: ServerToClient = { type: "roster", hostId, roster };
-  for (const peer of room.peers.values()) {
-    send(peer.ws, msg);
-  }
-}
-
 wss.on("connection", (ws) => {
   let roomCode: string | null = null;
   let peerId: string | null = null;
@@ -43,8 +33,7 @@ wss.on("connection", (ws) => {
 
     if (msg.type === "join") {
       if (joined) return;
-      const room = registry.getOrCreate(msg.roomCode, msg.peerId);
-      const role = room.hostId === msg.peerId ? "host" : "peer";
+      const room = registry.getOrCreate(msg.roomCode);
 
       const previous = room.peers.get(msg.peerId);
       previous?.ws.close();
@@ -54,9 +43,16 @@ wss.on("connection", (ws) => {
       peerId = msg.peerId;
       joined = true;
 
-      const { hostId, roster } = buildRoster(room);
-      send(ws, { type: "joined", peerId: msg.peerId, hostId, role, roster });
-      broadcastRoster(roomCode);
+      const peers = Array.from(room.peers.values())
+        .filter((p) => p.peerId !== msg.peerId)
+        .map((p) => ({ peerId: p.peerId, name: p.name }));
+
+      send(ws, { type: "joined", peerId: msg.peerId, peers });
+
+      for (const peer of room.peers.values()) {
+        if (peer.peerId === msg.peerId) continue;
+        send(peer.ws, { type: "peer-joined", peerId: msg.peerId, name: msg.name });
+      }
       return;
     }
 
@@ -70,12 +66,6 @@ wss.on("connection", (ws) => {
       return;
     }
 
-    if (msg.type === "sync-host") {
-      if (!registry.transferHost(roomCode, msg.newHostId)) return;
-      broadcastRoster(roomCode);
-      return;
-    }
-
     if (msg.type === "leave") {
       ws.close();
     }
@@ -85,15 +75,12 @@ wss.on("connection", (ws) => {
     if (!roomCode || !peerId) return;
     const room = registry.get(roomCode);
     if (!room) return;
-    const wasHost = room.hostId === peerId;
     registry.removePeer(roomCode, peerId);
     if (room.peers.size === 0) return;
 
-    if (wasHost) {
-      const newHostId = room.peers.keys().next().value!;
-      registry.transferHost(roomCode, newHostId);
+    for (const peer of room.peers.values()) {
+      send(peer.ws, { type: "peer-left", peerId });
     }
-    broadcastRoster(roomCode);
   });
 });
 

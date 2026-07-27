@@ -6,18 +6,14 @@ export type SignalPayload =
 export type ClientToServer =
   | { type: "join"; roomCode: string; peerId: string; name: string }
   | { type: "signal"; to: string; data: SignalPayload }
-  | { type: "sync-host"; newHostId: string }
   | { type: "leave" };
 
 export type RoomPeerInfo = { peerId: string; name: string };
 
 export type ServerToClient =
-  | { type: "joined"; peerId: string; hostId: string; role: "host" | "peer"; roster: RoomPeerInfo[] }
-  | { type: "roster"; hostId: string; roster: RoomPeerInfo[] }
+  | { type: "joined"; peerId: string; peers: RoomPeerInfo[] }
   | { type: "peer-joined"; peerId: string; name: string }
   | { type: "peer-left"; peerId: string }
-  | { type: "host-left" }
-  | { type: "host-changed"; hostId: string }
   | { type: "signal"; from: string; data: SignalPayload }
   | { type: "error"; message: string };
 
@@ -58,13 +54,6 @@ export function parseClientMessage(raw: string): ClientToServer | null {
   }
 
   if (msg.type === "leave") return { type: "leave" };
-
-  if (msg.type === "sync-host") {
-    if (typeof msg.newHostId === "string" && msg.newHostId.length > 0 && msg.newHostId.length <= MAX_ID_LEN) {
-      return { type: "sync-host", newHostId: msg.newHostId };
-    }
-    return null;
-  }
 
   return null;
 }
