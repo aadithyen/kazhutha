@@ -86,6 +86,9 @@ wss.on("connection", (ws) => {
     if (!roomCode || !peerId) return;
     const room = registry.get(roomCode);
     if (!room) return;
+    const current = room.peers.get(peerId);
+    // Ignore close from a superseded socket (same peerId rejoined on a new ws).
+    if (!current || current.ws !== ws) return;
     registry.removePeer(roomCode, peerId);
     if (room.peers.size === 0) return;
 
