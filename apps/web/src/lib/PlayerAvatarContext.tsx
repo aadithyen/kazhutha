@@ -18,6 +18,8 @@ interface PlayerAvatarContextValue {
   setDealAnimating: (animating: boolean) => void;
   revealedHandCount: number;
   setRevealedHandCount: (count: number) => void;
+  registerHandCardTarget: (index: number, el: HTMLElement | null) => void;
+  getHandCardTarget: (index: number) => Point | null;
   getAvatarCenter: (playerId: string) => Point | null;
   getHandTarget: () => Point | null;
   getPileTarget: () => Point | null;
@@ -28,6 +30,7 @@ const PlayerAvatarContext = createContext<PlayerAvatarContextValue | null>(null)
 
 export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
   const avatarsRef = useRef(new Map<string, HTMLElement>());
+  const handCardTargetsRef = useRef(new Map<number, HTMLElement>());
   const handTargetRef = useRef<HTMLElement | null>(null);
   const pileTargetRef = useRef<HTMLElement | null>(null);
   const playSlotTargetRef = useRef<HTMLElement | null>(null);
@@ -50,6 +53,18 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
 
   const setRevealedHandCount = useCallback((count: number) => {
     setRevealedHandCountState(count);
+  }, []);
+
+  const registerHandCardTarget = useCallback((index: number, el: HTMLElement | null) => {
+    if (el) handCardTargetsRef.current.set(index, el);
+    else handCardTargetsRef.current.delete(index);
+  }, []);
+
+  const getHandCardTarget = useCallback((index: number): Point | null => {
+    const el = handCardTargetsRef.current.get(index);
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   }, []);
 
   const registerAvatar = useCallback((playerId: string, el: HTMLElement | null) => {
@@ -115,6 +130,8 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
       setDealAnimating,
       revealedHandCount,
       setRevealedHandCount,
+      registerHandCardTarget,
+      getHandCardTarget,
       getAvatarCenter,
       getHandTarget,
       getPileTarget,
@@ -133,6 +150,8 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
       setDealAnimating,
       revealedHandCount,
       setRevealedHandCount,
+      registerHandCardTarget,
+      getHandCardTarget,
       getAvatarCenter,
       getHandTarget,
       getPileTarget,
