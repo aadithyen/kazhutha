@@ -1,6 +1,7 @@
 import { GameState } from "@kazhutha/game";
 import { PeerInfo, RoomClient } from "@kazhutha/network";
 import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useLocale } from "../i18n";
 import { getOrCreatePlayerId, getStoredName } from "./identity";
 import { getIceServers, getSignalingUrl } from "./network";
 
@@ -16,8 +17,9 @@ interface RoomContextValue {
 const RoomContext = createContext<RoomContextValue | null>(null);
 
 export function RoomProvider({ roomCode, children }: { roomCode: string; children: ReactNode }) {
+  const { t, translateError } = useLocale();
   const playerId = useMemo(() => getOrCreatePlayerId(), []);
-  const name = useMemo(() => getStoredName() || "Player", []);
+  const name = useMemo(() => getStoredName() || t("common.defaultPlayer"), [t]);
   const clientRef = useRef<RoomClient | null>(null);
 
   if (!clientRef.current) {
@@ -45,16 +47,16 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
     const unsubRoom = client.on((ev) => {
       if (ev.type === "peers") setPeers(ev.peers);
       else if (ev.type === "hostLeft") {
-        setBanner("Host disconnected. Acting host continues the game until they return.");
+        setBanner(t("banners.hostLeft"));
       } else if (ev.type === "actingHost") {
         if (ev.actingHostId === client.playerId) {
-          setBanner("You are acting host until the room host returns.");
+          setBanner(t("banners.actingHostYou"));
         } else {
-          setBanner("Acting host elected. Game continues.");
+          setBanner(t("banners.actingHostOther"));
         }
       } else if (ev.type === "hostReconnected") {
-        setBanner("Host reconnected. Game resumed.");
-      } else if (ev.type === "error") setBanner(ev.message);
+        setBanner(t("banners.hostReconnected"));
+      } else if (ev.type === "error") setBanner(translateError(ev.message));
       else if (ev.type === "signalingStatus") setSignalingConnected(ev.connected);
     });
     client.connect();
@@ -66,7 +68,7 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
         if (effectGeneration.current === closedGeneration) client.disconnect();
       }, 0);
     };
-  }, [client]);
+  }, [client, t, translateError]);
 
   const value: RoomContextValue = {
     client,

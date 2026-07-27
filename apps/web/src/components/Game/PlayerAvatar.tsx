@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useLocale } from "../../i18n";
 import { getPlayerColor, getPlayerInitials } from "../../lib/playerColors";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 
@@ -27,6 +28,7 @@ export default function PlayerAvatar({
   handCount,
   finishRank,
 }: Props) {
+  const { t } = useLocale();
   const { registerAvatar } = usePlayerAvatars();
   const ref = useRef<HTMLDivElement>(null);
   const color = getPlayerColor(playerId);
@@ -63,7 +65,7 @@ export default function PlayerAvatar({
       {showWinBadge && (
         <span
           className={`absolute -right-1 -top-1 flex items-center justify-center rounded-full bg-emerald-600 px-1.5 font-sans font-semibold leading-none text-white shadow-[0_1px_4px_rgba(15,23,42,0.18)] ${badgeSizeClass}`}
-          aria-label={`Finished #${finishRank}`}
+          aria-label={t("game.finishedRank", { rank: finishRank })}
         >
           #{finishRank}
         </span>
@@ -71,7 +73,7 @@ export default function PlayerAvatar({
       {showPendingExitBadge && (
         <span
           className={`absolute -right-1 -top-1 flex items-center justify-center rounded-full bg-emerald-600 font-sans font-semibold leading-none text-white shadow-[0_1px_4px_rgba(15,23,42,0.18)] ${badgeSizeClass} ${size === "sm" ? "w-4" : "w-5"}`}
-          aria-label="Out of cards"
+          aria-label={t("game.outOfCards")}
         >
           ✓
         </span>
@@ -79,7 +81,7 @@ export default function PlayerAvatar({
       {showCountBadge && (
         <span
           className={`absolute -right-0.5 -top-0.5 flex min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 font-sans font-semibold leading-none text-neutral-700 shadow-[0_1px_4px_rgba(15,23,42,0.18)] dark:bg-neutral-700 dark:text-neutral-100 ${badgeSizeClass}`}
-          aria-label={`${handCount} cards`}
+          aria-label={t("game.cardCount", { count: handCount })}
         >
           {handCount}
         </span>

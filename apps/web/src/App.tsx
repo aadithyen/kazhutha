@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { LocaleProvider } from "./i18n";
 import { usePwaBackNavigation } from "./lib/usePwaBackNavigation";
 import HomePage from "./pages/HomePage";
 import RoomPage from "./pages/RoomPage";
@@ -17,8 +18,10 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <LocaleProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </LocaleProvider>
   );
 }

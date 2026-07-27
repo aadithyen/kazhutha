@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "../../i18n";
 import { pickRandomVettuMessage } from "../../lib/vettuMessages";
 import { useRoom } from "../../lib/RoomContext";
 
@@ -9,6 +10,7 @@ const EXIT_MS = 500;
 type Phase = "idle" | "enter" | "hold" | "exit";
 
 export default function VettuBanner() {
+  const { vettuMessages } = useLocale();
   const { state } = useRoom();
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
@@ -20,7 +22,7 @@ export default function VettuBanner() {
     if (lastVettuAtRef.current === result.at) return;
     lastVettuAtRef.current = result.at;
 
-    setMessage(pickRandomVettuMessage());
+    setMessage(pickRandomVettuMessage(vettuMessages));
     setPhase("enter");
 
     const holdTimer = window.setTimeout(() => setPhase("hold"), ENTER_MS);
@@ -32,7 +34,7 @@ export default function VettuBanner() {
       window.clearTimeout(exitTimer);
       window.clearTimeout(idleTimer);
     };
-  }, [state.lastRoundResult]);
+  }, [state.lastRoundResult, vettuMessages]);
 
   if (phase === "idle") return null;
 
