@@ -51,7 +51,8 @@
     "shareText": "എന്റെ Kazhutha റൂമിൽ ചേരൂ",
     "players": "കളിക്കാർ ({count})",
     "kick": "നീക്കം ചെയ്യുക",
-    "rules": "നിയമങ്ങൾ"
+    "rules": "നിയമങ്ങൾ",
+    "exitLobby": "ലോബി വിടുക"
   },
   "rules": {
     "mustLeadAceOfSpades": {

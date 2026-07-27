@@ -124,6 +124,16 @@ export class RoomClient {
     this.links.clear();
   }
 
+  leave() {
+    this.signaling.send({ type: "leave" });
+    try {
+      sessionStorage.removeItem(STATE_PREFIX + this.roomCode);
+    } catch {
+      // private mode or quota
+    }
+    this.disconnect();
+  }
+
   getPeers(): PeerInfo[] {
     return Array.from(this.knownPeers.entries()).map(([id, name]) => ({
       id,
