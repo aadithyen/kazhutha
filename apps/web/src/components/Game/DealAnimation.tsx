@@ -1,15 +1,18 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { DEAL_FLY_SPREAD } from "../../lib/cardLayout";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
 import { playSound } from "../../lib/sounds";
 import PlayingCard from "../PlayingCard";
 
-const SHUFFLE_MS = 720;
-const SPLIT_MS = 380;
-const DEAL_FLY_MS = 160;
-const DEAL_STAGGER_MS = 38;
+const GATHER_MS = 280;
+const RIFFLE_PASS_MS = 780;
+const RIFFLE_PASSES = 2;
+const SQUARE_MS = 260;
+const DEAL_FLY_MS = 170;
+const DEAL_STAGGER_MS = 36;
 const TOTAL_CARDS = 52;
+const SHUFFLE_CARD_COUNT = 12;
 
 let lastAnimatedDealSeed: number | null = null;
 
@@ -18,7 +21,7 @@ interface Point {
   y: number;
 }
 
-type Phase = "idle" | "shuffle" | "split" | "deal" | "done";
+type Phase = "idle" | "gather" | "riffle" | "square" | "deal" | "done";
 
 interface FlyingDealCard {
   key: string;
@@ -26,12 +29,7 @@ interface FlyingDealCard {
   end: Point;
   delay: number;
   revealOnArrival: boolean;
-}
-
-interface SplitStack {
-  playerId: string;
-  start: Point;
-  end: Point;
+  rot: number;
 }
 
 function DealFlyingCard({
@@ -51,15 +49,15 @@ function DealFlyingCard({
     const delayTimer = window.setTimeout(() => {
       el.style.left = `${item.start.x}px`;
       el.style.top = `${item.start.y}px`;
-      el.style.transform = "translate(-50%, -50%) scale(0.72)";
+      el.style.transform = `translate(-50%, -50%) scale(0.78) rotate(${item.rot}deg)`;
       el.style.opacity = "1";
 
       requestAnimationFrame(() => {
-        el.style.transition = `left ${DEAL_FLY_MS}ms ease-out, top ${DEAL_FLY_MS}ms ease-out, transform ${DEAL_FLY_MS}ms ease-out, opacity ${DEAL_FLY_MS}ms ease-out`;
+        el.style.transition = `left ${DEAL_FLY_MS}ms cubic-bezier(0.22, 1, 0.36, 1), top ${DEAL_FLY_MS}ms cubic-bezier(0.22, 1, 0.36, 1), transform ${DEAL_FLY_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${DEAL_FLY_MS}ms ease-out`;
         el.style.left = `${item.end.x}px`;
         el.style.top = `${item.end.y}px`;
-        el.style.transform = `translate(-50%, -50%) scale(${item.revealOnArrival ? 1 : 0.35})`;
-        el.style.opacity = item.revealOnArrival ? "1" : "0.2";
+        el.style.transform = `translate(-50%, -50%) scale(${item.revealOnArrival ? 1 : 0.32}) rotate(0deg)`;
+        el.style.opacity = item.revealOnArrival ? "1" : "0.15";
       });
 
       flyTimer = window.setTimeout(() => onArrive(item.key, item.revealOnArrival), DEAL_FLY_MS);
@@ -82,53 +80,19 @@ function DealFlyingCard({
   );
 }
 
-function SplitStackView({ stack, active }: { stack: SplitStack; active: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el || !active) return;
-
-    el.style.left = `${stack.start.x}px`;
-    el.style.top = `${stack.start.y}px`;
-    el.style.transform = "translate(-50%, -50%) scale(0.9)";
-    el.style.opacity = "0.95";
-
-    const frame = requestAnimationFrame(() => {
-      el.style.transition = `left ${SPLIT_MS}ms cubic-bezier(0.22, 1, 0.36, 1), top ${SPLIT_MS}ms cubic-bezier(0.22, 1, 0.36, 1), transform ${SPLIT_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease-out`;
-      el.style.left = `${stack.end.x}px`;
-      el.style.top = `${stack.end.y}px`;
-      el.style.transform = "translate(-50%, -50%) scale(0.55)";
-    });
-
-    return () => cancelAnimationFrame(frame);
-  }, [stack, active]);
-
-  if (!active) return null;
-
-  return (
-    <div
-      ref={ref}
-      className="pointer-events-none fixed z-[54]"
-      style={{ left: stack.start.x, top: stack.start.y }}
-    >
-      <div className="relative h-[4.5rem] w-12">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="absolute inset-0"
-            style={{ transform: `translate(${i * 2}px, ${-i * 2}px)` }}
-          >
-            <PlayingCard faceDown size="sm" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ShuffleDeck({ center, active }: { center: Point; active: boolean }) {
-  if (!active) return null;
+/** Center-stage riffle: split packets, weave cards, square — CSS-driven. */
+function RiffleShuffle({
+  center,
+  phase,
+  pass,
+}: {
+  center: Point;
+  phase: "gather" | "riffle" | "square";
+  pass: number;
+}) {
+  const cards = Array.from({ length: SHUFFLE_CARD_COUNT }, (_, i) => i);
+  const leftPacket = cards.filter((i) => i % 2 === 0);
+  const rightPacket = cards.filter((i) => i % 2 === 1);
 
   return (
     <div
@@ -136,14 +100,54 @@ function ShuffleDeck({ center, active }: { center: Point; active: boolean }) {
       style={{ left: center.x, top: center.y, transform: "translate(-50%, -50%)" }}
       aria-hidden
     >
-      <div className="deal-shuffle relative h-[6.75rem] w-[4.75rem]">
-        {[0, 1, 2, 3, 4].map((i) => (
+      <div
+        className={`deal-riffle-stage relative h-[6.75rem] w-[4.75rem] ${
+          phase === "gather" ? "deal-riffle-gather" : phase === "square" ? "deal-riffle-square" : ""
+        }`}
+        data-pass={pass}
+      >
+        {leftPacket.map((i, stackIndex) => (
           <div
-            key={i}
-            className="absolute left-1/2 top-1/2"
-            style={{
-              transform: `translate(-50%, -50%) translate(${i * 1.5 - 3}px, ${-i * 2}px) rotate(${(i - 2) * 2}deg)`,
-            }}
+            key={`L-${i}-${pass}`}
+            className={`deal-riffle-card absolute left-1/2 top-1/2 ${
+              phase === "riffle" ? "deal-riffle-left" : phase === "gather" ? "deal-riffle-stack" : "deal-riffle-settle"
+            }`}
+            style={
+              {
+                "--stack": stackIndex,
+                "--weave": stackIndex,
+                "--side": -1,
+                animationDelay:
+                  phase === "riffle"
+                    ? `${stackIndex * 42}ms`
+                    : phase === "gather"
+                      ? `${stackIndex * 18}ms`
+                      : "0ms",
+              } as CSSProperties
+            }
+          >
+            <PlayingCard faceDown size="md" />
+          </div>
+        ))}
+        {rightPacket.map((i, stackIndex) => (
+          <div
+            key={`R-${i}-${pass}`}
+            className={`deal-riffle-card absolute left-1/2 top-1/2 ${
+              phase === "riffle" ? "deal-riffle-right" : phase === "gather" ? "deal-riffle-stack" : "deal-riffle-settle"
+            }`}
+            style={
+              {
+                "--stack": stackIndex,
+                "--weave": stackIndex,
+                "--side": 1,
+                animationDelay:
+                  phase === "riffle"
+                    ? `${28 + stackIndex * 42}ms`
+                    : phase === "gather"
+                      ? `${(stackIndex + leftPacket.length) * 18}ms`
+                      : "0ms",
+              } as CSSProperties
+            }
           >
             <PlayingCard faceDown size="md" />
           </div>
@@ -164,7 +168,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
   } = usePlayerAvatars();
   const [phase, setPhase] = useState<Phase>("idle");
   const [center, setCenter] = useState<Point | null>(null);
-  const [splitStacks, setSplitStacks] = useState<SplitStack[]>([]);
+  const [rifflePass, setRifflePass] = useState(0);
   const [flying, setFlying] = useState<FlyingDealCard[]>([]);
   const timersRef = useRef<number[]>([]);
   const revealedRef = useRef(0);
@@ -189,7 +193,6 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
 
   const finishDeal = useCallback(() => {
     setFlying([]);
-    setSplitStacks([]);
     setPhase("done");
     setDealAnimating(false);
     const myHand = state.hands[client.playerId]?.length ?? 0;
@@ -212,24 +215,33 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
       setCenter(pileCenter);
       setDealAnimating(true);
       setRevealedHandCount(0);
-      setPhase("shuffle");
+      setRifflePass(0);
+      setPhase("gather");
       playSound("cardShuffle");
 
+      const shuffleTotalMs = GATHER_MS + RIFFLE_PASSES * RIFFLE_PASS_MS + SQUARE_MS;
+
+      // First riffle after gather
       schedule(() => {
-        const stacks: SplitStack[] = turnOrder
-          .map((playerId) => {
-            const end = targets.get(playerId);
-            if (!end) return null;
-            return { playerId, start: pileCenter, end };
-          })
-          .filter((s): s is SplitStack => s !== null);
-        setSplitStacks(stacks);
-        setPhase("split");
-      }, SHUFFLE_MS);
+        setPhase("riffle");
+        setRifflePass(0);
+      }, GATHER_MS);
+
+      // Extra riffle passes
+      for (let p = 1; p < RIFFLE_PASSES; p++) {
+        schedule(() => {
+          setRifflePass(p);
+          setPhase("riffle");
+          playSound("cardShuffle");
+        }, GATHER_MS + p * RIFFLE_PASS_MS);
+      }
+
+      schedule(() => {
+        setPhase("square");
+      }, GATHER_MS + RIFFLE_PASSES * RIFFLE_PASS_MS);
 
       schedule(() => {
         setPhase("deal");
-        setSplitStacks([]);
         const items: FlyingDealCard[] = [];
         const cardsPerPlayer = Math.floor(TOTAL_CARDS / turnOrder.length);
         const dealtCount = new Map<string, number>();
@@ -256,6 +268,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
             },
             delay: i * DEAL_STAGGER_MS,
             revealOnArrival: isMe,
+            rot: ((i * 17) % 11) - 5,
           });
         }
 
@@ -269,7 +282,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
 
         const totalDealMs = (TOTAL_CARDS - 1) * DEAL_STAGGER_MS + DEAL_FLY_MS + 80;
         schedule(finishDeal, totalDealMs);
-      }, SHUFFLE_MS + SPLIT_MS);
+      }, shuffleTotalMs);
     },
     [
       client.playerId,
@@ -318,12 +331,11 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
 
   if (phase === "idle" || phase === "done") return null;
 
+  const shufflePhase = phase === "gather" || phase === "riffle" || phase === "square" ? phase : null;
+
   return (
     <div className="pointer-events-none fixed inset-0 z-[53]" aria-hidden>
-      {center && <ShuffleDeck center={center} active={phase === "shuffle"} />}
-      {splitStacks.map((stack) => (
-        <SplitStackView key={stack.playerId} stack={stack} active={phase === "split"} />
-      ))}
+      {center && shufflePhase && <RiffleShuffle center={center} phase={shufflePhase} pass={rifflePass} />}
       {flying.map((item) => (
         <DealFlyingCard key={item.key} item={item} onArrive={handleArrive} />
       ))}
