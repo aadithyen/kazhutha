@@ -6,7 +6,7 @@ import PlayerList from "./PlayerList";
 import RulesPanel from "./RulesPanel";
 
 export default function LobbyScreen() {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const { state, client } = useRoom();
   const me = state.players.find((p) => p.id === client.playerId);
   const isHost = me?.isHost ?? false;
@@ -25,13 +25,7 @@ export default function LobbyScreen() {
     <div className="relative mx-auto flex max-w-md flex-col gap-4 px-4 py-6">
       <LanguageSwitcher className="absolute right-0 top-0" />
       <header className="text-center">
-        <h1
-          className={
-            locale === "ml"
-              ? "malayalam-title text-3xl text-neutral-900 dark:text-neutral-100"
-              : "font-serif text-3xl font-semibold italic text-neutral-900 dark:text-neutral-100"
-          }
-        >
+        <h1 className="font-serif text-3xl font-semibold italic text-neutral-900 dark:text-neutral-100">
           {t("lobby.title")}
         </h1>
         <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{t("lobby.subtitle")}</p>
