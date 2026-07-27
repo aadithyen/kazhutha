@@ -3,6 +3,7 @@ import {
   GameEvent,
   GameState,
   Intent,
+  createInitialState,
   eventsForHostDisconnect,
   getAuthorityId,
   processIntent,
@@ -61,7 +62,10 @@ export class RoomClient {
   private snapshotRequested = false;
 
   private authorityTarget(): string | null {
-    return getAuthorityId(this.engine.getState()) ?? this.signalingHostId;
+    const state = this.engine.getState();
+    // In lobby, signaling tracker is source of truth — stale persisted state must not win.
+    if (state.phase === "lobby" && this.signalingHostId) return this.signalingHostId;
+    return getAuthorityId(state) ?? this.signalingHostId;
   }
 
   constructor(opts: RoomClientOptions) {
@@ -152,6 +156,10 @@ export class RoomClient {
       this.isAuthority = false;
       return;
     }
+    if (state.phase === "lobby" && this.signalingHostId) {
+      this.isAuthority = this.signalingHostId === this.playerId;
+      return;
+    }
     const authorityId = getAuthorityId(state);
     this.isAuthority = authorityId === this.playerId;
   }
@@ -182,10 +190,14 @@ export class RoomClient {
             this.seedLobbyAsHost();
             for (const peer of msg.peers) this.ensureLinkAsAnswerer(peer.peerId);
           }
+          this.syncAuthorityFromState();
         } else {
-          const authorityId = getAuthorityId(state);
-          const target = authorityId ?? msg.hostId;
-          this.connectToAuthority(target);
+          if (state.phase === "lobby" && state.hostId && state.hostId !== msg.hostId) {
+            // Stale persisted lobby state claimed we were host — defer to signaling tracker.
+            this.engine.apply({ type: "StateSnapshot", state: createInitialState(this.roomCode) });
+          }
+          this.connectToAuthority(msg.hostId);
+          this.syncAuthorityFromState();
         }
         this.emit({ type: "peers", peers: this.getPeers() });
         break;
@@ -193,19 +205,29 @@ export class RoomClient {
       case "peer-joined": {
         this.peerNames.set(msg.peerId, msg.name);
         const state = this.engine.getState();
-        const authorityId = getAuthorityId(state);
+        const authorityId = this.authorityTarget();
         if (this.isAuthority) {
           this.ensureLinkAsAnswerer(msg.peerId);
         } else if (authorityId && msg.peerId === authorityId) {
-          this.connectToAuthority(msg.peerId);
-        } else if (msg.peerId === state.hostId && state.phase !== "lobby") {
           this.connectToAuthority(msg.peerId);
         }
         this.emit({ type: "peers", peers: this.getPeers() });
         break;
       }
       case "peer-left": {
-        if (this.isAuthority) this.handlePeerDisconnected(msg.peerId);
+        const state = this.engine.getState();
+        if (state.phase === "lobby") {
+          if (state.players.some((p) => p.id === msg.peerId && p.connected)) {
+            this.engine.apply({ type: "PlayerLeft", playerId: msg.peerId });
+            if (this.isAuthority) this.persistState();
+          }
+        } else if (msg.peerId === state.hostId) {
+          this.engine.apply({ type: "PlayerLeft", playerId: msg.peerId });
+          this.applyLocalElection();
+          this.emit({ type: "hostLeft" });
+        } else if (this.isAuthority) {
+          this.handlePeerDisconnected(msg.peerId);
+        }
         this.links.get(msg.peerId)?.close();
         this.links.delete(msg.peerId);
         this.peerNames.delete(msg.peerId);
@@ -216,10 +238,20 @@ export class RoomClient {
       case "host-left":
         this.handleHostSignalingDisconnect();
         break;
-      case "host-changed":
+      case "host-changed": {
         this.signalingHostId = msg.hostId;
+        const lobbyState = this.engine.getState();
+        if (lobbyState.phase === "lobby") {
+          if (msg.hostId === this.playerId && !lobbyState.hostId) {
+            this.seedLobbyAsHost();
+          } else if (lobbyState.hostId && lobbyState.hostId !== msg.hostId) {
+            this.engine.apply({ type: "HostTransferred", newHostId: msg.hostId });
+          }
+        }
         this.handleAuthorityTargetChanged(msg.hostId);
+        if (this.isAuthority) this.persistState();
         break;
+      }
       case "signal": {
         const link =
           this.links.get(msg.from) ?? (this.isAuthority ? this.ensureLinkAsAnswerer(msg.from) : null);
