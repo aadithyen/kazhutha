@@ -29,15 +29,15 @@ export default function LobbyScreen() {
   }
 
   return (
-    <div className="relative mx-auto flex max-w-md flex-col gap-4 px-4 py-6">
+    <div className="relative mx-auto flex max-w-md flex-col gap-4 px-4 py-10">
       <button
         type="button"
         onClick={exitLobby}
-        className="absolute left-0 top-0 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+        className="absolute left-4 top-4 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
       >
         {t("lobby.exitLobby")}
       </button>
-      <LanguageSwitcher className="absolute right-0 top-0" />
+      <LanguageSwitcher className="absolute right-4 top-4" />
       <header className="text-center">
         <h1 className="font-serif text-3xl font-semibold italic text-neutral-900 dark:text-neutral-100">
           {t("lobby.title")}
