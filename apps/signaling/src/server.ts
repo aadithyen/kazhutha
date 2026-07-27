@@ -38,16 +38,27 @@ wss.on("connection", (ws) => {
       const previous = room.peers.get(msg.peerId);
       previous?.ws.close();
 
-      room.peers.set(msg.peerId, { peerId: msg.peerId, name: msg.name, ws });
+      if (previous) {
+        room.peers.set(msg.peerId, { ...previous, name: msg.name, ws });
+      } else {
+        room.peers.set(msg.peerId, { peerId: msg.peerId, name: msg.name, ws, joinedAt: Date.now() });
+      }
       roomCode = msg.roomCode;
       peerId = msg.peerId;
       joined = true;
 
-      const peers = Array.from(room.peers.values())
-        .filter((p) => p.peerId !== msg.peerId)
-        .map((p) => ({ peerId: p.peerId, name: p.name }));
+      const joinOrder = Array.from(room.peers.values())
+        .sort((a, b) => a.joinedAt - b.joinedAt)
+        .map((p) => p.peerId);
 
-      send(ws, { type: "joined", peerId: msg.peerId, peers });
+      const peers = joinOrder
+        .filter((id) => id !== msg.peerId)
+        .map((id) => {
+          const peer = room.peers.get(id)!;
+          return { peerId: peer.peerId, name: peer.name };
+        });
+
+      send(ws, { type: "joined", peerId: msg.peerId, peers, joinOrder });
 
       for (const peer of room.peers.values()) {
         if (peer.peerId === msg.peerId) continue;

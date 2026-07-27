@@ -210,6 +210,7 @@ export class RoomClient {
   private handleSignalingMessage(msg: ServerToClient) {
     switch (msg.type) {
       case "joined": {
+        if (msg.joinOrder.length > 0) this.joinOrder = [...msg.joinOrder];
         for (const peer of msg.peers) this.notePeer(peer.peerId, peer.name);
         this.notePeer(this.playerId, this.name);
         const state = this.engine.getState();
