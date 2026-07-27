@@ -63,6 +63,7 @@
     "yourTurn": "Your turn",
     "playerTurn": "{name}'s turn",
     "waiting": "Waiting…",
+    "paused": "Paused",
     "lead": "Lead:",
     "playToCenter": "Play to the center",
     "play": "Play",
@@ -92,9 +93,7 @@
     "soundEffects": "Sound effects"
   },
   "banners": {
-    "hostLeft": "Host disconnected. Acting host continues the game until they return.",
-    "actingHostYou": "You are acting host until the room host returns.",
-    "actingHostOther": "Acting host elected. Game continues.",
+    "hostLeft": "Host disconnected. Game paused until they return.",
     "hostReconnected": "Host reconnected. Game resumed."
   },
   "errors": {
@@ -109,6 +108,7 @@
     "Need at least 2 players": "Need at least 2 players",
     "Too many players (max 10)": "Too many players (max 10)",
     "Game is not in progress": "Game is not in progress",
+    "Game is paused": "Game is paused",
     "Not your turn": "Not your turn",
     "Card not in hand": "Card not in hand",
     "Illegal move": "Illegal move",

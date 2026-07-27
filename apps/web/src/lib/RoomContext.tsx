@@ -49,12 +49,6 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
       if (ev.type === "peers") setPeers(ev.peers);
       else if (ev.type === "hostLeft") {
         setBanner(t("banners.hostLeft"));
-      } else if (ev.type === "actingHost") {
-        if (ev.actingHostId === client.playerId) {
-          setBanner(t("banners.actingHostYou"));
-        } else {
-          setBanner(t("banners.actingHostOther"));
-        }
       } else if (ev.type === "hostReconnected") {
         setBanner(t("banners.hostReconnected"));
       } else if (ev.type === "error") setBanner(translateError(ev.message));

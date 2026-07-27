@@ -1,6 +1,6 @@
 import { Card, createDeck, isAceOfSpades, Player, randomSeed, shuffle } from "@kazhutha/shared";
 import { GameEvent, Intent } from "./events";
-import { electActingHost, electSuccessorHost, isHostConnected } from "./host";
+import { electSuccessorHost, isHostConnected } from "./host";
 import { applyEvents } from "./reducer";
 import { GameState } from "./state";
 import { isCardLegal, isVettuPlay } from "./validators";
@@ -35,12 +35,8 @@ export function processIntent(state: GameState, intent: Intent): HostResult {
             ready: false,
           };
       const events: GameEvent[] = [{ type: "PlayerJoined", player }];
-      if (
-        intent.playerId === state.hostId &&
-        state.actingHostId &&
-        state.phase !== "lobby"
-      ) {
-        events.push({ type: "ActingHostReleased" });
+      if (intent.playerId === state.hostId && state.paused && state.phase === "playing") {
+        events.push({ type: "GameResumed" });
       }
       return ok(events);
     }
@@ -117,6 +113,7 @@ function startGame(state: GameState, requesterId: string): HostResult {
 
 function playCard(state: GameState, playerId: string, card: Card): HostResult {
   if (state.phase !== "playing") return fail("Game is not in progress");
+  if (state.paused) return fail("Game is paused");
   if (state.currentTurnId !== playerId) return fail("Not your turn");
   const hand = state.hands[playerId] ?? [];
   if (!hand.some((c) => c.suit === card.suit && c.rank === card.rank)) return fail("Card not in hand");
@@ -189,13 +186,11 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
   return ok(events);
 }
 
-/** Authority applies when host disconnects during play; all peers run same election locally. */
+/** All peers apply locally when host disconnects during play. */
 export function eventsForHostDisconnect(state: GameState): GameEvent[] {
-  if (state.phase === "lobby") return [];
+  if (state.phase !== "playing") return [];
   if (!state.hostId) return [];
-  if (state.actingHostId) return [];
+  if (state.paused) return [];
   if (isHostConnected(state)) return [];
-  const elected = electActingHost(state, state.hostId);
-  if (!elected) return [];
-  return [{ type: "ActingHostElected", actingHostId: elected }];
+  return [{ type: "GamePaused", reason: "host-disconnected" }];
 }

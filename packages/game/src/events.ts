@@ -109,6 +109,15 @@ export interface ActingHostReleasedEvent {
   type: "ActingHostReleased";
 }
 
+export interface GamePausedEvent {
+  type: "GamePaused";
+  reason: "host-disconnected";
+}
+
+export interface GameResumedEvent {
+  type: "GameResumed";
+}
+
 export interface HostSuccessorAssignedEvent {
   type: "HostSuccessorAssigned";
   successorHostId: string;
@@ -140,6 +149,8 @@ export type GameEvent =
   | StateSnapshotEvent
   | ActingHostElectedEvent
   | ActingHostReleasedEvent
+  | GamePausedEvent
+  | GameResumedEvent
   | HostSuccessorAssignedEvent
   | HostTransferredEvent;
 

@@ -2,7 +2,6 @@ import { GameState } from "./state";
 
 /** Who may validate intents and broadcast events right now. */
 export function getAuthorityId(state: GameState): string | null {
-  if (state.actingHostId) return state.actingHostId;
   return state.hostId;
 }
 

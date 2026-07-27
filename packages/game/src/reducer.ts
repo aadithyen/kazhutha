@@ -209,6 +209,12 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
     case "ActingHostReleased":
       return { ...state, actingHostId: null };
 
+    case "GamePaused":
+      return { ...state, paused: true };
+
+    case "GameResumed":
+      return { ...state, paused: false, actingHostId: null };
+
     case "HostSuccessorAssigned":
       return { ...state, successorHostId: event.successorHostId };
 
