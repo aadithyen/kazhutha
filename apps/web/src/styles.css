@@ -60,6 +60,11 @@ body {
   font-style: normal;
 }
 
+html[lang="ml"] body {
+  font-family: "Noto Sans Malayalam", var(--font-sans), system-ui, sans-serif;
+  font-weight: 400;
+}
+
 .vettu-banner-text {
   font-family: "Noto Sans Malayalam", var(--font-serif), Georgia, "Times New Roman", serif;
   font-weight: 600;
