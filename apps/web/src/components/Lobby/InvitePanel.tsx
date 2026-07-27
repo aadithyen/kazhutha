@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useLocale } from "../../i18n";
 import { roomUrl } from "../../lib/network";
 import { useRoom } from "../../lib/RoomContext";
 
 export default function InvitePanel() {
+  const { t } = useLocale();
   const { state } = useRoom();
   const [copied, setCopied] = useState(false);
   const url = roomUrl(state.roomCode);
@@ -20,7 +22,7 @@ export default function InvitePanel() {
   async function share() {
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Kazhutha", text: "Join my Kazhutha room", url });
+        await navigator.share({ title: t("lobby.shareTitle"), text: t("lobby.shareText"), url });
       } catch {
         // user cancelled share, ignore
       }
@@ -31,7 +33,7 @@ export default function InvitePanel() {
 
   return (
     <div className="rounded-xl border border-neutral-100 bg-white p-4 shadow-[0_2px_12px_rgba(15,23,42,0.06)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-[0_2px_12px_rgba(0,0,0,0.3)]">
-      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">Room code</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">{t("lobby.roomCode")}</p>
       <p className="font-serif text-4xl font-semibold italic tracking-[0.2em] text-neutral-900 dark:text-neutral-100">
         {state.roomCode}
       </p>
@@ -40,13 +42,13 @@ export default function InvitePanel() {
           onClick={copyLink}
           className="flex-1 rounded-xl bg-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-900 ring-1 ring-neutral-200 dark:bg-neutral-800 dark:text-neutral-100 dark:ring-neutral-700"
         >
-          {copied ? "Copied!" : "Copy link"}
+          {copied ? t("lobby.copied") : t("lobby.copyLink")}
         </button>
         <button
           onClick={share}
           className="flex-1 rounded-xl bg-neutral-900 px-3 py-2 text-sm font-semibold text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)] dark:bg-neutral-100 dark:text-neutral-900 dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]"
         >
-          Share
+          {t("lobby.share")}
         </button>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { Card, cardId, HandSortMode, isSameCard, sortHand } from "@kazhutha/shar
 import { getLegalCards, isLeadPlay } from "@kazhutha/game";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useLocale } from "../../i18n";
 import {
   CARD_LG,
   clampOverlayPosition,
@@ -119,6 +120,7 @@ interface Props {
 }
 
 export default function Hand({ sortMode }: Props) {
+  const { t } = useLocale();
   const { state, client } = useRoom();
   const { registerHandTarget, getPlaySlotTarget, setLocalFlyActive, pileSettling } = usePlayerAvatars();
   const handTargetRef = useRef<HTMLDivElement>(null);
@@ -582,7 +584,7 @@ export default function Hand({ sortMode }: Props) {
         className={`hand-fan-scroll h-full select-none overflow-y-hidden ${
           canFanScroll ? "touch-pan-x overflow-x-auto" : "overflow-x-hidden"
         }`}
-        aria-label="Your hand — scroll horizontally to fan through cards"
+        aria-label={t("game.handAriaLabel")}
       >
         <div className="relative mx-auto h-full" style={{ width: fanWidth, minWidth: "100%" }}>
           {hand.map((card, i) => {

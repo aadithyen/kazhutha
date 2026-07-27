@@ -1,6 +1,8 @@
 import type { HandSortMode } from "@kazhutha/shared";
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "../../i18n";
 import type { ThemePreference } from "../../lib/theme";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 interface Props {
   sortMode: HandSortMode;
@@ -26,12 +28,6 @@ function PreferencesIcon() {
   );
 }
 
-const THEME_LABELS: Record<ThemePreference, string> = {
-  light: "Light",
-  dark: "Dark",
-  system: "Auto",
-};
-
 export default function HandPreferences({
   sortMode,
   onSortModeChange,
@@ -43,6 +39,7 @@ export default function HandPreferences({
   themePreference,
   onThemePreferenceChange,
 }: Props) {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +64,7 @@ export default function HandPreferences({
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        aria-label="Hand preferences"
+        aria-label={t("preferences.title")}
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => setOpen((prev) => !prev)}
@@ -78,16 +75,17 @@ export default function HandPreferences({
       {open && (
         <div
           role="dialog"
-          aria-label="Hand preferences"
+          aria-label={t("preferences.title")}
           className="absolute bottom-full right-0 z-30 mb-2 w-52 rounded-xl border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:shadow-black/40"
         >
+          <LanguageSwitcher className="mb-3" showLabel />
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-            Appearance
+            {t("preferences.appearance")}
           </p>
           <div
             className="mb-3 inline-flex w-full rounded-full border border-neutral-200 bg-neutral-50 p-0.5 text-[11px] dark:border-neutral-700 dark:bg-neutral-800"
             role="group"
-            aria-label="Color theme"
+            aria-label={t("preferences.colorTheme")}
           >
             {(["light", "dark", "system"] as const).map((theme) => (
               <button
@@ -101,17 +99,17 @@ export default function HandPreferences({
                     : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
                 }`}
               >
-                {THEME_LABELS[theme]}
+                {t(`preferences.theme${theme === "system" ? "Auto" : theme.charAt(0).toUpperCase() + theme.slice(1)}`)}
               </button>
             ))}
           </div>
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-            Arrangement
+            {t("preferences.arrangement")}
           </p>
           <div
             className="mb-3 inline-flex w-full rounded-full border border-neutral-200 bg-neutral-50 p-0.5 text-[11px] dark:border-neutral-700 dark:bg-neutral-800"
             role="group"
-            aria-label="Hand sort order"
+            aria-label={t("preferences.handSortOrder")}
           >
             {(["suit", "value"] as const).map((mode) => (
               <button
@@ -119,23 +117,23 @@ export default function HandPreferences({
                 type="button"
                 onClick={() => onSortModeChange(mode)}
                 aria-pressed={sortMode === mode}
-                className={`flex-1 rounded-full px-2 py-1 capitalize transition-colors ${
+                className={`flex-1 rounded-full px-2 py-1 transition-colors ${
                   sortMode === mode
                     ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
                     : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
                 }`}
               >
-                {mode}
+                {t(`preferences.sort${mode.charAt(0).toUpperCase() + mode.slice(1)}`)}
               </button>
             ))}
           </div>
           {showCountToggle && (
             <>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-                Visibility
+                {t("preferences.visibility")}
               </p>
               <label className="mb-3 flex cursor-pointer items-center justify-between gap-3 text-sm text-neutral-700 dark:text-neutral-300">
-                <span>Show card count</span>
+                <span>{t("preferences.showCardCount")}</span>
                 <input
                   type="checkbox"
                   checked={countVisible}
@@ -146,10 +144,10 @@ export default function HandPreferences({
             </>
           )}
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-            Audio
+            {t("preferences.audio")}
           </p>
           <label className="flex cursor-pointer items-center justify-between gap-3 text-sm text-neutral-700 dark:text-neutral-300">
-            <span>Sound effects</span>
+            <span>{t("preferences.soundEffects")}</span>
             <input
               type="checkbox"
               checked={!soundMuted}

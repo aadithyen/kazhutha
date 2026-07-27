@@ -1,8 +1,10 @@
 import { isStraggler } from "@kazhutha/game";
+import { useLocale } from "../../i18n";
 import { useRoom } from "../../lib/RoomContext";
 import PlayerAvatar from "./PlayerAvatar";
 
 export default function PlayerBadges() {
+  const { t } = useLocale();
   const { state, client } = useRoom();
   const order = state.turnOrder.length > 0 ? state.turnOrder : state.players.map((p) => p.id);
   return (
@@ -34,9 +36,9 @@ export default function PlayerBadges() {
             />
             <span className="max-w-[72px] truncate text-[11px] font-medium text-neutral-800 dark:text-neutral-200">
               {player.name}
-              {isMe ? " (you)" : ""}
+              {isMe ? ` ${t("common.you")}` : ""}
             </span>
-            {!player.connected && <span className="text-[10px] text-rose-500">offline</span>}
+            {!player.connected && <span className="text-[10px] text-rose-500">{t("common.offline")}</span>}
           </div>
         );
       })}

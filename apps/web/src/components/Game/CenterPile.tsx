@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { PlayedCard } from "@kazhutha/game";
+import { useLocale } from "../../i18n";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useFlipAnimation } from "../../lib/useFlipAnimation";
 import { useRoom } from "../../lib/RoomContext";
@@ -7,6 +8,7 @@ import PlayingCard from "../PlayingCard";
 import CardAnimations, { pileKey } from "./CardAnimations";
 
 export default function CenterPile() {
+  const { t } = useLocale();
   const { state, client } = useRoom();
   const { registerPileTarget, registerPlaySlotTarget, localFlyActive, pileSettling } = usePlayerAvatars();
   const pileAreaRef = useRef<HTMLDivElement>(null);
@@ -43,7 +45,7 @@ export default function CenterPile() {
         className="flex flex-1 flex-wrap items-center justify-center gap-3 overflow-visible px-4 py-6"
       >
         {displayPile.length === 0 && !showPlaySlot ? (
-          <span className="text-sm text-neutral-400 dark:text-neutral-500">Play to the center</span>
+          <span className="text-sm text-neutral-400 dark:text-neutral-500">{t("game.playToCenter")}</span>
         ) : (
           displayPile.map((played, i) => {
             const key = pileKey(played, i);
@@ -78,9 +80,9 @@ export default function CenterPile() {
               ref={playSlotRef}
               className="flex h-[6.75rem] w-[4.75rem] items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50/90 shadow-[inset_0_1px_4px_rgba(15,23,42,0.04)] transition-[border-color,background-color,box-shadow] duration-200 dark:border-neutral-600 dark:bg-neutral-800/90 dark:shadow-[inset_0_1px_4px_rgba(0,0,0,0.2)]"
             >
-              <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">Play</span>
+              <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">{t("game.play")}</span>
             </div>
-            <span className="text-[10px] text-neutral-400 dark:text-neutral-500">Your card</span>
+            <span className="text-[10px] text-neutral-400 dark:text-neutral-500">{t("game.yourCard")}</span>
           </div>
         )}
       </div>

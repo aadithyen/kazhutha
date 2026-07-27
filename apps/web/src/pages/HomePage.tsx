@@ -1,6 +1,8 @@
 import { randomCode } from "@kazhutha/shared";
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import { useLocale } from "../i18n";
 import { getStoredName, storeName } from "../lib/identity";
 
 const inputClass =
@@ -13,6 +15,7 @@ const secondaryBtnClass =
   "w-full rounded-xl bg-neutral-100 px-4 py-3 text-base font-semibold text-neutral-900 ring-1 ring-neutral-200 active:scale-[0.98] dark:bg-neutral-800 dark:text-neutral-100 dark:ring-neutral-700";
 
 export default function HomePage() {
+  const { t } = useLocale();
   const navigate = useNavigate();
   const [createName, setCreateName] = useState(getStoredName());
   const [joinName, setJoinName] = useState(getStoredName());
@@ -34,55 +37,56 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-white px-4 py-10 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+    <div className="relative mx-auto flex min-h-dvh max-w-md flex-col bg-white px-4 py-10 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+      <LanguageSwitcher className="absolute right-4 top-4" />
       <div className="flex flex-1 flex-col items-center justify-center gap-8">
         <header className="text-center">
           <h1 className="font-serif text-5xl font-semibold italic">Kazhutha</h1>
-          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">കഴുത · play the Kerala card game with friends</p>
+          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">{t("home.tagline")}</p>
         </header>
 
         <form onSubmit={handleCreate} className={panelClass}>
-          <h2 className="mb-3 font-serif text-xl font-semibold italic">Create a room</h2>
+          <h2 className="mb-3 font-serif text-xl font-semibold italic">{t("home.createRoom")}</h2>
           <input
             value={createName}
             onChange={(e) => setCreateName(e.target.value)}
-            placeholder="Your name"
+            placeholder={t("home.yourName")}
             maxLength={24}
             className={inputClass}
           />
           <button type="submit" className={`mt-3 ${primaryBtnClass}`}>
-            Create room
+            {t("home.createRoomButton")}
           </button>
         </form>
 
         <div className="flex w-full items-center gap-3 text-neutral-400 dark:text-neutral-500">
           <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
-          <span className="text-xs font-medium uppercase tracking-wide">or</span>
+          <span className="text-xs font-medium uppercase tracking-wide">{t("common.or")}</span>
           <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
         </div>
 
         <form onSubmit={handleJoin} className={panelClass}>
-          <h2 className="mb-3 font-serif text-xl font-semibold italic">Join a room</h2>
+          <h2 className="mb-3 font-serif text-xl font-semibold italic">{t("home.joinRoom")}</h2>
           <input
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value)}
-            placeholder="Room code"
+            placeholder={t("home.roomCode")}
             maxLength={8}
             className={`mb-3 ${inputClass} uppercase`}
           />
           <input
             value={joinName}
             onChange={(e) => setJoinName(e.target.value)}
-            placeholder="Your name"
+            placeholder={t("home.yourName")}
             maxLength={24}
             className={inputClass}
           />
           <button type="submit" className={`mt-3 ${secondaryBtnClass}`}>
-            Join room
+            {t("home.joinRoomButton")}
           </button>
         </form>
 
-        <p className="text-center text-xs text-neutral-400 dark:text-neutral-500">No accounts. No install. Just share the link.</p>
+        <p className="text-center text-xs text-neutral-400 dark:text-neutral-500">{t("home.footer")}</p>
       </div>
 
       <footer className="pt-6 text-center">
@@ -92,7 +96,7 @@ export default function HomePage() {
           rel="noopener noreferrer"
           className="text-xs text-neutral-400 underline-offset-2 hover:text-neutral-600 hover:underline dark:text-neutral-500 dark:hover:text-neutral-300"
         >
-          Source
+          {t("common.source")}
         </a>
       </footer>
     </div>

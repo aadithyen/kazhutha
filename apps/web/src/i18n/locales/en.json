@@ -1,0 +1,115 @@
+{
+  "meta": {
+    "languageName": "English"
+  },
+  "languagePicker": {
+    "title": "Choose your language",
+    "subtitle": "Pick English or Malayalam for the game interface."
+  },
+  "common": {
+    "or": "or",
+    "you": "(you)",
+    "host": "Host",
+    "ready": "Ready",
+    "notReady": "Not ready",
+    "dismiss": "Dismiss",
+    "offline": "offline",
+    "source": "Source",
+    "defaultPlayer": "Player",
+    "someone": "Someone",
+    "language": "Language"
+  },
+  "home": {
+    "tagline": "കഴുത · play the Kerala card game with friends",
+    "createRoom": "Create a room",
+    "joinRoom": "Join a room",
+    "yourName": "Your name",
+    "roomCode": "Room code",
+    "createRoomButton": "Create room",
+    "joinRoomButton": "Join room",
+    "footer": "No accounts. No install. Just share the link."
+  },
+  "room": {
+    "joinTable": "Join the table",
+    "continue": "Continue"
+  },
+  "lobby": {
+    "title": "Kazhutha",
+    "subtitle": "Lobby",
+    "readyDone": "Ready ✓",
+    "readyAction": "I'm ready",
+    "startGame": "Start game",
+    "waiting": "Waiting ({ready}/{total})",
+    "roomCode": "Room code",
+    "copyLink": "Copy link",
+    "copied": "Copied!",
+    "share": "Share",
+    "shareTitle": "Kazhutha",
+    "shareText": "Join my Kazhutha room",
+    "players": "Players ({count})",
+    "kick": "Kick",
+    "rules": "Rules"
+  },
+  "rules": {
+    "mustLeadAceOfSpades": {
+      "label": "Must open with Ace of Spades",
+      "description": "The Ace of Spades holder must lead it in round 1. If off, they may lead any card."
+    }
+  },
+  "game": {
+    "yourTurn": "Your turn",
+    "playerTurn": "{name}'s turn",
+    "waiting": "Waiting…",
+    "lead": "Lead:",
+    "playToCenter": "Play to the center",
+    "play": "Play",
+    "yourCard": "Your card",
+    "kazhuthaWins": "{name} is the Kazhutha!",
+    "everyoneEscaped": "Everyone else escaped. Better luck next round.",
+    "backHome": "Back home",
+    "handAriaLabel": "Your hand — scroll horizontally to fan through cards",
+    "finishedRank": "Finished #{rank}",
+    "outOfCards": "Out of cards",
+    "cardCount": "{count} cards"
+  },
+  "preferences": {
+    "title": "Hand preferences",
+    "colorTheme": "Color theme",
+    "appearance": "Appearance",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeAuto": "Auto",
+    "arrangement": "Arrangement",
+    "handSortOrder": "Hand sort order",
+    "sortSuit": "Suit",
+    "sortValue": "Value",
+    "visibility": "Visibility",
+    "showCardCount": "Show card count",
+    "audio": "Audio",
+    "soundEffects": "Sound effects"
+  },
+  "banners": {
+    "hostLeft": "Host disconnected. Acting host continues the game until they return.",
+    "actingHostYou": "You are acting host until the room host returns.",
+    "actingHostOther": "Acting host elected. Game continues.",
+    "hostReconnected": "Host reconnected. Game resumed."
+  },
+  "errors": {
+    "Unknown player": "Unknown player",
+    "Only the host can change rules": "Only the host can change rules",
+    "Rules can only change before the game starts": "Rules can only change before the game starts",
+    "Only the host can kick players": "Only the host can kick players",
+    "Host cannot kick themselves": "Host cannot kick themselves",
+    "Can only change card count visibility during a game": "Can only change card count visibility during a game",
+    "Only the host can start the game": "Only the host can start the game",
+    "Game already started": "Game already started",
+    "Need at least 2 players": "Need at least 2 players",
+    "Too many players (max 10)": "Too many players (max 10)",
+    "Game is not in progress": "Game is not in progress",
+    "Not your turn": "Not your turn",
+    "Card not in hand": "Card not in hand",
+    "Illegal move": "Illegal move",
+    "Unknown intent": "Unknown intent"
+  },
+  "vettu": ["STRIKE!", "KEEP THIS", "A SMALL GIFT..."]
+}

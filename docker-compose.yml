@@ -13,7 +13,6 @@ services:
         # VITE_SIGNALING_URL to your public WebSocket URL when deploying.
         VITE_SIGNALING_URL: ${VITE_SIGNALING_URL:-ws://localhost:8080}
         VITE_ICE_SERVERS: ${VITE_ICE_SERVERS:-}
-        VITE_VETTU_MESSAGES: ${VITE_VETTU_MESSAGES:-}
     depends_on:
       - signaling
     restart: unless-stopped

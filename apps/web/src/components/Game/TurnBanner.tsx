@@ -1,5 +1,6 @@
 import { HandSortMode, SUIT_SYMBOLS } from "@kazhutha/shared";
 import { useState } from "react";
+import { useLocale } from "../../i18n";
 import { getHandSortMode, getSoundMuted, storeHandSortMode, storeSoundMuted } from "../../lib/preferences";
 import { useThemePreference } from "../../lib/theme";
 import { useRoom } from "../../lib/RoomContext";
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function TurnBanner({ sortMode, onSortModeChange }: Props) {
+  const { t } = useLocale();
   const { state, client } = useRoom();
   const { soundMuted, changeSoundMuted } = useSoundMuted();
   const { themePreference, changeThemePreference } = useThemePreference();
@@ -32,10 +34,14 @@ export default function TurnBanner({ sortMode, onSortModeChange }: Props) {
       <span
         className={`font-semibold ${isMyTurn ? "text-neutral-900 dark:text-neutral-100" : "text-neutral-500 dark:text-neutral-400"}`}
       >
-        {isMyTurn ? "Your turn" : turnPlayer ? `${turnPlayer.name}'s turn` : "Waiting…"}
+        {isMyTurn ? t("game.yourTurn") : turnPlayer ? t("game.playerTurn", { name: turnPlayer.name }) : t("game.waiting")}
       </span>
       <span className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500">
-        {state.leadSuit && <span>Lead: {SUIT_SYMBOLS[state.leadSuit]}</span>}
+        {state.leadSuit && (
+          <span>
+            {t("game.lead")} {SUIT_SYMBOLS[state.leadSuit]}
+          </span>
+        )}
         <HandPreferences
           sortMode={sortMode}
           onSortModeChange={onSortModeChange}
