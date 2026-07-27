@@ -221,6 +221,20 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
         players: state.players.map((p) => ({ ...p, isHost: p.id === event.newHostId })),
       };
 
+    case "LobbyRosterSynced": {
+      const players = event.members.map((m) => {
+        const existing = state.players.find((p) => p.id === m.id);
+        return {
+          id: m.id,
+          name: m.name,
+          isHost: m.id === event.hostId,
+          connected: true,
+          ready: existing?.ready ?? false,
+        };
+      });
+      return { ...state, hostId: event.hostId, players };
+    }
+
     default:
       return state;
   }

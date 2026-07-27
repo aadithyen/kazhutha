@@ -17,7 +17,8 @@ export type SignalPayload =
 export type RoomPeerInfo = { peerId: string; name: string };
 
 export type ServerToClient =
-  | { type: "joined"; peerId: string; hostId: string; role: "host" | "peer"; peers: RoomPeerInfo[] }
+  | { type: "joined"; peerId: string; hostId: string; role: "host" | "peer"; roster: RoomPeerInfo[] }
+  | { type: "roster"; hostId: string; roster: RoomPeerInfo[] }
   | { type: "peer-joined"; peerId: string; name: string }
   | { type: "peer-left"; peerId: string }
   | { type: "host-left" }

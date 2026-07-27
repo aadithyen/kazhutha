@@ -119,6 +119,12 @@ export interface HostTransferredEvent {
   newHostId: string;
 }
 
+export interface LobbyRosterSyncedEvent {
+  type: "LobbyRosterSynced";
+  hostId: string;
+  members: { id: string; name: string }[];
+}
+
 export type GameEvent =
   | RoomCreatedEvent
   | PlayerJoinedEvent
@@ -141,7 +147,8 @@ export type GameEvent =
   | ActingHostElectedEvent
   | ActingHostReleasedEvent
   | HostSuccessorAssignedEvent
-  | HostTransferredEvent;
+  | HostTransferredEvent
+  | LobbyRosterSyncedEvent;
 
 export type GameEventType = GameEvent["type"];
 

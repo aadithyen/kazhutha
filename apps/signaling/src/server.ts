@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
 import { parseClientMessage, ServerToClient } from "./protocol.js";
-import { RoomRegistry } from "./rooms.js";
+import { buildRoster, RoomRegistry } from "./rooms.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const registry = new RoomRegistry();
@@ -22,11 +22,12 @@ function send(ws: WebSocket, msg: ServerToClient) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
 }
 
-function broadcastRoom(roomCode: string, msg: ServerToClient, exceptPeerId?: string) {
+function broadcastRoster(roomCode: string) {
   const room = registry.get(roomCode);
-  if (!room) return;
+  if (!room || room.peers.size === 0) return;
+  const { hostId, roster } = buildRoster(room);
+  const msg: ServerToClient = { type: "roster", hostId, roster };
   for (const peer of room.peers.values()) {
-    if (peer.peerId === exceptPeerId) continue;
     send(peer.ws, msg);
   }
 }
@@ -53,16 +54,9 @@ wss.on("connection", (ws) => {
       peerId = msg.peerId;
       joined = true;
 
-      const peers = Array.from(room.peers.values())
-        .filter((p) => p.peerId !== msg.peerId)
-        .map((p) => ({ peerId: p.peerId, name: p.name }));
-
-      send(ws, { type: "joined", peerId: msg.peerId, hostId: room.hostId, role, peers });
-
-      for (const peer of room.peers.values()) {
-        if (peer.peerId === msg.peerId) continue;
-        send(peer.ws, { type: "peer-joined", peerId: msg.peerId, name: msg.name });
-      }
+      const { hostId, roster } = buildRoster(room);
+      send(ws, { type: "joined", peerId: msg.peerId, hostId, role, roster });
+      broadcastRoster(roomCode);
       return;
     }
 
@@ -78,7 +72,7 @@ wss.on("connection", (ws) => {
 
     if (msg.type === "sync-host") {
       if (!registry.transferHost(roomCode, msg.newHostId)) return;
-      broadcastRoom(roomCode, { type: "host-changed", hostId: msg.newHostId });
+      broadcastRoster(roomCode);
       return;
     }
 
@@ -96,18 +90,10 @@ wss.on("connection", (ws) => {
     if (room.peers.size === 0) return;
 
     if (wasHost) {
-      // Earliest remaining peer (Map insertion order) becomes signaling host.
       const newHostId = room.peers.keys().next().value!;
       registry.transferHost(roomCode, newHostId);
-      for (const peer of room.peers.values()) {
-        send(peer.ws, { type: "peer-left", peerId });
-        send(peer.ws, { type: "host-changed", hostId: newHostId });
-      }
-    } else {
-      for (const peer of room.peers.values()) {
-        send(peer.ws, { type: "peer-left", peerId });
-      }
     }
+    broadcastRoster(roomCode);
   });
 });
 

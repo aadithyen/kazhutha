@@ -12,6 +12,15 @@ export interface Room {
   peers: Map<string, RoomPeer>;
 }
 
+export type RoomRoster = { hostId: string; roster: { peerId: string; name: string }[] };
+
+export function buildRoster(room: Room): RoomRoster {
+  return {
+    hostId: room.hostId,
+    roster: Array.from(room.peers.values()).map((p) => ({ peerId: p.peerId, name: p.name })),
+  };
+}
+
 /** In-memory only, by design: the tracker holds no gameplay state and nothing to persist. */
 export class RoomRegistry {
   private rooms = new Map<string, Room>();
