@@ -11,6 +11,7 @@
 
 :root {
   --avatar-ring-gap: #ffffff;
+  --locale-text-scale: 1;
 }
 
 .dark {
@@ -56,15 +57,16 @@ body {
   transform-style: preserve-3d;
 }
 
-/* Noto Malayalam glyphs run larger at same rem — scale root to match English */
+/* Noto Malayalam glyphs run larger at same size — scale text only, not rem layout */
 html[lang="ml"] {
-  font-size: 87.5%;
+  --locale-text-scale: 0.875;
 }
 
 html[lang="ml"] body {
   font-family: var(--font-ml-sans);
   font-weight: 400;
   font-style: normal;
+  font-size: calc(1rem * var(--locale-text-scale));
 }
 
 html[lang="ml"] h1,
@@ -82,8 +84,66 @@ html[lang="ml"] .italic {
   font-family: var(--font-ml-serif);
   font-weight: 600;
   font-style: normal;
-  font-size: clamp(1.5rem, 6.5vw, 2.85rem);
+  font-size: clamp(calc(1.5rem * var(--locale-text-scale)), 6.5vw, calc(2.85rem * var(--locale-text-scale)));
   line-height: 1.2;
+}
+
+@layer utilities {
+  html[lang="ml"] .text-xs {
+    font-size: calc(0.75rem * var(--locale-text-scale));
+  }
+
+  html[lang="ml"] .text-sm {
+    font-size: calc(0.875rem * var(--locale-text-scale));
+  }
+
+  html[lang="ml"] .text-base {
+    font-size: calc(1rem * var(--locale-text-scale));
+  }
+
+  html[lang="ml"] .text-lg {
+    font-size: calc(1.125rem * var(--locale-text-scale));
+  }
+
+  html[lang="ml"] .text-xl {
+    font-size: calc(1.25rem * var(--locale-text-scale));
+  }
+
+  html[lang="ml"] .text-2xl {
+    font-size: calc(1.5rem * var(--locale-text-scale));
+  }
+
+  html[lang="ml"] .text-3xl {
+    font-size: calc(1.875rem * var(--locale-text-scale));
+  }
+
+  html[lang="ml"] .text-4xl {
+    font-size: calc(2.25rem * var(--locale-text-scale));
+  }
+
+  html[lang="ml"] .text-5xl {
+    font-size: calc(3rem * var(--locale-text-scale));
+  }
+
+  html[lang="ml"] .text-6xl {
+    font-size: calc(3.75rem * var(--locale-text-scale));
+  }
+
+  html[lang="ml"] .text-8xl {
+    font-size: calc(6rem * var(--locale-text-scale));
+  }
+
+  html[lang="ml"] .text-\[9px\] {
+    font-size: 7.875px;
+  }
+
+  html[lang="ml"] .text-\[10px\] {
+    font-size: 8.75px;
+  }
+
+  html[lang="ml"] .text-\[11px\] {
+    font-size: 9.625px;
+  }
 }
 
 .vettu-banner-enter {
