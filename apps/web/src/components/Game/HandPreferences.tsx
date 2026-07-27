@@ -1,14 +1,8 @@
 import type { HandSortMode } from "@kazhutha/shared";
 import { useEffect, useRef, useState } from "react";
-import { SUPPORTED_LOCALES, useLocale, type LocaleId } from "../../i18n";
-import en from "../../i18n/locales/en.json";
-import ml from "../../i18n/locales/ml.json";
+import { useLocale } from "../../i18n";
 import type { ThemePreference } from "../../lib/theme";
-
-const LANGUAGE_LABELS: Record<LocaleId, string> = {
-  en: en.meta.languageName,
-  ml: ml.meta.languageName,
-};
+import LanguageSwitcher from "../LanguageSwitcher";
 
 interface Props {
   sortMode: HandSortMode;
@@ -45,7 +39,7 @@ export default function HandPreferences({
   themePreference,
   onThemePreferenceChange,
 }: Props) {
-  const { t, locale, setLocale } = useLocale();
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -84,30 +78,7 @@ export default function HandPreferences({
           aria-label={t("preferences.title")}
           className="absolute bottom-full right-0 z-30 mb-2 w-52 rounded-xl border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:shadow-black/40"
         >
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-            {t("common.language")}
-          </p>
-          <div
-            className="mb-3 inline-flex w-full rounded-full border border-neutral-200 bg-neutral-50 p-0.5 text-[11px] dark:border-neutral-700 dark:bg-neutral-800"
-            role="group"
-            aria-label={t("common.language")}
-          >
-            {SUPPORTED_LOCALES.map((id) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setLocale(id as LocaleId)}
-                aria-pressed={locale === id}
-                className={`flex-1 rounded-full px-2 py-1 transition-colors ${
-                  locale === id
-                    ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-                    : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
-                }`}
-              >
-                {LANGUAGE_LABELS[id]}
-              </button>
-            ))}
-          </div>
+          <LanguageSwitcher className="mb-3" showLabel />
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
             {t("preferences.appearance")}
           </p>

@@ -1,6 +1,7 @@
 import { randomCode } from "@kazhutha/shared";
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLocale } from "../i18n";
 import { getStoredName, storeName } from "../lib/identity";
 
@@ -36,7 +37,8 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-white px-4 py-10 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+    <div className="relative mx-auto flex min-h-dvh max-w-md flex-col bg-white px-4 py-10 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+      <LanguageSwitcher className="absolute right-4 top-4" />
       <div className="flex flex-1 flex-col items-center justify-center gap-8">
         <header className="text-center">
           <h1 className="font-serif text-5xl font-semibold italic">Kazhutha</h1>

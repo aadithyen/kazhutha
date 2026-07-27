@@ -1,3 +1,4 @@
+import LanguageSwitcher from "../LanguageSwitcher";
 import { useLocale } from "../../i18n";
 import { useRoom } from "../../lib/RoomContext";
 import InvitePanel from "./InvitePanel";
@@ -21,7 +22,8 @@ export default function LobbyScreen() {
   }
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-4 px-4 py-6">
+    <div className="relative mx-auto flex max-w-md flex-col gap-4 px-4 py-6">
+      <LanguageSwitcher className="absolute right-0 top-0" />
       <header className="text-center">
         <h1 className="font-serif text-3xl font-semibold italic text-neutral-900 dark:text-neutral-100">{t("lobby.title")}</h1>
         <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{t("lobby.subtitle")}</p>

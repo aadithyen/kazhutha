@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import ConnectionBanner from "../components/ConnectionBanner";
 import GameScreen from "../components/Game/GameScreen";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import LobbyScreen from "../components/Lobby/LobbyScreen";
 import { useLocale } from "../i18n";
 import { getStoredName, storeName } from "../lib/identity";
@@ -33,7 +34,8 @@ function NameGate({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-sm flex-col items-center justify-center gap-4 bg-white px-4 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+    <div className="relative mx-auto flex min-h-dvh max-w-sm flex-col items-center justify-center gap-4 bg-white px-4 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+      <LanguageSwitcher className="absolute right-4 top-4" />
       <h1 className="font-serif text-3xl font-semibold italic">{t("room.joinTable")}</h1>
       <form onSubmit={handleSubmit} className="w-full">
         <input
