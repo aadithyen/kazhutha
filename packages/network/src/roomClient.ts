@@ -3,11 +3,11 @@ import {
   GameEvent,
   GameState,
   Intent,
-  createInitialState,
   eventsForHostDisconnect,
   getAuthorityId,
   processIntent,
 } from "@kazhutha/game";
+import { electLobbyHost } from "./lobbyHost";
 import { SignalingClient } from "./signalingClient";
 import { PeerLink } from "./webrtc";
 import { PeerConnectionStatus, PeerInfo, PeerMessage, ServerToClient } from "./types";
@@ -39,34 +39,27 @@ const STATE_PREFIX = "kazhutha:state:";
  * current authority (host or acting host). The authority runs the game engine
  * and broadcasts events; every client applies the same events through the
  * identical reducer.
+ *
+ * Lobby host is chosen peer-to-peer: earliest joiner still present wins.
  */
 export class RoomClient {
   readonly engine: GameEngine;
   readonly playerId: string;
   readonly name: string;
   readonly roomCode: string;
-  /** Signaling tracker host id (room creator until permanent transfer). */
-  signalingHostId: string | null = null;
-  /** Game host id from state.hostId. */
   hostId: string | null = null;
-  /** Whether this client currently validates intents and fans out events. */
   isAuthority = false;
 
   private signaling: SignalingClient;
   private links = new Map<string, PeerLink>();
-  private peerNames = new Map<string, string>();
+  private knownPeers = new Map<string, string>();
+  private joinOrder: string[] = [];
+  private electedHostId: string | null = null;
   private peerStatus = new Map<string, PeerConnectionStatus>();
   private handlers = new Set<Handler>();
   private iceServers?: RTCIceServer[];
   private recoveringHost = false;
   private snapshotRequested = false;
-
-  private authorityTarget(): string | null {
-    const state = this.engine.getState();
-    // In lobby, signaling tracker is source of truth — stale persisted state must not win.
-    if (state.phase === "lobby" && this.signalingHostId) return this.signalingHostId;
-    return getAuthorityId(state) ?? this.signalingHostId;
-  }
 
   constructor(opts: RoomClientOptions) {
     this.playerId = opts.playerId;
@@ -119,7 +112,7 @@ export class RoomClient {
   }
 
   getPeers(): PeerInfo[] {
-    return Array.from(this.peerNames.entries()).map(([id, name]) => ({
+    return Array.from(this.knownPeers.entries()).map(([id, name]) => ({
       id,
       name,
       status: this.peerStatus.get(id) ?? "connecting",
@@ -149,6 +142,20 @@ export class RoomClient {
     }
   }
 
+  private presentPeerIds(): Set<string> {
+    return new Set([this.playerId, ...this.knownPeers.keys()]);
+  }
+
+  private lobbyHostId(): string {
+    return electLobbyHost(this.playerId, this.joinOrder, this.presentPeerIds());
+  }
+
+  private authorityTarget(): string | null {
+    const state = this.engine.getState();
+    if (state.phase === "lobby") return this.lobbyHostId();
+    return getAuthorityId(state);
+  }
+
   private syncAuthorityFromState() {
     const state = this.engine.getState();
     this.hostId = state.hostId;
@@ -156,70 +163,68 @@ export class RoomClient {
       this.isAuthority = false;
       return;
     }
-    if (state.phase === "lobby" && this.signalingHostId) {
-      this.isAuthority = this.signalingHostId === this.playerId;
+    if (state.phase === "lobby") {
+      this.isAuthority = this.lobbyHostId() === this.playerId;
       return;
     }
     const authorityId = getAuthorityId(state);
     this.isAuthority = authorityId === this.playerId;
   }
 
+  private notePeer(peerId: string, name: string) {
+    if (peerId !== this.playerId) this.knownPeers.set(peerId, name);
+    if (!this.joinOrder.includes(peerId)) this.joinOrder.push(peerId);
+  }
+
   private handleSignalingMessage(msg: ServerToClient) {
     switch (msg.type) {
       case "joined": {
-        this.signalingHostId = msg.hostId;
-        for (const peer of msg.peers) this.peerNames.set(peer.peerId, peer.name);
+        for (const peer of msg.peers) this.notePeer(peer.peerId, peer.name);
+        this.notePeer(this.playerId, this.name);
         const state = this.engine.getState();
 
-        if (msg.role === "host" && msg.peerId === msg.hostId) {
-          if (state.phase !== "lobby") {
-            // Mid-game host reconnect: pull state from acting host before resuming authority.
+        if (state.phase !== "lobby") {
+          if (state.hostId === this.playerId) {
             this.recoveringHost = true;
             this.syncAuthorityFromState();
             for (const peer of msg.peers) this.ensureLinkAsAnswerer(peer.peerId);
-            if (!state.hostId) {
-              this.seedLobbyAsHost();
-            }
-          } else if (state.hostId === msg.peerId && state.players.length > 0) {
-            // Lobby host rejoined (e.g. React StrictMode remount) — keep authority, wire peers.
-            this.recoveringHost = false;
-            this.snapshotRequested = false;
-            this.isAuthority = true;
-            for (const peer of msg.peers) this.ensureLinkAsAnswerer(peer.peerId);
+            if (!state.hostId) this.seedLobbyAsHost();
           } else {
-            this.seedLobbyAsHost();
-            for (const peer of msg.peers) this.ensureLinkAsAnswerer(peer.peerId);
+            this.connectToAuthority(getAuthorityId(state) ?? this.lobbyHostId());
           }
-          this.syncAuthorityFromState();
         } else {
-          if (state.phase === "lobby" && state.hostId && state.hostId !== msg.hostId) {
-            // Stale persisted lobby state claimed we were host — defer to signaling tracker.
-            this.engine.apply({ type: "StateSnapshot", state: createInitialState(this.roomCode) });
-          }
-          this.connectToAuthority(msg.hostId);
-          this.syncAuthorityFromState();
+          this.refreshLobbyAuthority();
         }
         this.emit({ type: "peers", peers: this.getPeers() });
         break;
       }
       case "peer-joined": {
-        this.peerNames.set(msg.peerId, msg.name);
-        const state = this.engine.getState();
-        const authorityId = this.authorityTarget();
-        if (this.isAuthority) {
+        this.notePeer(msg.peerId, msg.name);
+        if (this.engine.getState().phase === "lobby") {
+          this.refreshLobbyAuthority();
+        } else if (this.isAuthority) {
           this.ensureLinkAsAnswerer(msg.peerId);
-        } else if (authorityId && msg.peerId === authorityId) {
-          this.connectToAuthority(msg.peerId);
         }
         this.emit({ type: "peers", peers: this.getPeers() });
         break;
       }
       case "peer-left": {
+        this.knownPeers.delete(msg.peerId);
+        this.links.get(msg.peerId)?.close();
+        this.links.delete(msg.peerId);
+        this.peerStatus.delete(msg.peerId);
+
         const state = this.engine.getState();
         if (state.phase === "lobby") {
-          if (state.players.some((p) => p.id === msg.peerId && p.connected)) {
-            this.engine.apply({ type: "PlayerLeft", playerId: msg.peerId });
-            if (this.isAuthority) this.persistState();
+          const prevHost = this.electedHostId;
+          this.refreshLobbyAuthority();
+          if (this.isAuthority && state.players.some((p) => p.id === msg.peerId && p.connected)) {
+            const events: GameEvent[] = [{ type: "PlayerLeft", playerId: msg.peerId }];
+            this.engine.applyMany(events);
+            this.persistState();
+            this.broadcastEvents(events);
+          } else if (prevHost === msg.peerId) {
+            this.emit({ type: "hostLeft" });
           }
         } else if (msg.peerId === state.hostId) {
           this.engine.apply({ type: "PlayerLeft", playerId: msg.peerId });
@@ -228,28 +233,7 @@ export class RoomClient {
         } else if (this.isAuthority) {
           this.handlePeerDisconnected(msg.peerId);
         }
-        this.links.get(msg.peerId)?.close();
-        this.links.delete(msg.peerId);
-        this.peerNames.delete(msg.peerId);
-        this.peerStatus.delete(msg.peerId);
         this.emit({ type: "peers", peers: this.getPeers() });
-        break;
-      }
-      case "host-left":
-        this.handleHostSignalingDisconnect();
-        break;
-      case "host-changed": {
-        this.signalingHostId = msg.hostId;
-        const lobbyState = this.engine.getState();
-        if (lobbyState.phase === "lobby") {
-          if (msg.hostId === this.playerId && !lobbyState.hostId) {
-            this.seedLobbyAsHost();
-          } else if (lobbyState.hostId && lobbyState.hostId !== msg.hostId) {
-            this.engine.apply({ type: "HostTransferred", newHostId: msg.hostId });
-          }
-        }
-        this.handleAuthorityTargetChanged(msg.hostId);
-        if (this.isAuthority) this.persistState();
         break;
       }
       case "signal": {
@@ -264,18 +248,47 @@ export class RoomClient {
     }
   }
 
-  private seedLobbyAsHost() {
-    this.isAuthority = true;
-    this.engine.apply({ type: "RoomCreated", roomCode: this.roomCode, hostId: this.playerId });
-    this.handleIntentAsAuthority({ type: "JoinRoom", playerId: this.playerId, name: this.name }, null);
-    this.persistState();
+  /** Recompute P2P lobby host, seed state if needed, wire WebRTC star links. */
+  private refreshLobbyAuthority() {
+    const state = this.engine.getState();
+    if (state.phase !== "lobby") return;
+
+    const hostId = this.lobbyHostId();
+    const prevHost = this.electedHostId;
+    this.electedHostId = hostId;
+    this.syncAuthorityFromState();
+
+    if (prevHost && prevHost !== hostId) {
+      this.handleAuthorityTargetChanged(hostId);
+    }
+
+    if (this.isAuthority) {
+      this.ensureLobbyHostState();
+      for (const [peerId] of this.knownPeers) this.ensureLinkAsAnswerer(peerId);
+    } else {
+      this.connectToAuthority(hostId);
+    }
   }
 
-  private handleHostSignalingDisconnect() {
+  private ensureLobbyHostState() {
     const state = this.engine.getState();
-    this.engine.apply({ type: "PlayerLeft", playerId: state.hostId! });
-    this.applyLocalElection();
-    this.emit({ type: "hostLeft" });
+    if (!state.hostId) {
+      this.seedLobbyAsHost();
+      return;
+    }
+    if (state.hostId !== this.playerId) {
+      const transfer: GameEvent = { type: "HostTransferred", newHostId: this.playerId };
+      this.engine.apply(transfer);
+      this.persistState();
+      this.broadcastEvents([transfer]);
+    }
+  }
+
+  private seedLobbyAsHost() {
+    this.engine.apply({ type: "RoomCreated", roomCode: this.roomCode, hostId: this.playerId });
+    this.handleIntentAsAuthority({ type: "JoinRoom", playerId: this.playerId, name: this.name }, null);
+    this.syncAuthorityFromState();
+    this.persistState();
   }
 
   private applyLocalElection() {
@@ -286,7 +299,6 @@ export class RoomClient {
     const elected = events.find((e) => e.type === "ActingHostElected");
     if (elected && elected.type === "ActingHostElected") {
       this.emit({ type: "actingHost", actingHostId: elected.actingHostId });
-      this.signaling.send({ type: "sync-host", newHostId: elected.actingHostId });
       this.handleAuthorityTargetChanged(elected.actingHostId);
     }
   }
@@ -294,7 +306,10 @@ export class RoomClient {
   private handleAuthorityTargetChanged(newAuthorityId: string) {
     if (newAuthorityId === this.playerId) {
       this.syncAuthorityFromState();
-      for (const [peerId] of this.peerNames) {
+      if (this.engine.getState().phase === "lobby") {
+        this.ensureLobbyHostState();
+      }
+      for (const [peerId] of this.knownPeers) {
         if (peerId !== this.playerId) this.ensureLinkAsAnswerer(peerId);
       }
       return;
@@ -311,14 +326,18 @@ export class RoomClient {
         this.peerStatus.delete(peerId);
       }
     }
-    if (!this.links.has(authorityId)) this.connectToAuthority(authorityId);
+    this.connectToAuthority(authorityId);
   }
 
   private connectToAuthority(authorityId: string) {
     if (authorityId === this.playerId) return;
-    const status = this.peerStatus.get(authorityId);
-    if (status === "connected" || status === "connecting") return;
+    if (this.peerStatus.get(authorityId) === "connected") return;
+    if (this.peerStatus.get(authorityId) === "connecting") return;
+
     this.links.get(authorityId)?.close();
+    this.links.delete(authorityId);
+    this.peerStatus.delete(authorityId);
+
     const link = new PeerLink({
       peerId: authorityId,
       iceServers: this.iceServers,
@@ -359,8 +378,13 @@ export class RoomClient {
       this.links.get(peerId)?.send({ kind: "snapshot-request" });
     }
 
-    if (this.isAuthority && status === "disconnected") {
-      this.handlePeerDisconnected(peerId);
+    if (status === "disconnected") {
+      this.links.delete(peerId);
+      if (this.isAuthority) this.handlePeerDisconnected(peerId);
+      if (!this.isAuthority && authorityId && peerId === authorityId) {
+        this.peerStatus.delete(peerId);
+        this.connectToAuthority(authorityId);
+      }
     }
   }
 
@@ -374,7 +398,6 @@ export class RoomClient {
       this.broadcastEvents(release);
     }
     this.persistState();
-    this.signaling.send({ type: "sync-host", newHostId: this.playerId });
     this.emit({ type: "hostReconnected" });
   }
 
@@ -383,7 +406,6 @@ export class RoomClient {
       this.handleIntentAsAuthority(msg.intent, fromPeerId);
     } else if (msg.kind === "snapshot-request") {
       const snapshot: GameEvent = { type: "StateSnapshot", state: this.engine.getState() };
-      this.links.get(fromPeerId)?.send({ kind: "snapshot-response", state: this.engine.getState() });
       this.links.get(fromPeerId)?.send({ kind: "events", events: [snapshot] });
     } else if (msg.kind === "snapshot-response" && this.recoveringHost) {
       this.finishHostRecovery(msg.state);
@@ -400,7 +422,6 @@ export class RoomClient {
       this.syncAuthorityFromState();
       for (const event of msg.events) {
         if (event.type === "HostTransferred") {
-          this.signalingHostId = event.newHostId;
           this.handleAuthorityTargetChanged(event.newHostId);
         }
       }
@@ -424,7 +445,6 @@ export class RoomClient {
 
       for (const event of result.events) {
         if (event.type === "HostTransferred") {
-          this.signaling.send({ type: "sync-host", newHostId: event.newHostId });
           this.handleAuthorityTargetChanged(event.newHostId);
         }
       }

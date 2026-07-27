@@ -22,15 +22,6 @@ function send(ws: WebSocket, msg: ServerToClient) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
 }
 
-function broadcastRoom(roomCode: string, msg: ServerToClient, exceptPeerId?: string) {
-  const room = registry.get(roomCode);
-  if (!room) return;
-  for (const peer of room.peers.values()) {
-    if (peer.peerId === exceptPeerId) continue;
-    send(peer.ws, msg);
-  }
-}
-
 wss.on("connection", (ws) => {
   let roomCode: string | null = null;
   let peerId: string | null = null;
@@ -42,8 +33,7 @@ wss.on("connection", (ws) => {
 
     if (msg.type === "join") {
       if (joined) return;
-      const room = registry.getOrCreate(msg.roomCode, msg.peerId);
-      const role = room.hostId === msg.peerId ? "host" : "peer";
+      const room = registry.getOrCreate(msg.roomCode);
 
       const previous = room.peers.get(msg.peerId);
       previous?.ws.close();
@@ -57,7 +47,7 @@ wss.on("connection", (ws) => {
         .filter((p) => p.peerId !== msg.peerId)
         .map((p) => ({ peerId: p.peerId, name: p.name }));
 
-      send(ws, { type: "joined", peerId: msg.peerId, hostId: room.hostId, role, peers });
+      send(ws, { type: "joined", peerId: msg.peerId, peers });
 
       for (const peer of room.peers.values()) {
         if (peer.peerId === msg.peerId) continue;
@@ -76,12 +66,6 @@ wss.on("connection", (ws) => {
       return;
     }
 
-    if (msg.type === "sync-host") {
-      if (!registry.transferHost(roomCode, msg.newHostId)) return;
-      broadcastRoom(roomCode, { type: "host-changed", hostId: msg.newHostId });
-      return;
-    }
-
     if (msg.type === "leave") {
       ws.close();
     }
@@ -91,22 +75,11 @@ wss.on("connection", (ws) => {
     if (!roomCode || !peerId) return;
     const room = registry.get(roomCode);
     if (!room) return;
-    const wasHost = room.hostId === peerId;
     registry.removePeer(roomCode, peerId);
     if (room.peers.size === 0) return;
 
-    if (wasHost) {
-      // Earliest remaining peer (Map insertion order) becomes signaling host.
-      const newHostId = room.peers.keys().next().value!;
-      registry.transferHost(roomCode, newHostId);
-      for (const peer of room.peers.values()) {
-        send(peer.ws, { type: "peer-left", peerId });
-        send(peer.ws, { type: "host-changed", hostId: newHostId });
-      }
-    } else {
-      for (const peer of room.peers.values()) {
-        send(peer.ws, { type: "peer-left", peerId });
-      }
+    for (const peer of room.peers.values()) {
+      send(peer.ws, { type: "peer-left", peerId });
     }
   });
 });

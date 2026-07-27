@@ -23,7 +23,8 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
   const clientRef = useRef<RoomClient | null>(null);
 
   if (!clientRef.current) {
-    const persistedState = RoomClient.loadPersistedState(roomCode);
+    const raw = RoomClient.loadPersistedState(roomCode);
+    const persistedState = raw && raw.phase !== "lobby" ? raw : null;
     clientRef.current = new RoomClient({
       signalingUrl: getSignalingUrl(),
       roomCode,

@@ -8,7 +8,6 @@ export interface RoomPeer {
 
 export interface Room {
   code: string;
-  hostId: string;
   peers: Map<string, RoomPeer>;
 }
 
@@ -16,10 +15,10 @@ export interface Room {
 export class RoomRegistry {
   private rooms = new Map<string, Room>();
 
-  getOrCreate(code: string, firstPeerId: string): Room {
+  getOrCreate(code: string): Room {
     let room = this.rooms.get(code);
     if (!room) {
-      room = { code, hostId: firstPeerId, peers: new Map() };
+      room = { code, peers: new Map() };
       this.rooms.set(code, room);
     }
     return room;
@@ -34,13 +33,6 @@ export class RoomRegistry {
     if (!room) return;
     room.peers.delete(peerId);
     if (room.peers.size === 0) this.rooms.delete(code);
-  }
-
-  transferHost(code: string, newHostId: string): boolean {
-    const room = this.rooms.get(code);
-    if (!room || !room.peers.has(newHostId)) return false;
-    room.hostId = newHostId;
-    return true;
   }
 
   roomCount(): number {
