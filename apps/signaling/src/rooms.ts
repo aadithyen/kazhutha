@@ -4,6 +4,8 @@ export interface RoomPeer {
   peerId: string;
   name: string;
   ws: WebSocket;
+  /** Preserved across reconnects so lobby host election stays stable. */
+  joinedAt: number;
 }
 
 export interface Room {

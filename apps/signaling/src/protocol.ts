@@ -11,7 +11,7 @@ export type ClientToServer =
 export type RoomPeerInfo = { peerId: string; name: string };
 
 export type ServerToClient =
-  | { type: "joined"; peerId: string; peers: RoomPeerInfo[] }
+  | { type: "joined"; peerId: string; peers: RoomPeerInfo[]; joinOrder: string[] }
   | { type: "peer-joined"; peerId: string; name: string }
   | { type: "peer-left"; peerId: string }
   | { type: "signal"; from: string; data: SignalPayload }
