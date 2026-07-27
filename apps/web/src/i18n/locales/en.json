@@ -51,7 +51,8 @@
     "shareText": "Join my Kazhutha room",
     "players": "Players ({count})",
     "kick": "Kick",
-    "rules": "Rules"
+    "rules": "Rules",
+    "exitLobby": "Exit lobby"
   },
   "rules": {
     "mustLeadAceOfSpades": {

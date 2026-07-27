@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import LanguageSwitcher from "../LanguageSwitcher";
 import { useLocale } from "../../i18n";
 import { useRoom } from "../../lib/RoomContext";
@@ -7,6 +8,7 @@ import RulesPanel from "./RulesPanel";
 
 export default function LobbyScreen() {
   const { t } = useLocale();
+  const navigate = useNavigate();
   const { state, client } = useRoom();
   const me = state.players.find((p) => p.id === client.playerId);
   const isHost = me?.isHost ?? false;
@@ -21,8 +23,20 @@ export default function LobbyScreen() {
     client.sendIntent({ type: "StartGame", playerId: client.playerId });
   }
 
+  function exitLobby() {
+    client.leave();
+    navigate("/", { replace: true });
+  }
+
   return (
     <div className="relative mx-auto flex max-w-md flex-col gap-4 px-4 py-6">
+      <button
+        type="button"
+        onClick={exitLobby}
+        className="absolute left-0 top-0 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+      >
+        {t("lobby.exitLobby")}
+      </button>
       <LanguageSwitcher className="absolute right-0 top-0" />
       <header className="text-center">
         <h1 className="font-serif text-3xl font-semibold italic text-neutral-900 dark:text-neutral-100">
