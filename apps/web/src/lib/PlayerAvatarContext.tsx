@@ -14,6 +14,10 @@ interface PlayerAvatarContextValue {
   localFlyActive: boolean;
   pileSettling: boolean;
   setPileSettling: (settling: boolean) => void;
+  dealAnimating: boolean;
+  setDealAnimating: (animating: boolean) => void;
+  revealedHandCount: number;
+  setRevealedHandCount: (count: number) => void;
   getAvatarCenter: (playerId: string) => Point | null;
   getHandTarget: () => Point | null;
   getPileTarget: () => Point | null;
@@ -29,6 +33,8 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
   const playSlotTargetRef = useRef<HTMLElement | null>(null);
   const [localFlyActive, setLocalFlyActiveState] = useState(false);
   const [pileSettling, setPileSettlingState] = useState(false);
+  const [dealAnimating, setDealAnimatingState] = useState(false);
+  const [revealedHandCount, setRevealedHandCountState] = useState(0);
 
   const setLocalFlyActive = useCallback((active: boolean) => {
     setLocalFlyActiveState(active);
@@ -36,6 +42,14 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
 
   const setPileSettling = useCallback((settling: boolean) => {
     setPileSettlingState(settling);
+  }, []);
+
+  const setDealAnimating = useCallback((animating: boolean) => {
+    setDealAnimatingState(animating);
+  }, []);
+
+  const setRevealedHandCount = useCallback((count: number) => {
+    setRevealedHandCountState(count);
   }, []);
 
   const registerAvatar = useCallback((playerId: string, el: HTMLElement | null) => {
@@ -97,6 +111,10 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
       localFlyActive,
       pileSettling,
       setPileSettling,
+      dealAnimating,
+      setDealAnimating,
+      revealedHandCount,
+      setRevealedHandCount,
       getAvatarCenter,
       getHandTarget,
       getPileTarget,
@@ -111,6 +129,10 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
       localFlyActive,
       pileSettling,
       setPileSettling,
+      dealAnimating,
+      setDealAnimating,
+      revealedHandCount,
+      setRevealedHandCount,
       getAvatarCenter,
       getHandTarget,
       getPileTarget,

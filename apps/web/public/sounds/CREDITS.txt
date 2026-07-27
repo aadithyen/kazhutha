@@ -3,6 +3,8 @@ Sound effects in this folder:
 - card-play.ogg — Almitory "Air Woosh Move" via OpenGameArt (CC0), short soft trim
 - card-fold.ogg — Almitory "Air Woosh Move" via OpenGameArt (CC0), longer softened pass
 - vettu-collect.ogg — Kenney Foley Sounds, woosh6.ogg (CC0)
+- card-shuffle.ogg — Kenney Casino Audio, card-shuffle.ogg (CC0)
+- card-deal.ogg — Kenney Casino Audio, card-slide-1.ogg (CC0)
 
 https://kenney.nl/assets/casino-audio
 https://opengameart.org/content/air-woosh-move

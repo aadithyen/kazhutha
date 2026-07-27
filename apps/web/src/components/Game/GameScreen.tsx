@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useRoom } from "../../lib/RoomContext";
 import { PlayerAvatarProvider } from "../../lib/PlayerAvatarContext";
 import { preloadSounds } from "../../lib/sounds";
+import DealAnimation from "./DealAnimation";
 import CenterPile from "./CenterPile";
 import GameOverScreen from "./GameOverScreen";
 import Hand from "./Hand";
@@ -26,6 +27,7 @@ export default function GameScreen() {
         </div>
         <Hand sortMode={sortMode} />
         <TurnBanner sortMode={sortMode} onSortModeChange={changeSortMode} />
+        <DealAnimation />
         {state.phase === "finished" && <GameOverScreen />}
         <VettuBanner />
       </div>

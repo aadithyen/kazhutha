@@ -10,7 +10,7 @@ import CardAnimations, { pileKey } from "./CardAnimations";
 export default function CenterPile() {
   const { t } = useLocale();
   const { state, client } = useRoom();
-  const { registerPileTarget, registerPlaySlotTarget, localFlyActive, pileSettling } = usePlayerAvatars();
+  const { registerPileTarget, registerPlaySlotTarget, localFlyActive, pileSettling, dealAnimating } = usePlayerAvatars();
   const pileAreaRef = useRef<HTMLDivElement>(null);
   const playSlotRef = useRef<HTMLDivElement>(null);
   const pileCardRefs = useRef(new Map<string, HTMLDivElement>());
@@ -44,7 +44,7 @@ export default function CenterPile() {
         ref={pileAreaRef}
         className="flex flex-1 flex-wrap items-center justify-center gap-3 overflow-visible px-4 py-6"
       >
-        {displayPile.length === 0 && !showPlaySlot ? (
+        {displayPile.length === 0 && !showPlaySlot && !dealAnimating ? (
           <span className="text-sm text-neutral-400 dark:text-neutral-500">{t("game.playToCenter")}</span>
         ) : (
           displayPile.map((played, i) => {
