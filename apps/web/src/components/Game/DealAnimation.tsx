@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { DEAL_FLY_SPREAD } from "../../lib/cardLayout";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
 import { playSound } from "../../lib/sounds";
@@ -229,29 +230,32 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
       schedule(() => {
         setPhase("deal");
         const items: FlyingDealCard[] = [];
-        let myDealt = 0;
+        const cardsPerPlayer = Math.floor(TOTAL_CARDS / turnOrder.length);
+        const dealtCount = new Map<string, number>();
 
         for (let i = 0; i < TOTAL_CARDS; i++) {
           const playerId = turnOrder[i % turnOrder.length];
-          const from = targets.get(playerId);
-          const to = targets.get(playerId);
-          if (!from || !to) continue;
+          const target = targets.get(playerId);
+          if (!target) continue;
+
+          const playerDealt = dealtCount.get(playerId) ?? 0;
+          dealtCount.set(playerId, playerDealt + 1);
 
           const isMe = playerId === client.playerId;
-          const handOffset = isMe ? myDealt * 14 - 7 : 0;
-          const end: Point = isMe
-            ? { x: to.x + handOffset, y: to.y }
-            : { x: to.x + (i % 3) * 4 - 4, y: to.y + 6 };
+          const handOffset = isMe
+            ? (playerDealt - (cardsPerPlayer - 1) / 2) * DEAL_FLY_SPREAD
+            : (playerDealt % 3) * 3 - 3;
 
           items.push({
             key: `deal-${i}`,
-            start: { ...from },
-            end,
+            start: { ...pileCenter },
+            end: {
+              x: target.x + handOffset,
+              y: target.y + (isMe ? 0 : 6),
+            },
             delay: i * DEAL_STAGGER_MS,
             revealOnArrival: isMe,
           });
-
-          if (isMe) myDealt += 1;
         }
 
         setFlying(items);

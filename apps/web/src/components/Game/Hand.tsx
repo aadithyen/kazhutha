@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useLocale } from "../../i18n";
 import {
   CARD_LG,
+  CARD_SPREAD,
   clampOverlayPosition,
   PILE_CARD_SCALE,
   rectCenter,
@@ -16,7 +17,6 @@ import { playSound } from "../../lib/sounds";
 import PlayingCard from "../PlayingCard";
 
 const CARD_WIDTH = CARD_LG.width;
-const CARD_SPREAD = 68;
 const MAX_ROTATION = 32;
 const FAN_SWAY = 18;
 /** Below this scroll range (px), fan sway + horizontal scroll gestures stay off. */
@@ -135,6 +135,7 @@ export default function Hand({ sortMode }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollEndTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const autoScrollKeyRef = useRef<string | null>(null);
+  const prevDealAnimatingRef = useRef(dealAnimating);
   const dragRef = useRef<{
     id: string;
     card: Card;
@@ -194,6 +195,20 @@ export default function Hand({ sortMode }: Props) {
     updateScrollBias();
     autoScrollKeyRef.current = null;
   }, [hand.length, updateScrollBias]);
+
+  useEffect(() => {
+    if (prevDealAnimatingRef.current && !dealAnimating) {
+      requestAnimationFrame(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const max = el.scrollWidth - el.clientWidth;
+        el.scrollLeft = max >= MIN_FAN_SCROLL ? max / 2 : 0;
+        updateScrollBias();
+        autoScrollKeyRef.current = null;
+      });
+    }
+    prevDealAnimatingRef.current = dealAnimating;
+  }, [dealAnimating, updateScrollBias]);
 
   useEffect(() => {
     if (!myTurn || legalCards.length === 0) {
@@ -579,7 +594,7 @@ export default function Hand({ sortMode }: Props) {
   return (
     <section className="relative h-[58vh] min-h-72 shrink-0 overflow-hidden bg-white dark:bg-neutral-950">
       {overlayPortal}
-      <div ref={handTargetRef} className="pointer-events-none absolute inset-x-0 top-4 h-1" aria-hidden />
+      <div ref={handTargetRef} className="pointer-events-none absolute inset-x-0 bottom-32 h-1" aria-hidden />
       <div
         ref={scrollRef}
         className={`hand-fan-scroll h-full select-none overflow-y-hidden ${
