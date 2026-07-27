@@ -10,7 +10,7 @@ import PlayerBadges from "./PlayerBadges";
 import TurnBanner, { useHandSortMode } from "./TurnBanner";
 import VettuBanner from "./VettuBanner";
 
-export default function GameScreen() {
+export default function GameScreen({ dealAnimationSeed }: { dealAnimationSeed: number | null }) {
   const { state } = useRoom();
   const { sortMode, changeSortMode } = useHandSortMode();
 
@@ -27,7 +27,7 @@ export default function GameScreen() {
         </div>
         <Hand sortMode={sortMode} />
         <TurnBanner sortMode={sortMode} onSortModeChange={changeSortMode} />
-        <DealAnimation />
+        <DealAnimation dealAnimationSeed={dealAnimationSeed} />
         {state.phase === "finished" && <GameOverScreen />}
         <VettuBanner />
       </div>

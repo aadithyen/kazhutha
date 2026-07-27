@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import ConnectionBanner from "../components/ConnectionBanner";
 import GameScreen from "../components/Game/GameScreen";
@@ -59,13 +59,20 @@ function NameGate({ onDone }: { onDone: () => void }) {
 
 function RoomBody() {
   const { state, banner, dismissBanner } = useRoom();
+  const prevPhaseRef = useRef(state.phase);
+  const dealAnimationSeedRef = useRef<number | null>(null);
+
+  if (prevPhaseRef.current === "lobby" && state.phase === "playing" && state.seed != null) {
+    dealAnimationSeedRef.current = state.seed;
+  }
+  prevPhaseRef.current = state.phase;
 
   const inLobby = state.phase === "lobby";
 
   return (
     <div className={`min-h-dvh ${inLobby ? "bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100" : ""}`}>
       {banner && <ConnectionBanner message={banner} onDismiss={dismissBanner} />}
-      {inLobby ? <LobbyScreen /> : <GameScreen />}
+      {inLobby ? <LobbyScreen /> : <GameScreen dealAnimationSeed={dealAnimationSeedRef.current} />}
     </div>
   );
 }
