@@ -62,6 +62,7 @@ export class RoomClient {
   private iceServers?: RTCIceServer[];
   private recoveringHost: boolean;
   private snapshotRequested = false;
+  private replacingPeers = new Set<string>();
   private keepaliveTimer: ReturnType<typeof setInterval> | null = null;
   private visibilityHandler: (() => void) | null = null;
 
@@ -246,6 +247,7 @@ export class RoomClient {
         if (this.engine.getState().phase === "lobby") {
           this.refreshLobbyAuthority();
         } else if (this.isAuthority) {
+          this.dropPeerLink(msg.peerId);
           this.ensureLinkAsAnswerer(msg.peerId);
         } else {
           this.refreshHostLinks();
@@ -281,6 +283,9 @@ export class RoomClient {
         break;
       }
       case "signal": {
+        if (msg.data.kind === "offer" && this.isAuthority) {
+          this.dropPeerLink(msg.from);
+        }
         const link =
           this.links.get(msg.from) ?? (this.isAuthority ? this.ensureLinkAsAnswerer(msg.from) : null);
         link?.handleSignal(msg.data);
@@ -425,6 +430,13 @@ export class RoomClient {
     link.createOffer();
   }
 
+  private dropPeerLink(peerId: string) {
+    this.replacingPeers.add(peerId);
+    this.links.get(peerId)?.close();
+    this.links.delete(peerId);
+    this.peerStatus.delete(peerId);
+  }
+
   private ensureLinkAsAnswerer(peerId: string): PeerLink {
     const existing = this.links.get(peerId);
     if (existing) return existing;
@@ -455,8 +467,10 @@ export class RoomClient {
     }
 
     if (status === "disconnected") {
+      const replacing = this.replacingPeers.has(peerId);
+      this.replacingPeers.delete(peerId);
       this.links.delete(peerId);
-      if (this.isAuthority) this.handlePeerDisconnected(peerId);
+      if (this.isAuthority && !replacing) this.handlePeerDisconnected(peerId);
       if (!this.isAuthority && authorityId && peerId === authorityId) {
         this.peerStatus.delete(peerId);
         const state = this.engine.getState();
