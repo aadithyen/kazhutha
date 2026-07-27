@@ -158,17 +158,42 @@ function CardFace({ card, dims }: { card: Card; dims: (typeof SIZE_CLASSES)["md"
   );
 }
 
+function CardBack({ className }: { className: string }) {
+  return (
+    <div className={`${className} overflow-hidden`} aria-hidden>
+      <div className="absolute inset-[5px] rounded-[inherit] border border-blue-900/25 bg-gradient-to-br from-blue-800 via-blue-700 to-blue-900">
+        <div
+          className="absolute inset-[6px] rounded-md opacity-90"
+          style={{
+            backgroundImage: `
+              linear-gradient(45deg, rgba(255,255,255,0.14) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.14) 75%),
+              linear-gradient(45deg, rgba(255,255,255,0.14) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.14) 75%),
+              linear-gradient(-45deg, rgba(0,0,0,0.12) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.12) 75%),
+              linear-gradient(-45deg, rgba(0,0,0,0.12) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.12) 75%)
+            `,
+            backgroundSize: "10px 10px",
+            backgroundPosition: "0 0, 5px 5px, 0 0, 5px 5px",
+          }}
+        />
+        <div className="absolute inset-[18%] rounded-sm border border-white/20 bg-blue-600/40">
+          <div
+            className="absolute inset-[20%] rounded-sm border border-white/15"
+            style={{
+              backgroundImage: `radial-gradient(circle at center, rgba(255,255,255,0.35) 0%, transparent 65%)`,
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PlayingCard({ card, faceDown, selected, disabled, onClick, size = "md" }: Props) {
   const dims = SIZE_CLASSES[size];
   const base = `relative ${dims.box} border bg-white font-serif shadow-[0_2px_12px_rgba(15,23,42,0.08)] transition-all duration-150`;
 
   if (faceDown || !card) {
-    return (
-      <div
-        className={`${base} border-neutral-200 bg-gradient-to-br from-neutral-100 to-neutral-200`}
-        aria-hidden
-      />
-    );
+    return <CardBack className={`${base} border-blue-900/30 bg-blue-900`} />;
   }
 
   const isRed = SUIT_COLOR[card.suit] === "red";

@@ -1,6 +1,13 @@
 /** Pixel sizes for `PlayingCard` lg/md variants (16px root). */
 export const CARD_LG = { width: 168, height: 240 };
 export const CARD_MD = { width: 76, height: 108 };
+export const CARD_SM = { width: 48, height: 72 };
+
+/** Horizontal spacing between cards in the hand fan (lg size). */
+export const CARD_SPREAD = 68;
+
+/** Deal animation uses sm cards; scale fan spacing to match hand proportions. */
+export const DEAL_FLY_SPREAD = Math.round(CARD_SPREAD * (CARD_SM.width / CARD_LG.width));
 
 export const PILE_CARD_SCALE = CARD_MD.width / CARD_LG.width;
 
