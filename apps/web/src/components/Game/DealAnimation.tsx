@@ -110,77 +110,86 @@ function ShuffleStage({
   useLayoutEffect(() => {
     if (!active) return;
 
-    const cards = cardRefs.current.filter((el): el is HTMLDivElement => el != null);
-    if (cards.length === 0) return;
+    let cancelled = false;
+    const boot = requestAnimationFrame(() => {
+      const cards = cardRefs.current.filter((el): el is HTMLDivElement => el != null);
+      if (cancelled || cards.length === 0) return;
 
-    const schedule = (fn: () => void, ms: number) => {
-      const id = window.setTimeout(fn, ms);
-      timers.current.push(id);
-    };
+      const schedule = (fn: () => void, ms: number) => {
+        const id = window.setTimeout(() => {
+          if (cancelled) return;
+          fn();
+        }, ms);
+        timers.current.push(id);
+      };
 
-    // Initial: stacked & visible
-    cards.forEach((el, i) => {
-      el.style.transition = "none";
-      el.style.zIndex = String(i);
-      applyPose(el, (i - (SHUFFLE_N - 1) / 2) * 1.2, -i * 1.5, (i - 4) * 1.5, 1, 1);
-    });
-
-    // Gather settle
-    schedule(() => {
-      cards.forEach((el) => {
-        el.style.transition = "transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease-out";
-      });
       cards.forEach((el, i) => {
-        applyPose(el, (i - (SHUFFLE_N - 1) / 2) * 1.1, -i * 1.6, (i - (SHUFFLE_N - 1) / 2) * 1.2, 1, 1);
+        el.style.transition = "none";
+        el.style.zIndex = String(i);
+        applyPose(el, (i - (SHUFFLE_N - 1) / 2) * 1.2, -i * 1.5, (i - 4) * 1.5, 1, 1);
       });
-    }, 40);
 
-    let t = GATHER_MS;
+      schedule(() => {
+        cards.forEach((el) => {
+          el.style.transition = "transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease-out";
+        });
+        cards.forEach((el, i) => {
+          applyPose(el, (i - (SHUFFLE_N - 1) / 2) * 1.1, -i * 1.6, (i - (SHUFFLE_N - 1) / 2) * 1.2, 1, 1);
+        });
+      }, 40);
 
-    for (let pass = 0; pass < RIFFLE_PASSES; pass++) {
-      const passAt = t;
+      let t = GATHER_MS;
+
+      for (let pass = 0; pass < RIFFLE_PASSES; pass++) {
+        const passAt = t;
+
+        schedule(() => {
+          cards.forEach((el, i) => {
+            const left = i % 2 === 0;
+            const stack = Math.floor(i / 2);
+            el.style.zIndex = String(stack + (left ? 0 : SHUFFLE_N));
+            applyPose(
+              el,
+              left ? -PACKET_X - stack * 2.5 : PACKET_X + stack * 2.5,
+              -10 - stack * 2.5,
+              left ? -20 - stack : 20 + stack,
+              1,
+              1,
+            );
+          });
+        }, passAt);
+
+        for (let i = 0; i < SHUFFLE_N; i++) {
+          schedule(() => {
+            const el = cards[i];
+            if (!el) return;
+            el.style.zIndex = String(i);
+            applyPose(
+              el,
+              (i - (SHUFFLE_N - 1) / 2) * 1.2,
+              -i * 1.7,
+              (i - (SHUFFLE_N - 1) / 2) * 0.8,
+              1,
+              1,
+            );
+          }, passAt + SPLIT_MS + i * WEAVE_CARD_MS);
+        }
+
+        t = passAt + SPLIT_MS + SHUFFLE_N * WEAVE_CARD_MS + BETWEEN_PASS_MS;
+      }
 
       schedule(() => {
         cards.forEach((el, i) => {
-          const left = i % 2 === 0;
-          const stack = Math.floor(i / 2);
-          el.style.zIndex = String(stack + (left ? 0 : SHUFFLE_N));
-          applyPose(
-            el,
-            left ? -PACKET_X - stack * 2.5 : PACKET_X + stack * 2.5,
-            -10 - stack * 2.5,
-            left ? -20 - stack : 20 + stack,
-            1,
-            1,
-          );
-        });
-      }, passAt);
-
-      for (let i = 0; i < SHUFFLE_N; i++) {
-        schedule(() => {
-          const el = cards[i];
-          if (!el) return;
           el.style.zIndex = String(i);
-          applyPose(
-            el,
-            (i - (SHUFFLE_N - 1) / 2) * 1.2,
-            -i * 1.7,
-            (i - (SHUFFLE_N - 1) / 2) * 0.8,
-            1,
-            1,
-          );
-        }, passAt + SPLIT_MS + i * WEAVE_CARD_MS);
-      }
+          applyPose(el, (i - (SHUFFLE_N - 1) / 2) * 0.5, -i * 1.1, 0, 1, 1);
+        });
+      }, t);
+    });
 
-      t = passAt + SPLIT_MS + SHUFFLE_N * WEAVE_CARD_MS + BETWEEN_PASS_MS;
-    }
-
-    schedule(() => {
-      cards.forEach((el, i) => {
-        el.style.zIndex = String(i);
-        applyPose(el, (i - (SHUFFLE_N - 1) / 2) * 0.5, -i * 1.1, 0, 1, 1);
-      });
-    }, t);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(boot);
+    };
   }, [active, timers]);
 
   if (!active) return null;
@@ -396,16 +405,18 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
       aliveRef.current = false;
       cancelAnimationFrame(frame);
       if (!started) return;
+      // Abort mid-run (Strict Mode remount / leave room). Free the seed so a
+      // remount can replay; keep hand hidden until a run finishes.
       if (runningSeedRef.current === dealAnimationSeed) {
         clearTimers();
         setFlying([]);
         setShowShuffle(false);
         setCenter(null);
-        setDealAnimatingRef.current(false);
-        const myId = clientIdRef.current;
-        const myHand = stateRef.current.hands[myId]?.length ?? 0;
-        setRevealedHandCountRef.current(myHand);
+        lastAnimatedDealSeed = null;
         runningSeedRef.current = null;
+        finishedRef.current = false;
+        setDealAnimatingRef.current(true);
+        setRevealedHandCountRef.current(0);
       }
     };
   }, [dealAnimationSeed, clearTimers]);
