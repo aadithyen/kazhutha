@@ -10,6 +10,8 @@ const DEAL_FLY_MS = 160;
 const DEAL_STAGGER_MS = 38;
 const TOTAL_CARDS = 52;
 
+let lastAnimatedDealSeed: number | null = null;
+
 interface Point {
   x: number;
   y: number;
@@ -150,7 +152,7 @@ function ShuffleDeck({ center, active }: { center: Point; active: boolean }) {
   );
 }
 
-export default function DealAnimation() {
+export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed: number | null }) {
   const { state, client } = useRoom();
   const {
     getAvatarCenter,
@@ -163,7 +165,6 @@ export default function DealAnimation() {
   const [center, setCenter] = useState<Point | null>(null);
   const [splitStacks, setSplitStacks] = useState<SplitStack[]>([]);
   const [flying, setFlying] = useState<FlyingDealCard[]>([]);
-  const prevPhaseRef = useRef(state.phase);
   const timersRef = useRef<number[]>([]);
   const revealedRef = useRef(0);
 
@@ -276,14 +277,16 @@ export default function DealAnimation() {
     ],
   );
 
-  useEffect(() => {
-    const prev = prevPhaseRef.current;
-    prevPhaseRef.current = state.phase;
-
-    if (prev !== "lobby" || state.phase !== "playing") return;
+  useLayoutEffect(() => {
+    if (dealAnimationSeed == null) return;
+    if (lastAnimatedDealSeed === dealAnimationSeed) return;
 
     const turnOrder = state.turnOrder;
     if (turnOrder.length < 2) return;
+
+    lastAnimatedDealSeed = dealAnimationSeed;
+    setDealAnimating(true);
+    setRevealedHandCount(0);
 
     const frame = requestAnimationFrame(() => {
       requestAnimationFrame(() => startDeal(turnOrder));
@@ -293,7 +296,7 @@ export default function DealAnimation() {
       cancelAnimationFrame(frame);
       clearTimers();
     };
-  }, [state.phase, state.turnOrder, clearTimers, startDeal]);
+  }, [dealAnimationSeed, state.turnOrder, clearTimers, setDealAnimating, setRevealedHandCount, startDeal]);
 
   useEffect(() => () => clearTimers(), [clearTimers]);
 
