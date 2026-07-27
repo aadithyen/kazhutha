@@ -6,16 +6,16 @@ import { playSound } from "../../lib/sounds";
 import PlayingCard from "../PlayingCard";
 
 const SHUFFLE_N = 10;
-const GATHER_MS = 400;
-const SPLIT_MS = 420;
-const WEAVE_CARD_MS = 55;
-const BETWEEN_PASS_MS = 180;
-const SQUARE_MS = 300;
+const GATHER_MS = 500;
+const SPLIT_MS = 600;
+const WEAVE_CARD_MS = 70;
+const BETWEEN_PASS_MS = 250;
+const SQUARE_MS = 400;
 const RIFFLE_PASSES = 2;
 const DEAL_FLY_MS = 200;
 const DEAL_STAGGER_MS = 40;
 const TOTAL_CARDS = 52;
-const PACKET_X = 92;
+const PACKET_X = 110;
 
 let lastAnimatedDealSeed: number | null = null;
 
