@@ -1,18 +1,23 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DEAL_FLY_SPREAD } from "../../lib/cardLayout";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
 import { playSound } from "../../lib/sounds";
 import PlayingCard from "../PlayingCard";
 
-const GATHER_MS = 320;
-const RIFFLE_PASS_MS = 860;
+const GATHER_MS = 360;
+const SPLIT_MS = 320;
+const WEAVE_MS = 520;
+const WEAVE_STAGGER_MS = 36;
+const SQUARE_MS = 240;
 const RIFFLE_PASSES = 2;
-const SQUARE_MS = 280;
 const DEAL_FLY_MS = 180;
 const DEAL_STAGGER_MS = 38;
 const TOTAL_CARDS = 52;
-const SHUFFLE_CARD_COUNT = 12;
+const SHUFFLE_CARD_COUNT = 10;
+
+/** One full riffle pass: split + staggered weave. */
+const RIFFLE_PASS_MS = SPLIT_MS + WEAVE_MS + (SHUFFLE_CARD_COUNT / 2) * WEAVE_STAGGER_MS;
 
 let lastAnimatedDealSeed: number | null = null;
 
@@ -21,8 +26,7 @@ interface Point {
   y: number;
 }
 
-type ShufflePhase = "gather" | "riffle" | "square";
-type Phase = "idle" | ShufflePhase | "deal" | "done";
+type Phase = "idle" | "shuffle" | "deal" | "done";
 
 interface FlyingDealCard {
   key: string;
@@ -31,6 +35,15 @@ interface FlyingDealCard {
   delay: number;
   revealOnArrival: boolean;
   rot: number;
+}
+
+interface ShuffleCardPose {
+  x: number;
+  y: number;
+  rot: number;
+  z: number;
+  scale: number;
+  opacity: number;
 }
 
 function DealFlyingCard({
@@ -81,19 +94,132 @@ function DealFlyingCard({
   );
 }
 
-/** Center-stage riffle: split packets, weave cards, square — CSS-driven. */
+function initialPoses(): ShuffleCardPose[] {
+  return Array.from({ length: SHUFFLE_CARD_COUNT }, (_, i) => ({
+    x: (i - (SHUFFLE_CARD_COUNT - 1) / 2) * 1.4,
+    y: -i * 1.5,
+    rot: (i - (SHUFFLE_CARD_COUNT - 1) / 2) * 1.1,
+    z: i,
+    scale: 1,
+    opacity: 0,
+  }));
+}
+
+/** JS-driven riffle: explicit poses — no CSS-variable keyframes. */
 function RiffleShuffle({
   center,
-  phase,
-  pass,
+  active,
+  schedule,
 }: {
   center: Point;
-  phase: ShufflePhase;
-  pass: number;
+  active: boolean;
+  schedule: (fn: () => void, ms: number) => void;
 }) {
-  const cards = Array.from({ length: SHUFFLE_CARD_COUNT }, (_, i) => i);
-  const leftPacket = cards.filter((i) => i % 2 === 0);
-  const rightPacket = cards.filter((i) => i % 2 === 1);
+  const [poses, setPoses] = useState<ShuffleCardPose[]>(initialPoses);
+  const runIdRef = useRef(0);
+
+  useLayoutEffect(() => {
+    if (!active) return;
+
+    const runId = ++runIdRef.current;
+    const still = () => runIdRef.current === runId;
+
+    // Gather — cards drop into a messy stack
+    setPoses(
+      Array.from({ length: SHUFFLE_CARD_COUNT }, (_, i) => ({
+        x: (i - (SHUFFLE_CARD_COUNT - 1) / 2) * 1.6,
+        y: 36 - i * 1.4,
+        rot: (i - 4) * 3,
+        z: i,
+        scale: 0.86,
+        opacity: 0,
+      })),
+    );
+
+    schedule(() => {
+      if (!still()) return;
+      setPoses(
+        Array.from({ length: SHUFFLE_CARD_COUNT }, (_, i) => ({
+          x: (i - (SHUFFLE_CARD_COUNT - 1) / 2) * 1.2,
+          y: -i * 1.6,
+          rot: (i - (SHUFFLE_CARD_COUNT - 1) / 2) * 1.2,
+          z: i,
+          scale: 1,
+          opacity: 1,
+        })),
+      );
+    }, 30);
+
+    let t = GATHER_MS;
+
+    for (let pass = 0; pass < RIFFLE_PASSES; pass++) {
+      const passStart = t;
+
+      // Split into left / right packets
+      schedule(() => {
+        if (!still()) return;
+        setPoses(
+          Array.from({ length: SHUFFLE_CARD_COUNT }, (_, i) => {
+            const left = i % 2 === 0;
+            const stack = Math.floor(i / 2);
+            return {
+              x: left ? -78 - stack * 2 : 78 + stack * 2,
+              y: -8 - stack * 2.4,
+              rot: left ? -18 - stack * 0.8 : 18 + stack * 0.8,
+              z: stack + (left ? 0 : 5),
+              scale: 1,
+              opacity: 1,
+            };
+          }),
+        );
+      }, passStart);
+
+      // Weave: alternate cards flush back to center, staggered
+      for (let i = 0; i < SHUFFLE_CARD_COUNT; i++) {
+        const weaveDelay = passStart + SPLIT_MS + i * WEAVE_STAGGER_MS;
+        schedule(() => {
+          if (!still()) return;
+          setPoses((prev) =>
+            prev.map((pose, idx) => {
+              if (idx > i) return pose;
+              const left = idx % 2 === 0;
+              return {
+                x: (idx - (SHUFFLE_CARD_COUNT - 1) / 2) * 1.1 + (left ? -1 : 1),
+                y: -idx * 1.7,
+                rot: (idx - (SHUFFLE_CARD_COUNT - 1) / 2) * 0.9,
+                z: idx,
+                scale: 1,
+                opacity: 1,
+              };
+            }),
+          );
+        }, weaveDelay);
+      }
+
+      t = passStart + RIFFLE_PASS_MS;
+    }
+
+    // Square up
+    schedule(() => {
+      if (!still()) return;
+      setPoses(
+        Array.from({ length: SHUFFLE_CARD_COUNT }, (_, i) => ({
+          x: (i - (SHUFFLE_CARD_COUNT - 1) / 2) * 0.6,
+          y: -i * 1.1,
+          rot: 0,
+          z: i,
+          scale: 1,
+          opacity: 1,
+        })),
+      );
+    }, t);
+
+    return () => {
+      runIdRef.current += 1;
+    };
+  }, [active, schedule]);
+
+  if (!active) return null;
 
   return (
     <div
@@ -101,54 +227,17 @@ function RiffleShuffle({
       style={{ left: center.x, top: center.y, transform: "translate(-50%, -50%)" }}
       aria-hidden
     >
-      <div
-        className={`deal-riffle-stage relative h-[6.75rem] w-[4.75rem] ${
-          phase === "gather" ? "deal-riffle-gather" : phase === "square" ? "deal-riffle-square" : ""
-        }`}
-        data-pass={pass}
-      >
-        {leftPacket.map((i, stackIndex) => (
+      <div className="relative h-[6.75rem] w-[4.75rem]">
+        {poses.map((pose, i) => (
           <div
-            key={`L-${i}-${pass}`}
-            className={`deal-riffle-card absolute left-1/2 top-1/2 ${
-              phase === "riffle" ? "deal-riffle-left" : phase === "gather" ? "deal-riffle-stack" : "deal-riffle-settle"
-            }`}
-            style={
-              {
-                "--stack": stackIndex,
-                "--weave": stackIndex,
-                "--side": -1,
-                animationDelay:
-                  phase === "riffle"
-                    ? `${stackIndex * 48}ms`
-                    : phase === "gather"
-                      ? `${stackIndex * 20}ms`
-                      : "0ms",
-              } as CSSProperties
-            }
-          >
-            <PlayingCard faceDown size="md" />
-          </div>
-        ))}
-        {rightPacket.map((i, stackIndex) => (
-          <div
-            key={`R-${i}-${pass}`}
-            className={`deal-riffle-card absolute left-1/2 top-1/2 ${
-              phase === "riffle" ? "deal-riffle-right" : phase === "gather" ? "deal-riffle-stack" : "deal-riffle-settle"
-            }`}
-            style={
-              {
-                "--stack": stackIndex,
-                "--weave": stackIndex,
-                "--side": 1,
-                animationDelay:
-                  phase === "riffle"
-                    ? `${32 + stackIndex * 48}ms`
-                    : phase === "gather"
-                      ? `${(stackIndex + leftPacket.length) * 20}ms`
-                      : "0ms",
-              } as CSSProperties
-            }
+            key={i}
+            className="absolute left-1/2 top-1/2 will-change-transform"
+            style={{
+              transform: `translate(-50%, -50%) translate(${pose.x}px, ${pose.y}px) rotate(${pose.rot}deg) scale(${pose.scale})`,
+              opacity: pose.opacity,
+              zIndex: pose.z,
+              transition: "transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease-out",
+            }}
           >
             <PlayingCard faceDown size="md" />
           </div>
@@ -169,15 +258,12 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
   } = usePlayerAvatars();
   const [phase, setPhase] = useState<Phase>("idle");
   const [center, setCenter] = useState<Point | null>(null);
-  const [rifflePass, setRifflePass] = useState(0);
   const [flying, setFlying] = useState<FlyingDealCard[]>([]);
   const timersRef = useRef<number[]>([]);
   const revealedRef = useRef(0);
   const runningSeedRef = useRef<number | null>(null);
   const finishedRef = useRef(false);
 
-  // Keep latest room/layout values in refs so the seed effect never re-subscribes
-  // mid-animation (re-subscribe cleanup was clearing timers and freezing the hand).
   const stateRef = useRef(state);
   const clientIdRef = useRef(client.playerId);
   const getAvatarCenterRef = useRef(getAvatarCenter);
@@ -216,6 +302,9 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
     runningSeedRef.current = null;
   }, []);
 
+  const shuffleTotalMs = GATHER_MS + RIFFLE_PASSES * RIFFLE_PASS_MS + SQUARE_MS;
+  const dealTotalMs = (TOTAL_CARDS - 1) * DEAL_STAGGER_MS + DEAL_FLY_MS + 80;
+
   const startDeal = useCallback(
     (turnOrder: string[]) => {
       const pileCenter = getPileTargetRef.current();
@@ -242,36 +331,18 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
       setCenter(pileCenter);
       setDealAnimatingRef.current(true);
       setRevealedHandCountRef.current(0);
-      setRifflePass(0);
       setFlying([]);
-      setPhase("gather");
+      setPhase("shuffle");
       playSound("cardShuffle");
 
-      const shuffleTotalMs = GATHER_MS + RIFFLE_PASSES * RIFFLE_PASS_MS + SQUARE_MS;
-      const dealTotalMs = (TOTAL_CARDS - 1) * DEAL_STAGGER_MS + DEAL_FLY_MS + 80;
-
-      schedule(() => {
-        setPhase("riffle");
-        setRifflePass(0);
-      }, GATHER_MS);
-
-      for (let p = 1; p < RIFFLE_PASSES; p++) {
-        schedule(() => {
-          setRifflePass(p);
-          setPhase("riffle");
-          playSound("cardShuffle");
-        }, GATHER_MS + p * RIFFLE_PASS_MS);
-      }
-
-      schedule(() => {
-        setPhase("square");
-      }, GATHER_MS + RIFFLE_PASSES * RIFFLE_PASS_MS);
+      // Second shuffle sound mid-sequence
+      schedule(() => playSound("cardShuffle"), GATHER_MS + RIFFLE_PASS_MS);
 
       schedule(() => {
         setPhase("deal");
-        // Refresh layout targets right before cards fly — avatars/hand may have settled.
         const freshCenter = getPileTargetRef.current() ?? pileCenter;
         setCenter(freshCenter);
+
         const freshTargets = new Map<string, Point>();
         for (const id of turnOrder) {
           const target = id === myId ? getHandTargetRef.current() : getAvatarCenterRef.current(id);
@@ -319,10 +390,9 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
         schedule(finishDeal, dealTotalMs);
       }, shuffleTotalMs);
 
-      // Hard safety: never leave the hand frozen if a timer is lost.
       schedule(finishDeal, shuffleTotalMs + dealTotalMs + 500);
     },
-    [finishDeal, schedule],
+    [dealTotalMs, finishDeal, schedule, shuffleTotalMs],
   );
 
   const startDealRef = useRef(startDeal);
@@ -344,8 +414,6 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
     const frame = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         if (cancelled) return;
-        // Consume seed only once the sequence actually begins so React Strict Mode
-        // remounts can still start the animation.
         lastAnimatedDealSeed = dealAnimationSeed;
         started = true;
         runningSeedRef.current = dealAnimationSeed;
@@ -356,10 +424,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
     return () => {
       cancelled = true;
       cancelAnimationFrame(frame);
-      if (!started) {
-        // Strict Mode abort-before-start: leave seed unconsumed for remount.
-        return;
-      }
+      if (!started) return;
       if (runningSeedRef.current === dealAnimationSeed) {
         clearTimers();
         setFlying([]);
@@ -375,25 +440,21 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
 
   useEffect(() => () => clearTimers(), [clearTimers]);
 
-  const handleArrive = useCallback(
-    (key: string, reveal: boolean) => {
-      if (reveal) {
-        revealedRef.current += 1;
-        setRevealedHandCountRef.current(revealedRef.current);
-      }
-      setFlying((items) => items.filter((item) => item.key !== key));
-    },
-    [],
-  );
+  const handleArrive = useCallback((key: string, reveal: boolean) => {
+    if (reveal) {
+      revealedRef.current += 1;
+      setRevealedHandCountRef.current(revealedRef.current);
+    }
+    setFlying((items) => items.filter((item) => item.key !== key));
+  }, []);
 
   if (phase === "idle" || phase === "done") return null;
 
-  const shufflePhase: ShufflePhase | null =
-    phase === "gather" || phase === "riffle" || phase === "square" ? phase : null;
-
   return (
     <div className="pointer-events-none fixed inset-0 z-[53]" aria-hidden>
-      {center && shufflePhase && <RiffleShuffle center={center} phase={shufflePhase} pass={rifflePass} />}
+      {center && (
+        <RiffleShuffle center={center} active={phase === "shuffle"} schedule={schedule} />
+      )}
       {flying.map((item) => (
         <DealFlyingCard key={item.key} item={item} onArrive={handleArrive} />
       ))}
