@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState, type MutableRefObject } from "react";
-import { DEAL_FLY_SPREAD } from "../../lib/cardLayout";
+import { CARD_LG, CARD_SM, DEAL_FLY_SPREAD } from "../../lib/cardLayout";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
 import { playSound } from "../../lib/sounds";
@@ -13,6 +13,7 @@ const BETWEEN_PASS_MS = 200;
 const SQUARE_MS = 320;
 const RIFFLE_PASSES = 2;
 const DEAL_FLY_MS = 200;
+const DEAL_ABSORB_MS = 240;
 const DEAL_STAGGER_MS = 40;
 const TOTAL_CARDS = 52;
 const PACKET_X = 100;
@@ -24,6 +25,8 @@ interface Point {
   y: number;
 }
 
+const DEAL_HAND_SCALE = CARD_LG.width / CARD_SM.width;
+
 interface FlyingDealCard {
   key: string;
   start: Point;
@@ -31,14 +34,19 @@ interface FlyingDealCard {
   delay: number;
   revealOnArrival: boolean;
   rot: number;
+  handIndex?: number;
 }
 
 function DealFlyingCard({
   item,
+  getHandCardTarget,
+  onReveal,
   onArrive,
 }: {
   item: FlyingDealCard;
-  onArrive: (key: string, reveal: boolean) => void;
+  getHandCardTarget: (index: number) => Point | null;
+  onReveal: (key: string) => void;
+  onArrive: (key: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -46,7 +54,9 @@ function DealFlyingCard({
     const el = ref.current;
     if (!el) return;
 
-    let flyTimer: number | undefined;
+    const timers: number[] = [];
+    const ease = "cubic-bezier(0.22, 1, 0.36, 1)";
+
     const delayTimer = window.setTimeout(() => {
       el.style.left = `${item.start.x}px`;
       el.style.top = `${item.start.y}px`;
@@ -54,21 +64,48 @@ function DealFlyingCard({
       el.style.opacity = "1";
 
       requestAnimationFrame(() => {
-        el.style.transition = `left ${DEAL_FLY_MS}ms cubic-bezier(0.22, 1, 0.36, 1), top ${DEAL_FLY_MS}ms cubic-bezier(0.22, 1, 0.36, 1), transform ${DEAL_FLY_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${DEAL_FLY_MS}ms ease-out`;
+        el.style.transition = `left ${DEAL_FLY_MS}ms ${ease}, top ${DEAL_FLY_MS}ms ${ease}, transform ${DEAL_FLY_MS}ms ${ease}, opacity ${DEAL_FLY_MS}ms ease-out`;
         el.style.left = `${item.end.x}px`;
         el.style.top = `${item.end.y}px`;
         el.style.transform = `translate(-50%, -50%) scale(${item.revealOnArrival ? 1 : 0.32}) rotate(0deg)`;
         el.style.opacity = item.revealOnArrival ? "1" : "0.18";
       });
 
-      flyTimer = window.setTimeout(() => onArrive(item.key, item.revealOnArrival), DEAL_FLY_MS);
+      timers.push(
+        window.setTimeout(() => {
+          if (!item.revealOnArrival) {
+            onArrive(item.key);
+            return;
+          }
+
+          onReveal(item.key);
+
+          const absorb = () => {
+            const handIndex = item.handIndex ?? 0;
+            const fanTarget = getHandCardTarget(handIndex) ?? { x: item.end.x, y: item.end.y };
+
+            el.style.transition = `left ${DEAL_ABSORB_MS}ms ${ease}, top ${DEAL_ABSORB_MS}ms ${ease}, transform ${DEAL_ABSORB_MS}ms ${ease}, opacity ${DEAL_ABSORB_MS}ms ease-in`;
+            el.style.left = `${fanTarget.x}px`;
+            el.style.top = `${fanTarget.y}px`;
+            el.style.transform = `translate(-50%, -50%) scale(${DEAL_HAND_SCALE}) rotate(0deg)`;
+            el.style.opacity = "0";
+
+            timers.push(window.setTimeout(() => onArrive(item.key), DEAL_ABSORB_MS));
+          };
+
+          requestAnimationFrame(() => {
+            requestAnimationFrame(absorb);
+          });
+        }, DEAL_FLY_MS),
+      );
     }, item.delay);
 
+    timers.push(delayTimer);
+
     return () => {
-      window.clearTimeout(delayTimer);
-      if (flyTimer !== undefined) window.clearTimeout(flyTimer);
+      timers.forEach((id) => window.clearTimeout(id));
     };
-  }, [item, onArrive]);
+  }, [item, getHandCardTarget, onReveal, onArrive]);
 
   return (
     <div
@@ -223,6 +260,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
   const {
     getAvatarCenter,
     getHandTarget,
+    getHandCardTarget,
     getPileTarget,
     setDealAnimating,
     setRevealedHandCount,
@@ -240,6 +278,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
   const clientIdRef = useRef(client.playerId);
   const getAvatarCenterRef = useRef(getAvatarCenter);
   const getHandTargetRef = useRef(getHandTarget);
+  const getHandCardTargetRef = useRef(getHandCardTarget);
   const getPileTargetRef = useRef(getPileTarget);
   const setDealAnimatingRef = useRef(setDealAnimating);
   const setRevealedHandCountRef = useRef(setRevealedHandCount);
@@ -248,6 +287,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
   clientIdRef.current = client.playerId;
   getAvatarCenterRef.current = getAvatarCenter;
   getHandTargetRef.current = getHandTarget;
+  getHandCardTargetRef.current = getHandCardTarget;
   getPileTargetRef.current = getPileTarget;
   setDealAnimatingRef.current = setDealAnimating;
   setRevealedHandCountRef.current = setRevealedHandCount;
@@ -310,7 +350,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
       playSound("cardShuffle");
 
       const shuffleMs = riffleDurationMs();
-      const dealMs = (TOTAL_CARDS - 1) * DEAL_STAGGER_MS + DEAL_FLY_MS + 100;
+      const dealMs = (TOTAL_CARDS - 1) * DEAL_STAGGER_MS + DEAL_FLY_MS + DEAL_ABSORB_MS + 100;
 
       schedule(() => playSound("cardShuffle"), GATHER_MS + SPLIT_MS + SHUFFLE_N * WEAVE_CARD_MS);
 
@@ -352,6 +392,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
             },
             delay: i * DEAL_STAGGER_MS,
             revealOnArrival: isMe,
+            handIndex: isMe ? playerDealt : undefined,
             rot: ((i * 17) % 11) - 5,
           });
         }
@@ -421,11 +462,12 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
     };
   }, [dealAnimationSeed, clearTimers]);
 
-  const handleArrive = useCallback((key: string, reveal: boolean) => {
-    if (reveal) {
-      revealedRef.current += 1;
-      setRevealedHandCountRef.current(revealedRef.current);
-    }
+  const handleReveal = useCallback((key: string) => {
+    revealedRef.current += 1;
+    setRevealedHandCountRef.current(revealedRef.current);
+  }, []);
+
+  const handleArrive = useCallback((key: string) => {
     setFlying((items) => items.filter((item) => item.key !== key));
   }, []);
 
@@ -435,7 +477,13 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
     <div className="pointer-events-none fixed inset-0 z-[53]" aria-hidden>
       {center && <ShuffleStage center={center} active={showShuffle} timers={timersRef} />}
       {flying.map((item) => (
-        <DealFlyingCard key={item.key} item={item} onArrive={handleArrive} />
+        <DealFlyingCard
+          key={item.key}
+          item={item}
+          getHandCardTarget={(index) => getHandCardTargetRef.current(index)}
+          onReveal={handleReveal}
+          onArrive={handleArrive}
+        />
       ))}
     </div>
   );

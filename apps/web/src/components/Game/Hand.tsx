@@ -122,7 +122,7 @@ interface Props {
 export default function Hand({ sortMode }: Props) {
   const { t } = useLocale();
   const { state, client } = useRoom();
-  const { registerHandTarget, getPlaySlotTarget, setLocalFlyActive, pileSettling, dealAnimating, revealedHandCount } = usePlayerAvatars();
+  const { registerHandTarget, registerHandCardTarget, getPlaySlotTarget, setLocalFlyActive, pileSettling, dealAnimating, revealedHandCount } = usePlayerAvatars();
   const handTargetRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const [selected, setSelected] = useState<Card | null>(null);
@@ -621,10 +621,11 @@ export default function Hand({ sortMode }: Props) {
                 ref={(el) => {
                   if (el) cardRefs.current.set(id, el);
                   else cardRefs.current.delete(id);
+                  if (dealAnimating) registerHandCardTarget(i, el);
                 }}
                 className={`absolute bottom-2 origin-bottom ${
                   isScrolling ? "" : "transition-[left,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                } ${isHidden ? "pointer-events-none opacity-0" : ""}`}
+                } ${isHidden ? "pointer-events-none opacity-0" : ""} ${dealAnimating ? "deal-hand-reveal" : ""}`}
                 style={{
                   left,
                   zIndex: isSelected || isDragSource ? displayHand.length + 1 : i,

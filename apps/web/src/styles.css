@@ -209,11 +209,15 @@ html[lang="ml"] .italic {
   }
 }
 
-@keyframes vettu-banner-wipe-out {
+@keyframes deal-hand-reveal-in {
   from {
-    clip-path: inset(0 0 0 0);
+    opacity: 0;
   }
   to {
-    clip-path: inset(0 0 100% 0);
+    opacity: 1;
   }
+}
+
+.deal-hand-reveal {
+  animation: deal-hand-reveal-in 240ms ease-out both;
 }
