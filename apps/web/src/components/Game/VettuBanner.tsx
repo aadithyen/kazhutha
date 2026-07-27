@@ -49,7 +49,7 @@ export default function VettuBanner() {
         }}
       />
       <div
-        className={`vettu-banner relative w-full bg-white px-6 py-4 text-center font-bold tracking-wide text-neutral-900 shadow-lg ${
+        className={`vettu-banner relative w-full bg-white px-6 py-4 text-center tracking-wide text-neutral-900 shadow-lg ${
           phase === "enter" ? "vettu-banner-enter" : phase === "exit" ? "vettu-banner-exit" : ""
         }`}
         style={{
