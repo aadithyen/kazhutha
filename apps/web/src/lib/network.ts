@@ -5,13 +5,15 @@ export function getSignalingUrl(): string {
   return `${protocol}://${window.location.hostname}:8080`;
 }
 
-export function getIceServers(): RTCIceServer[] | undefined {
+/** ICE servers from VITE_ICE_SERVERS only — no built-in defaults. */
+export function getIceServers(): RTCIceServer[] {
   const raw = import.meta.env.VITE_ICE_SERVERS;
-  if (!raw) return undefined;
+  if (!raw) return [];
   try {
-    return JSON.parse(raw) as RTCIceServer[];
+    const servers = JSON.parse(raw) as RTCIceServer[];
+    return Array.isArray(servers) ? servers : [];
   } catch {
-    return undefined;
+    return [];
   }
 }
 

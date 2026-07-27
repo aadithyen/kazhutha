@@ -3,16 +3,27 @@ import { useRoom } from "../../lib/RoomContext";
 
 export default function PlayerList() {
   const { t } = useLocale();
-  const { state, client } = useRoom();
+  const { state, client, signalingConnected } = useRoom();
   const me = state.players.find((p) => p.id === client.playerId);
   const isHost = me?.isHost ?? false;
+  const waitingToJoin = signalingConnected && !me && !client.isConnectedToAuthority();
 
   return (
     <div className="rounded-xl border border-neutral-100 bg-white p-4 shadow-[0_2px_12px_rgba(15,23,42,0.06)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-[0_2px_12px_rgba(0,0,0,0.3)]">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-        {t("lobby.players", { count: state.players.length })}
+        {t("lobby.players", { count: Math.max(state.players.length, waitingToJoin ? 1 : 0) })}
       </p>
       <ul className="flex flex-col gap-2">
+        {waitingToJoin && (
+          <li className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 ring-1 ring-neutral-100 dark:bg-neutral-800 dark:ring-neutral-700">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-amber-400" />
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">{client.name}</span>
+              <span className="text-xs text-neutral-400 dark:text-neutral-500">{t("common.you")}</span>
+            </div>
+            <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">{t("common.connecting")}</span>
+          </li>
+        )}
         {state.players.map((p) => (
           <li
             key={p.id}

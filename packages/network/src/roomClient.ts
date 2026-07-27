@@ -9,7 +9,7 @@ import {
 } from "@kazhutha/game";
 import { SignalingClient } from "./signalingClient";
 import { PeerLink } from "./webrtc";
-import { PeerConnectionStatus, PeerInfo, PeerMessage, ServerToClient } from "./types";
+import { PeerConnectionStatus, PeerInfo, PeerMessage, ServerToClient, hasTurnServer } from "./types";
 
 export interface RoomClientOptions {
   signalingUrl: string;
@@ -59,6 +59,8 @@ export class RoomClient {
   private iceServers?: RTCIceServer[];
   private recoveringHost = false;
   private snapshotRequested = false;
+  private authorityReconnectAttempts = new Map<string, number>();
+  private authorityReconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   private authorityTarget(): string | null {
     return getAuthorityId(this.engine.getState()) ?? this.signalingHostId;
@@ -108,7 +110,22 @@ export class RoomClient {
     this.sendIntent({ type: "RequestSnapshot", playerId: this.playerId });
   }
 
+  /** Current P2P authority peer id (host or acting host), if known. */
+  getAuthorityPeerId(): string | null {
+    return this.authorityTarget();
+  }
+
+  /** Whether this client has an open DataChannel to the authority. */
+  isConnectedToAuthority(): boolean {
+    if (this.isAuthority) return true;
+    const authorityId = this.authorityTarget();
+    return authorityId ? this.peerStatus.get(authorityId) === "connected" : false;
+  }
+
   disconnect() {
+    for (const timer of this.authorityReconnectTimers.values()) clearTimeout(timer);
+    this.authorityReconnectTimers.clear();
+    this.authorityReconnectAttempts.clear();
     this.signaling.close();
     for (const link of this.links.values()) link.close();
     this.links.clear();
@@ -282,20 +299,50 @@ export class RoomClient {
     if (!this.links.has(authorityId)) this.connectToAuthority(authorityId);
   }
 
-  private connectToAuthority(authorityId: string) {
+  private connectToAuthority(authorityId: string, relayOnly = false) {
     if (authorityId === this.playerId) return;
     const status = this.peerStatus.get(authorityId);
-    if (status === "connected" || status === "connecting") return;
+    if (!relayOnly && (status === "connected" || status === "connecting")) return;
+
+    const existingTimer = this.authorityReconnectTimers.get(authorityId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      this.authorityReconnectTimers.delete(authorityId);
+    }
+
     this.links.get(authorityId)?.close();
+    this.links.delete(authorityId);
+    this.peerStatus.set(authorityId, "connecting");
+    this.emit({ type: "peers", peers: this.getPeers() });
+
     const link = new PeerLink({
       peerId: authorityId,
       iceServers: this.iceServers,
+      iceTransportPolicy: relayOnly ? "relay" : "all",
       onSignal: (data) => this.signaling.send({ type: "signal", to: authorityId, data }),
       onMessage: (msg) => this.handlePeerMessage(authorityId, msg),
       onStatus: (status) => this.handleLinkStatus(authorityId, status),
     });
     this.links.set(authorityId, link);
     link.createOffer();
+  }
+
+  private scheduleAuthorityReconnect(authorityId: string) {
+    const attempts = (this.authorityReconnectAttempts.get(authorityId) ?? 0) + 1;
+    this.authorityReconnectAttempts.set(authorityId, attempts);
+
+    const servers = this.iceServers ?? [];
+    const relayOnly = hasTurnServer(servers) && attempts >= 2;
+    const maxAttempts = hasTurnServer(servers) ? 4 : 3;
+
+    if (attempts >= maxAttempts) {
+      this.emit({ type: "error", message: "Peer connection failed" });
+      return;
+    }
+
+    const delayMs = Math.min(1000 * attempts, 4000);
+    const timer = setTimeout(() => this.connectToAuthority(authorityId, relayOnly), delayMs);
+    this.authorityReconnectTimers.set(authorityId, timer);
   }
 
   private ensureLinkAsAnswerer(peerId: string): PeerLink {
@@ -318,7 +365,18 @@ export class RoomClient {
 
     const authorityId = this.authorityTarget();
 
+    if (!this.isAuthority && status === "failed" && authorityId === peerId) {
+      this.scheduleAuthorityReconnect(peerId);
+      return;
+    }
+
     if (!this.isAuthority && status === "connected" && authorityId && peerId === authorityId) {
+      this.authorityReconnectAttempts.delete(peerId);
+      const timer = this.authorityReconnectTimers.get(peerId);
+      if (timer) {
+        clearTimeout(timer);
+        this.authorityReconnectTimers.delete(peerId);
+      }
       this.sendIntent({ type: "JoinRoom", playerId: this.playerId, name: this.name });
     }
 
