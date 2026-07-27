@@ -20,7 +20,8 @@
     "source": "Source",
     "defaultPlayer": "Player",
     "someone": "Someone",
-    "language": "Language"
+    "language": "Language",
+    "connecting": "Connecting…"
   },
   "home": {
     "tagline": "കഴുത · play the Kerala card game with friends",
@@ -112,7 +113,8 @@
     "Not your turn": "Not your turn",
     "Card not in hand": "Card not in hand",
     "Illegal move": "Illegal move",
-    "Unknown intent": "Unknown intent"
+    "Unknown intent": "Unknown intent",
+    "Peer connection failed": "Could not connect to the host over WebRTC. If this keeps happening, configure a TURN server (VITE_ICE_SERVERS) for players behind strict firewalls or mobile networks."
   },
   "vettu": ["STRIKE!", "KEEP THIS", "A SMALL GIFT..."]
 }

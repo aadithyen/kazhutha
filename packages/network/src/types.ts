@@ -31,7 +31,14 @@ export type ClientToServer =
   | { type: "sync-host"; newHostId: string }
   | { type: "leave" };
 
-export type PeerConnectionStatus = "connecting" | "connected" | "disconnected";
+export type PeerConnectionStatus = "connecting" | "connected" | "disconnected" | "failed";
+
+export function hasTurnServer(servers: RTCIceServer[] = DEFAULT_ICE_SERVERS): boolean {
+  return servers.some((server) => {
+    const urls = Array.isArray(server.urls) ? server.urls : [server.urls ?? ""];
+    return urls.some((url) => url.startsWith("turn:") || url.startsWith("turns:"));
+  });
+}
 
 export interface PeerInfo {
   id: string;

@@ -3,9 +3,10 @@ import { DEFAULT_ICE_SERVERS, PeerMessage, SignalPayload } from "./types";
 export interface PeerLinkOptions {
   peerId: string;
   iceServers?: RTCIceServer[];
+  iceTransportPolicy?: RTCIceTransportPolicy;
   onSignal: (data: SignalPayload) => void;
   onMessage: (msg: PeerMessage) => void;
-  onStatus: (status: "connecting" | "connected" | "disconnected") => void;
+  onStatus: (status: "connecting" | "connected" | "disconnected" | "failed") => void;
 }
 
 /** One WebRTC connection + reliable/ordered DataChannel to a single remote peer. */
@@ -17,17 +18,26 @@ export class PeerLink {
   private pendingCandidates: RTCIceCandidateInit[] = [];
   private remoteDescSet = false;
   private outbox: PeerMessage[] = [];
+  private reportedFailure = false;
 
   constructor(opts: PeerLinkOptions) {
     this.opts = opts;
     this.peerId = opts.peerId;
-    this.pc = new RTCPeerConnection({ iceServers: opts.iceServers ?? DEFAULT_ICE_SERVERS });
+    this.pc = new RTCPeerConnection({
+      iceServers: opts.iceServers ?? DEFAULT_ICE_SERVERS,
+      iceTransportPolicy: opts.iceTransportPolicy ?? "all",
+    });
     this.pc.onicecandidate = (ev) => {
       if (ev.candidate) this.opts.onSignal({ kind: "candidate", candidate: ev.candidate.toJSON() });
     };
+    this.pc.oniceconnectionstatechange = () => {
+      if (this.pc.iceConnectionState === "failed") this.reportPeerFailure();
+    };
     this.pc.onconnectionstatechange = () => {
       const state = this.pc.connectionState;
-      if (state === "disconnected" || state === "failed" || state === "closed") {
+      if (state === "failed") {
+        this.reportPeerFailure();
+      } else if (state === "disconnected" || state === "closed") {
         this.opts.onStatus("disconnected");
       }
     };
@@ -72,6 +82,12 @@ export class PeerLink {
     for (const c of queued) {
       await this.pc.addIceCandidate(c).catch(() => {});
     }
+  }
+
+  private reportPeerFailure() {
+    if (this.reportedFailure) return;
+    this.reportedFailure = true;
+    this.opts.onStatus("failed");
   }
 
   private bindChannel(channel: RTCDataChannel) {
