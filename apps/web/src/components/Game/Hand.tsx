@@ -194,7 +194,7 @@ export default function Hand({ sortMode }: Props) {
     el.scrollLeft = max >= MIN_FAN_SCROLL ? max / 2 : 0;
     updateScrollBias();
     autoScrollKeyRef.current = null;
-  }, [hand.length, updateScrollBias]);
+  }, [displayHand.length, updateScrollBias]);
 
   useEffect(() => {
     if (prevDealAnimatingRef.current && !dealAnimating) {

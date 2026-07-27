@@ -132,23 +132,23 @@ function ShuffleDeck({ center, active }: { center: Point; active: boolean }) {
 
   return (
     <div
-      className="deal-shuffle pointer-events-none fixed z-[54]"
-      style={{ left: center.x, top: center.y }}
+      className="pointer-events-none fixed z-[54]"
+      style={{ left: center.x, top: center.y, transform: "translate(-50%, -50%)" }}
       aria-hidden
     >
-      {[0, 1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          className="absolute"
-          style={{
-            left: "50%",
-            top: "50%",
-            transform: `translate(-50%, -50%) translate(${i * 1.5 - 3}px, ${-i * 2}px) rotate(${(i - 2) * 2}deg)`,
-          }}
-        >
-          <PlayingCard faceDown size="md" />
-        </div>
-      ))}
+      <div className="deal-shuffle relative h-[6.75rem] w-[4.75rem]">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="absolute left-1/2 top-1/2"
+            style={{
+              transform: `translate(-50%, -50%) translate(${i * 1.5 - 3}px, ${-i * 2}px) rotate(${(i - 2) * 2}deg)`,
+            }}
+          >
+            <PlayingCard faceDown size="md" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -229,6 +229,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
 
       schedule(() => {
         setPhase("deal");
+        setSplitStacks([]);
         const items: FlyingDealCard[] = [];
         const cardsPerPlayer = Math.floor(TOTAL_CARDS / turnOrder.length);
         const dealtCount = new Map<string, number>();
@@ -321,7 +322,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
     <div className="pointer-events-none fixed inset-0 z-[53]" aria-hidden>
       {center && <ShuffleDeck center={center} active={phase === "shuffle"} />}
       {splitStacks.map((stack) => (
-        <SplitStackView key={stack.playerId} stack={stack} active={phase === "split" || phase === "deal"} />
+        <SplitStackView key={stack.playerId} stack={stack} active={phase === "split"} />
       ))}
       {flying.map((item) => (
         <DealFlyingCard key={item.key} item={item} onArrive={handleArrive} />

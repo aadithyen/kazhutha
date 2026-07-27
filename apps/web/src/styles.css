@@ -166,16 +166,16 @@ html[lang="ml"] .italic {
 @keyframes deal-shuffle-wiggle {
   0%,
   100% {
-    transform: translate(-50%, -50%) rotate(0deg) translateX(0);
+    transform: rotate(0deg) translateX(0);
   }
   20% {
-    transform: translate(-50%, -50%) rotate(-4deg) translateX(-10px);
+    transform: rotate(-4deg) translateX(-10px);
   }
   45% {
-    transform: translate(-50%, -50%) rotate(3deg) translateX(8px);
+    transform: rotate(3deg) translateX(8px);
   }
   70% {
-    transform: translate(-50%, -50%) rotate(-2deg) translateX(-5px);
+    transform: rotate(-2deg) translateX(-5px);
   }
 }
 

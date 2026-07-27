@@ -160,28 +160,34 @@ function CardFace({ card, dims }: { card: Card; dims: (typeof SIZE_CLASSES)["md"
 
 function CardBack({ className }: { className: string }) {
   return (
-    <div className={`${className} overflow-hidden`} aria-hidden>
-      <div className="absolute inset-[5px] rounded-[inherit] border border-blue-900/25 bg-gradient-to-br from-blue-800 via-blue-700 to-blue-900">
+    <div
+      className={`${className} relative overflow-hidden border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900`}
+      aria-hidden
+    >
+      <div className="absolute inset-[5px] rounded-[inherit] border border-neutral-300 bg-neutral-50 shadow-[inset_0_1px_3px_rgba(15,23,42,0.05)] dark:border-neutral-600 dark:bg-neutral-800 dark:shadow-[inset_0_1px_3px_rgba(0,0,0,0.25)]">
         <div
-          className="absolute inset-[6px] rounded-md opacity-90"
+          className="absolute inset-[4px] rounded-md"
           style={{
             backgroundImage: `
-              linear-gradient(45deg, rgba(255,255,255,0.14) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.14) 75%),
-              linear-gradient(45deg, rgba(255,255,255,0.14) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.14) 75%),
-              linear-gradient(-45deg, rgba(0,0,0,0.12) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.12) 75%),
-              linear-gradient(-45deg, rgba(0,0,0,0.12) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.12) 75%)
+              repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 5px,
+                rgba(23, 23, 23, 0.1) 5px,
+                rgba(23, 23, 23, 0.1) 6px
+              ),
+              repeating-linear-gradient(
+                -45deg,
+                transparent,
+                transparent 5px,
+                rgba(23, 23, 23, 0.1) 5px,
+                rgba(23, 23, 23, 0.1) 6px
+              )
             `,
-            backgroundSize: "10px 10px",
-            backgroundPosition: "0 0, 5px 5px, 0 0, 5px 5px",
           }}
         />
-        <div className="absolute inset-[18%] rounded-sm border border-white/20 bg-blue-600/40">
-          <div
-            className="absolute inset-[20%] rounded-sm border border-white/15"
-            style={{
-              backgroundImage: `radial-gradient(circle at center, rgba(255,255,255,0.35) 0%, transparent 65%)`,
-            }}
-          />
+        <div className="absolute inset-[20%] rounded-sm border border-neutral-400/60 bg-white shadow-[0_1px_4px_rgba(15,23,42,0.08)] dark:border-neutral-500/60 dark:bg-neutral-900 dark:shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
+          <div className="absolute inset-[16%] rounded-sm border border-neutral-300/70 dark:border-neutral-600/70" />
         </div>
       </div>
     </div>
@@ -190,10 +196,10 @@ function CardBack({ className }: { className: string }) {
 
 export default function PlayingCard({ card, faceDown, selected, disabled, onClick, size = "md" }: Props) {
   const dims = SIZE_CLASSES[size];
-  const base = `relative ${dims.box} border bg-white font-serif shadow-[0_2px_12px_rgba(15,23,42,0.08)] transition-all duration-150`;
+  const base = `relative ${dims.box} border bg-white font-serif shadow-[0_2px_12px_rgba(15,23,42,0.08)] transition-all duration-150 dark:bg-neutral-900 dark:shadow-[0_2px_12px_rgba(0,0,0,0.35)]`;
 
   if (faceDown || !card) {
-    return <CardBack className={`${base} border-blue-900/30 bg-blue-900`} />;
+    return <CardBack className={base} />;
   }
 
   const isRed = SUIT_COLOR[card.suit] === "red";
