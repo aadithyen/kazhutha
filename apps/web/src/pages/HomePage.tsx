@@ -15,7 +15,7 @@ const secondaryBtnClass =
   "w-full rounded-xl bg-neutral-100 px-4 py-3 text-base font-semibold text-neutral-900 ring-1 ring-neutral-200 active:scale-[0.98] dark:bg-neutral-800 dark:text-neutral-100 dark:ring-neutral-700";
 
 export default function HomePage() {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const navigate = useNavigate();
   const [createName, setCreateName] = useState(getStoredName());
   const [joinName, setJoinName] = useState(getStoredName());
@@ -41,13 +41,7 @@ export default function HomePage() {
       <LanguageSwitcher className="absolute right-4 top-4" />
       <div className="flex flex-1 flex-col items-center justify-center gap-8">
         <header className="text-center">
-          <h1
-            className={
-              locale === "ml"
-                ? "malayalam-title text-5xl"
-                : "font-serif text-5xl font-semibold italic"
-            }
-          >
+          <h1 className="font-serif text-5xl font-semibold italic">
             {t("app.title")}
           </h1>
           <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">{t("home.tagline")}</p>

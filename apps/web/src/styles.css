@@ -5,6 +5,8 @@
 @theme {
   --font-sans: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-serif: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-ml-sans: "Noto Sans Malayalam", system-ui, sans-serif;
+  --font-ml-serif: "Noto Serif Malayalam", Georgia, serif;
 }
 
 :root {
@@ -54,22 +56,33 @@ body {
   transform-style: preserve-3d;
 }
 
-.malayalam-title {
-  font-family: "Noto Sans Malayalam", var(--font-serif), Georgia, serif;
-  font-weight: 400;
-  font-style: normal;
+/* Noto Malayalam glyphs run larger at same rem — scale root to match English */
+html[lang="ml"] {
+  font-size: 87.5%;
 }
 
 html[lang="ml"] body {
-  font-family: "Noto Sans Malayalam", var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-ml-sans);
   font-weight: 400;
+  font-style: normal;
+}
+
+html[lang="ml"] h1,
+html[lang="ml"] h2,
+html[lang="ml"] h3 {
+  font-family: var(--font-ml-serif);
+  font-style: normal;
+}
+
+html[lang="ml"] .italic {
+  font-style: normal;
 }
 
 .vettu-banner-text {
-  font-family: "Noto Sans Malayalam", var(--font-serif), Georgia, "Times New Roman", serif;
+  font-family: var(--font-ml-serif);
   font-weight: 600;
   font-style: normal;
-  font-size: clamp(1.75rem, 7vw, 3.25rem);
+  font-size: clamp(1.5rem, 6.5vw, 2.85rem);
   line-height: 1.2;
 }
 
