@@ -1,5 +1,3 @@
-import { DEFAULT_ICE_SERVERS } from "@kazhutha/network";
-
 export function getSignalingUrl(): string {
   const configured = import.meta.env.VITE_SIGNALING_URL;
   if (configured) return configured;
@@ -7,15 +5,15 @@ export function getSignalingUrl(): string {
   return `${protocol}://${window.location.hostname}:8080`;
 }
 
+/** ICE servers from VITE_ICE_SERVERS only — no built-in defaults. */
 export function getIceServers(): RTCIceServer[] {
   const raw = import.meta.env.VITE_ICE_SERVERS;
-  if (!raw) return DEFAULT_ICE_SERVERS;
+  if (!raw) return [];
   try {
-    const extra = JSON.parse(raw) as RTCIceServer[];
-    if (!Array.isArray(extra) || extra.length === 0) return DEFAULT_ICE_SERVERS;
-    return [...DEFAULT_ICE_SERVERS, ...extra];
+    const servers = JSON.parse(raw) as RTCIceServer[];
+    return Array.isArray(servers) ? servers : [];
   } catch {
-    return DEFAULT_ICE_SERVERS;
+    return [];
   }
 }
 

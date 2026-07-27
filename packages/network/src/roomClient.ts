@@ -9,7 +9,7 @@ import {
 } from "@kazhutha/game";
 import { SignalingClient } from "./signalingClient";
 import { PeerLink } from "./webrtc";
-import { PeerConnectionStatus, PeerInfo, PeerMessage, ServerToClient, hasTurnServer, DEFAULT_ICE_SERVERS } from "./types";
+import { PeerConnectionStatus, PeerInfo, PeerMessage, ServerToClient, hasTurnServer } from "./types";
 
 export interface RoomClientOptions {
   signalingUrl: string;
@@ -331,7 +331,7 @@ export class RoomClient {
     const attempts = (this.authorityReconnectAttempts.get(authorityId) ?? 0) + 1;
     this.authorityReconnectAttempts.set(authorityId, attempts);
 
-    const servers = this.iceServers ?? DEFAULT_ICE_SERVERS;
+    const servers = this.iceServers ?? [];
     const relayOnly = hasTurnServer(servers) && attempts >= 2;
     const maxAttempts = hasTurnServer(servers) ? 4 : 3;
 

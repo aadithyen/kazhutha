@@ -1,4 +1,4 @@
-import { DEFAULT_ICE_SERVERS, PeerMessage, SignalPayload } from "./types";
+import { PeerMessage, SignalPayload } from "./types";
 
 export interface PeerLinkOptions {
   peerId: string;
@@ -24,7 +24,7 @@ export class PeerLink {
     this.opts = opts;
     this.peerId = opts.peerId;
     this.pc = new RTCPeerConnection({
-      iceServers: opts.iceServers ?? DEFAULT_ICE_SERVERS,
+      iceServers: opts.iceServers ?? [],
       iceTransportPolicy: opts.iceTransportPolicy ?? "all",
     });
     this.pc.onicecandidate = (ev) => {
