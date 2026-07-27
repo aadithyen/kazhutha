@@ -30,7 +30,7 @@ export function processIntent(state: GameState, intent: Intent): HostResult {
         : {
             id: intent.playerId,
             name: intent.name.slice(0, 24) || "Player",
-            isHost: state.players.length === 0,
+            isHost: intent.playerId === state.hostId,
             connected: true,
             ready: false,
           };

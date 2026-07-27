@@ -93,9 +93,20 @@ wss.on("connection", (ws) => {
     if (!room) return;
     const wasHost = room.hostId === peerId;
     registry.removePeer(roomCode, peerId);
+    if (room.peers.size === 0) return;
 
-    for (const peer of room.peers.values()) {
-      send(peer.ws, wasHost ? { type: "host-left" } : { type: "peer-left", peerId });
+    if (wasHost) {
+      // Earliest remaining peer (Map insertion order) becomes signaling host.
+      const newHostId = room.peers.keys().next().value!;
+      registry.transferHost(roomCode, newHostId);
+      for (const peer of room.peers.values()) {
+        send(peer.ws, { type: "peer-left", peerId });
+        send(peer.ws, { type: "host-changed", hostId: newHostId });
+      }
+    } else {
+      for (const peer of room.peers.values()) {
+        send(peer.ws, { type: "peer-left", peerId });
+      }
     }
   });
 });
