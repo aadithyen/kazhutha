@@ -35,6 +35,9 @@ export default function TurnBanner({ sortMode, onSortModeChange }: Props) {
         className={`font-semibold ${isMyTurn ? "text-neutral-900 dark:text-neutral-100" : "text-neutral-500 dark:text-neutral-400"}`}
       >
         {isMyTurn ? t("game.yourTurn") : turnPlayer ? t("game.playerTurn", { name: turnPlayer.name }) : t("game.waiting")}
+        {state.paused && (
+          <span className="ml-2 text-rose-600 dark:text-rose-400">({t("game.paused")})</span>
+        )}
       </span>
       <span className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500">
         {state.leadSuit && (

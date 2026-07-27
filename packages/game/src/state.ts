@@ -21,8 +21,10 @@ export interface LastRoundResult {
 export interface GameState {
   roomCode: string;
   hostId: string | null;
-  /** Temporary authority while hostId player is disconnected during play. */
+  /** @deprecated Legacy acting-host field; always null in current protocol. */
   actingHostId: string | null;
+  /** Game frozen until host returns (e.g. host disconnected mid-play). */
+  paused: boolean;
   /** Next host once current host exits after clearing their hand. */
   successorHostId: string | null;
   players: Player[];
@@ -52,6 +54,7 @@ export function createInitialState(roomCode: string): GameState {
     roomCode,
     hostId: null,
     actingHostId: null,
+    paused: false,
     successorHostId: null,
     players: [],
     rules: DEFAULT_RULES,
