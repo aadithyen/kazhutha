@@ -19,6 +19,7 @@ interface PlayerAvatarContextValue {
   revealedHandCount: number;
   setRevealedHandCount: (count: number) => void;
   registerHandCardTarget: (index: number, el: HTMLElement | null) => void;
+  clearHandCardTargets: () => void;
   getHandCardTarget: (index: number) => Point | null;
   getAvatarCenter: (playerId: string) => Point | null;
   getHandTarget: () => Point | null;
@@ -58,6 +59,10 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
   const registerHandCardTarget = useCallback((index: number, el: HTMLElement | null) => {
     if (el) handCardTargetsRef.current.set(index, el);
     else handCardTargetsRef.current.delete(index);
+  }, []);
+
+  const clearHandCardTargets = useCallback(() => {
+    handCardTargetsRef.current.clear();
   }, []);
 
   const getHandCardTarget = useCallback((index: number): Point | null => {
@@ -131,6 +136,7 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
       revealedHandCount,
       setRevealedHandCount,
       registerHandCardTarget,
+      clearHandCardTargets,
       getHandCardTarget,
       getAvatarCenter,
       getHandTarget,
@@ -151,6 +157,7 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
       revealedHandCount,
       setRevealedHandCount,
       registerHandCardTarget,
+      clearHandCardTargets,
       getHandCardTarget,
       getAvatarCenter,
       getHandTarget,

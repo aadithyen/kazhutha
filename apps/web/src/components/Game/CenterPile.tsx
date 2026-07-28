@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PlayedCard } from "@kazhutha/game";
 import { useLocale } from "../../i18n";
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
@@ -25,10 +25,10 @@ export default function CenterPile() {
     return () => registerPileTarget(null);
   }, [registerPileTarget]);
 
-  useEffect(() => {
-    registerPlaySlotTarget(showPlaySlot ? playSlotRef.current : null);
+  useLayoutEffect(() => {
+    registerPlaySlotTarget(showPlaySlot && !dealAnimating ? playSlotRef.current : null);
     return () => registerPlaySlotTarget(null);
-  }, [registerPlaySlotTarget, showPlaySlot, displayPile.length]);
+  }, [registerPlaySlotTarget, showPlaySlot, dealAnimating, displayPile.length]);
 
   useFlipAnimation(pileAreaRef, [displayPile, showPlaySlot, hiddenPileKeys]);
 

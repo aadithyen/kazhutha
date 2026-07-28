@@ -7,6 +7,8 @@ import {
   CARD_LG,
   CARD_SPREAD,
   clampOverlayPosition,
+  handCardLeft,
+  handFanWidth,
   PILE_CARD_SCALE,
   rectCenter,
   unitVectorToPile,
@@ -156,16 +158,13 @@ export default function Hand({ sortMode }: Props) {
   const suppressClickRef = useRef(false);
   const rawHand = state.hands[client.playerId] ?? [];
   const hand = useMemo(() => sortHand(rawHand, sortMode), [rawHand, sortMode]);
-  const displayHand = dealAnimating ? rawHand.slice(0, revealedHandCount) : hand;
+  const fanHandLen = hand.length;
+  const displayHand = dealAnimating ? hand.slice(0, revealedHandCount) : hand;
   const legalCards = getLegalCards(state, client.playerId);
   const myTurn = state.currentTurnId === client.playerId;
   const canPlay = myTurn && !pileSettling && !dealAnimating;
 
-  const fanWidth = useMemo(() => {
-    const spread = Math.max(displayHand.length - 1, 0) * CARD_SPREAD;
-    const wing = CARD_WIDTH * 0.55;
-    return Math.max(spread + CARD_WIDTH + wing * 2, typeof window !== "undefined" ? window.innerWidth : 360);
-  }, [displayHand.length]);
+  const fanWidth = useMemo(() => handFanWidth(fanHandLen), [fanHandLen]);
 
   const updateScrollBias = useCallback(() => {
     const el = scrollRef.current;
@@ -194,7 +193,7 @@ export default function Hand({ sortMode }: Props) {
     el.scrollLeft = max >= MIN_FAN_SCROLL ? max / 2 : 0;
     updateScrollBias();
     autoScrollKeyRef.current = null;
-  }, [displayHand.length, updateScrollBias]);
+  }, [displayHand.length, fanHandLen, updateScrollBias]);
 
   useEffect(() => {
     if (prevDealAnimatingRef.current && !dealAnimating) {
@@ -317,8 +316,6 @@ export default function Hand({ sortMode }: Props) {
   const beginFly = useCallback(
     (card: Card, from: { x: number; y: number }, selectedForOverlay: boolean) => {
       const id = cardId(card);
-      const slot = getPlaySlotTarget();
-      const end = slot ?? { x: from.x, y: from.y - 420 };
 
       setSelected(null);
       setDragId(null);
@@ -338,6 +335,8 @@ export default function Hand({ sortMode }: Props) {
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
+          const slot = getPlaySlotTarget();
+          const end = slot ?? { x: from.x, y: from.y - 420 };
           setOverlay({
             card,
             x: end.x,
@@ -610,10 +609,10 @@ export default function Hand({ sortMode }: Props) {
             const isDragSource = dragId === id;
             const isPendingRemoval = pendingRemovalIds.has(id);
             const isHidden = isPendingRemoval;
-            const angle = fanAngle(i, displayHand.length, scrollBias);
+            const angle = fanAngle(i, fanHandLen, scrollBias);
             const lift = fanLift(angle);
-            const center = (displayHand.length - 1) / 2;
-            const left = fanWidth / 2 + (i - center) * CARD_SPREAD - CARD_WIDTH / 2;
+            const left = handCardLeft(i, fanHandLen, fanWidth);
+            const justRevealed = dealAnimating && i === revealedHandCount - 1;
 
             return (
               <div
@@ -625,7 +624,7 @@ export default function Hand({ sortMode }: Props) {
                 }}
                 className={`absolute bottom-2 origin-bottom ${
                   isScrolling ? "" : "transition-[left,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                } ${isHidden ? "pointer-events-none opacity-0" : ""} ${dealAnimating ? "deal-hand-reveal" : ""}`}
+                } ${isHidden ? "pointer-events-none opacity-0" : ""}`}
                 style={{
                   left,
                   zIndex: isSelected || isDragSource ? displayHand.length + 1 : i,
@@ -642,7 +641,7 @@ export default function Hand({ sortMode }: Props) {
                     aria-hidden
                   />
                 ) : (
-                  <div className="pointer-events-none">
+                  <div className={`pointer-events-none ${justRevealed ? "deal-hand-reveal-inner" : ""}`}>
                     <PlayingCard card={card} selected={isSelected} disabled={!legal} size="lg" />
                   </div>
                 )}
