@@ -49,40 +49,56 @@ function DealFlyingCard({
   onArrive: (key: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Parent re-renders on every reveal/arrive (context + flying list). Keep
+  // callbacks in refs so this effect runs once per mounted card — otherwise
+  // timers reset and deal flight never completes.
+  const itemRef = useRef(item);
+  const getHandCardTargetRef = useRef(getHandCardTarget);
+  const onRevealRef = useRef(onReveal);
+  const onArriveRef = useRef(onArrive);
+  itemRef.current = item;
+  getHandCardTargetRef.current = getHandCardTarget;
+  onRevealRef.current = onReveal;
+  onArriveRef.current = onArrive;
 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 
+    const card = itemRef.current;
     const timers: number[] = [];
     const ease = "cubic-bezier(0.22, 1, 0.36, 1)";
 
+    // Pose only via DOM — React style must not re-apply left/top/opacity on
+    // parent re-renders (revealedHandCount / flying list churn).
+    el.style.left = `${card.start.x}px`;
+    el.style.top = `${card.start.y}px`;
+    el.style.transform = `translate(-50%, -50%) scale(0.78) rotate(${card.rot}deg)`;
+    el.style.opacity = "0";
+
     const delayTimer = window.setTimeout(() => {
-      el.style.left = `${item.start.x}px`;
-      el.style.top = `${item.start.y}px`;
-      el.style.transform = `translate(-50%, -50%) scale(0.78) rotate(${item.rot}deg)`;
       el.style.opacity = "1";
 
       requestAnimationFrame(() => {
         el.style.transition = `left ${DEAL_FLY_MS}ms ${ease}, top ${DEAL_FLY_MS}ms ${ease}, transform ${DEAL_FLY_MS}ms ${ease}, opacity ${DEAL_FLY_MS}ms ease-out`;
-        el.style.left = `${item.end.x}px`;
-        el.style.top = `${item.end.y}px`;
-        el.style.transform = `translate(-50%, -50%) scale(${item.revealOnArrival ? 1 : 0.32}) rotate(0deg)`;
-        el.style.opacity = item.revealOnArrival ? "1" : "0.18";
+        el.style.left = `${card.end.x}px`;
+        el.style.top = `${card.end.y}px`;
+        el.style.transform = `translate(-50%, -50%) scale(${card.revealOnArrival ? 1 : 0.32}) rotate(0deg)`;
+        el.style.opacity = card.revealOnArrival ? "1" : "0.18";
       });
 
       timers.push(
         window.setTimeout(() => {
-          if (!item.revealOnArrival) {
-            onArrive(item.key);
+          if (!card.revealOnArrival) {
+            onArriveRef.current(card.key);
             return;
           }
 
-          onReveal(item.key);
+          onRevealRef.current(card.key);
 
           const absorb = () => {
-            const handIndex = item.handIndex ?? 0;
-            const fanTarget = getHandCardTarget(handIndex) ?? { x: item.end.x, y: item.end.y };
+            const handIndex = card.handIndex ?? 0;
+            const fanTarget = getHandCardTargetRef.current(handIndex) ?? { x: card.end.x, y: card.end.y };
 
             el.style.transition = `left ${DEAL_ABSORB_MS}ms ${ease}, top ${DEAL_ABSORB_MS}ms ${ease}, transform ${DEAL_ABSORB_MS}ms ${ease}, opacity ${DEAL_ABSORB_MS}ms ease-in`;
             el.style.left = `${fanTarget.x}px`;
@@ -90,7 +106,7 @@ function DealFlyingCard({
             el.style.transform = `translate(-50%, -50%) scale(${DEAL_HAND_SCALE}) rotate(0deg)`;
             el.style.opacity = "0";
 
-            timers.push(window.setTimeout(() => onArrive(item.key), DEAL_ABSORB_MS));
+            timers.push(window.setTimeout(() => onArriveRef.current(card.key), DEAL_ABSORB_MS));
           };
 
           requestAnimationFrame(() => {
@@ -98,20 +114,20 @@ function DealFlyingCard({
           });
         }, DEAL_FLY_MS),
       );
-    }, item.delay);
+    }, card.delay);
 
     timers.push(delayTimer);
 
     return () => {
       timers.forEach((id) => window.clearTimeout(id));
     };
-  }, [item, getHandCardTarget, onReveal, onArrive]);
+    // Intentionally once per mount — item identity is the React key.
+  }, []);
 
   return (
     <div
       ref={ref}
       className="pointer-events-none fixed z-[55] will-change-[left,top,transform,opacity]"
-      style={{ left: item.start.x, top: item.start.y, opacity: 0 }}
     >
       <PlayingCard faceDown size="sm" />
     </div>
