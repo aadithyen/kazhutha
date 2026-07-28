@@ -6,6 +6,10 @@ import { GameState } from "./state";
 import { isCardLegal, isVettuPlay } from "./validators";
 import { firstActiveFrom, nextActor } from "./reducer";
 
+function activePlayersWithCards(state: GameState): string[] {
+  return state.activePlayers.filter((id) => (state.hands[id]?.length ?? 0) > 0);
+}
+
 export type HostResult = { ok: true; events: GameEvent[] } | { ok: false; reason: string };
 
 const ok = (events: GameEvent[]): HostResult => ({ ok: true, events });
@@ -178,6 +182,12 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
   if (remaining.length <= 1) {
     const kazhuthaId = remaining[0] ?? winnerId;
     events.push({ type: "GameFinished", kazhuthaId });
+    return ok(events);
+  }
+
+  const withCards = activePlayersWithCards(runningState);
+  if (withCards.length === 1) {
+    events.push({ type: "GameFinished", kazhuthaId: withCards[0] });
     return ok(events);
   }
 
