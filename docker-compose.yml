@@ -3,6 +3,18 @@ services:
     build:
       context: ./apps/signaling
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8080/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
 
   web:
     build:
@@ -14,5 +26,12 @@ services:
         VITE_SIGNALING_URL: ${VITE_SIGNALING_URL:-ws://localhost:8080}
         VITE_ICE_SERVERS: ${VITE_ICE_SERVERS:-}
     depends_on:
-      - signaling
+      signaling:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
