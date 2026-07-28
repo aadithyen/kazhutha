@@ -6,6 +6,19 @@ export const CARD_SM = { width: 48, height: 72 };
 /** Horizontal spacing between cards in the hand fan (lg size). */
 export const CARD_SPREAD = 68;
 
+/** Fan width for a hand of `handLen` cards (lg size). */
+export function handFanWidth(handLen: number, minWidth = typeof window !== "undefined" ? window.innerWidth : 360): number {
+  const spread = Math.max(handLen - 1, 0) * CARD_SPREAD;
+  const wing = CARD_LG.width * 0.55;
+  return Math.max(spread + CARD_LG.width + wing * 2, minWidth);
+}
+
+/** Left offset for card at `index` in a fan of `handLen` cards (lg size). */
+export function handCardLeft(index: number, handLen: number, fanWidth = handFanWidth(handLen)): number {
+  const center = (handLen - 1) / 2;
+  return fanWidth / 2 + (index - center) * CARD_SPREAD - CARD_LG.width / 2;
+}
+
 /** Deal animation uses sm cards; scale fan spacing to match hand proportions. */
 export const DEAL_FLY_SPREAD = Math.round(CARD_SPREAD * (CARD_SM.width / CARD_LG.width));
 

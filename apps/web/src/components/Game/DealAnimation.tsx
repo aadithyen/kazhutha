@@ -264,6 +264,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
     getPileTarget,
     setDealAnimating,
     setRevealedHandCount,
+    clearHandCardTargets,
   } = usePlayerAvatars();
   const [showShuffle, setShowShuffle] = useState(false);
   const [center, setCenter] = useState<Point | null>(null);
@@ -282,6 +283,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
   const getPileTargetRef = useRef(getPileTarget);
   const setDealAnimatingRef = useRef(setDealAnimating);
   const setRevealedHandCountRef = useRef(setRevealedHandCount);
+  const clearHandCardTargetsRef = useRef(clearHandCardTargets);
 
   stateRef.current = state;
   clientIdRef.current = client.playerId;
@@ -291,6 +293,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
   getPileTargetRef.current = getPileTarget;
   setDealAnimatingRef.current = setDealAnimating;
   setRevealedHandCountRef.current = setRevealedHandCount;
+  clearHandCardTargetsRef.current = clearHandCardTargets;
 
   const clearTimers = useCallback(() => {
     timersRef.current.forEach((id) => window.clearTimeout(id));
@@ -313,6 +316,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
     setShowShuffle(false);
     setCenter(null);
     setDealAnimatingRef.current(false);
+    clearHandCardTargetsRef.current();
     const myId = clientIdRef.current;
     const myHand = stateRef.current.hands[myId]?.length ?? 0;
     setRevealedHandCountRef.current(myHand);
