@@ -25,6 +25,19 @@ export function nextActor(state: GameState): string | null {
   return null;
 }
 
+/** Who opens the round: leader when they still hold cards, otherwise next seated player who can act. */
+export function firstActorForRound(state: GameState): string | null {
+  const { leaderId } = state;
+  if (!leaderId) return null;
+  if (
+    !state.finishedPlayers.includes(leaderId) &&
+    (state.hands[leaderId]?.length ?? 0) > 0
+  ) {
+    return leaderId;
+  }
+  return nextActor(state);
+}
+
 /** Active player with an empty hand waiting for the current round to finish normally. */
 export function isStraggler(state: GameState, playerId: string): boolean {
   return (
@@ -102,30 +115,38 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
     case "CardsShuffled":
       return { ...state, seed: event.seed };
 
-    case "CardsDealt":
-      return {
+    case "CardsDealt": {
+      const dealt: GameState = {
         ...state,
         hands: event.hands,
         leaderId: event.leaderId,
-        currentTurnId: event.leaderId,
         leadSuit: null,
         highestCard: null,
         centerPile: [],
         playedThisRound: [],
         roundNumber: 1,
       };
-
-    case "RoundStarted":
       return {
+        ...dealt,
+        currentTurnId: firstActorForRound(dealt) ?? event.leaderId,
+      };
+    }
+
+    case "RoundStarted": {
+      const round: GameState = {
         ...state,
         leaderId: event.leaderId,
-        currentTurnId: event.leaderId,
         leadSuit: null,
         highestCard: null,
         centerPile: [],
         playedThisRound: [],
         roundNumber: event.roundNumber,
       };
+      return {
+        ...round,
+        currentTurnId: firstActorForRound(round) ?? event.leaderId,
+      };
+    }
 
     case "CardPlayed": {
       const hand = state.hands[event.playerId] ?? [];
