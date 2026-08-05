@@ -50,6 +50,8 @@
     "shareTitle": "Kazhutha",
     "shareText": "Join my Kazhutha room",
     "players": "Players ({count})",
+    "connecting": "Connecting…",
+    "findingPlayers": "Finding players…",
     "kick": "Kick",
     "rules": "Rules",
     "exitLobby": "Exit lobby"
