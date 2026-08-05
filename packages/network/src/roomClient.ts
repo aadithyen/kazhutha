@@ -62,7 +62,6 @@ export class RoomClient {
   private iceServers?: RTCIceServer[];
   private recoveringHost: boolean;
   private snapshotRequested = false;
-  private replacingPeers = new Set<string>();
   private keepaliveTimer: ReturnType<typeof setInterval> | null = null;
   private visibilityHandler: (() => void) | null = null;
 
@@ -92,6 +91,11 @@ export class RoomClient {
     this.syncAuthorityFromState();
     this.startKeepalive();
     this.bindVisibilityReconnect();
+  }
+
+  /** Set ICE servers (e.g. freshly generated TURN credentials) before peer links open. */
+  setIceServers(servers: RTCIceServer[] | undefined) {
+    this.iceServers = servers;
   }
 
   connect() {
@@ -419,19 +423,18 @@ export class RoomClient {
     this.links.delete(authorityId);
     this.peerStatus.delete(authorityId);
 
-    const link = new PeerLink({
+    const link: PeerLink = new PeerLink({
       peerId: authorityId,
       iceServers: this.iceServers,
       onSignal: (data) => this.signaling.send({ type: "signal", to: authorityId, data }),
       onMessage: (msg) => this.handlePeerMessage(authorityId, msg),
-      onStatus: (status) => this.handleLinkStatus(authorityId, status),
+      onStatus: (status) => this.handleLinkStatus(authorityId, link, status),
     });
     this.links.set(authorityId, link);
     link.createOffer();
   }
 
   private dropPeerLink(peerId: string) {
-    this.replacingPeers.add(peerId);
     this.links.get(peerId)?.close();
     this.links.delete(peerId);
     this.peerStatus.delete(peerId);
@@ -440,18 +443,21 @@ export class RoomClient {
   private ensureLinkAsAnswerer(peerId: string): PeerLink {
     const existing = this.links.get(peerId);
     if (existing) return existing;
-    const link = new PeerLink({
+    const link: PeerLink = new PeerLink({
       peerId,
       iceServers: this.iceServers,
       onSignal: (data) => this.signaling.send({ type: "signal", to: peerId, data }),
       onMessage: (msg) => this.handlePeerMessage(peerId, msg),
-      onStatus: (status) => this.handleLinkStatus(peerId, status),
+      onStatus: (status) => this.handleLinkStatus(peerId, link, status),
     });
     this.links.set(peerId, link);
     return link;
   }
 
-  private handleLinkStatus(peerId: string, status: PeerConnectionStatus) {
+  private handleLinkStatus(peerId: string, link: PeerLink, status: PeerConnectionStatus) {
+    // A replaced link's async close event can arrive after a new link for the
+    // same peer was created; reacting to it would tear down the new link.
+    if (this.links.get(peerId) !== link) return;
     this.peerStatus.set(peerId, status);
     this.emit({ type: "peers", peers: this.getPeers() });
 
@@ -467,10 +473,8 @@ export class RoomClient {
     }
 
     if (status === "disconnected") {
-      const replacing = this.replacingPeers.has(peerId);
-      this.replacingPeers.delete(peerId);
       this.links.delete(peerId);
-      if (this.isAuthority && !replacing) this.handlePeerDisconnected(peerId);
+      if (this.isAuthority) this.handlePeerDisconnected(peerId);
       if (!this.isAuthority && authorityId && peerId === authorityId) {
         this.peerStatus.delete(peerId);
         const state = this.engine.getState();

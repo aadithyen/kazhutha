@@ -50,6 +50,8 @@
     "shareTitle": "Kazhutha",
     "shareText": "എന്റെ Kazhutha റൂമിൽ ചേരൂ",
     "players": "കളിക്കാർ ({count})",
+    "connecting": "ബന്ധിപ്പിക്കുന്നു…",
+    "findingPlayers": "കളിക്കാരെ തിരയുന്നു…",
     "kick": "നീക്കം ചെയ്യുക",
     "rules": "നിയമങ്ങൾ",
     "exitLobby": "ലോബി വിടുക"

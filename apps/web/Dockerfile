@@ -8,9 +8,7 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 
 ARG VITE_SIGNALING_URL=ws://localhost:8080
-ARG VITE_ICE_SERVERS=
 ENV VITE_SIGNALING_URL=$VITE_SIGNALING_URL
-ENV VITE_ICE_SERVERS=$VITE_ICE_SERVERS
 RUN pnpm --filter @kazhutha/web build
 
 FROM nginx:1.27-alpine

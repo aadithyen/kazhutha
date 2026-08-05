@@ -12,6 +12,7 @@ export default function LobbyScreen() {
   const { state, client } = useRoom();
   const me = state.players.find((p) => p.id === client.playerId);
   const isHost = me?.isHost ?? false;
+  const joined = !!me;
   const connectedPlayers = state.players.filter((p) => p.connected);
   const allReady = connectedPlayers.length >= 2 && connectedPlayers.every((p) => p.ready);
 
@@ -51,7 +52,8 @@ export default function LobbyScreen() {
       <div className="sticky bottom-0 mt-2 flex gap-2 border-t border-neutral-100 bg-white/90 py-3 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90">
         <button
           onClick={toggleReady}
-          className={`flex-1 rounded-xl px-4 py-3 text-base font-semibold transition-colors ${
+          disabled={!joined}
+          className={`flex-1 rounded-xl px-4 py-3 text-base font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
             me?.ready
               ? "bg-neutral-900 text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)] dark:bg-neutral-100 dark:text-neutral-900 dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]"
               : "bg-neutral-100 text-neutral-900 ring-1 ring-neutral-200 dark:bg-neutral-800 dark:text-neutral-100 dark:ring-neutral-700"

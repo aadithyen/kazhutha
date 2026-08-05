@@ -3,6 +3,12 @@ services:
     build:
       context: ./apps/signaling
     restart: unless-stopped
+    environment:
+      # Optional Cloudflare TURN credentials (see .env.example). When set, the
+      # server generates short-lived ICE credentials at GET /ice-servers.
+      TURN_API_TOKEN: ${TURN_API_TOKEN:-}
+      TURN_KEY_ID: ${TURN_KEY_ID:-}
+      TURN_CREDENTIAL_TTL: ${TURN_CREDENTIAL_TTL:-86400}
     healthcheck:
       test:
         [
@@ -24,7 +30,6 @@ services:
         # Browser-reachable address of the signalling server. Set
         # VITE_SIGNALING_URL to your public WebSocket URL when deploying.
         VITE_SIGNALING_URL: ${VITE_SIGNALING_URL:-ws://localhost:8080}
-        VITE_ICE_SERVERS: ${VITE_ICE_SERVERS:-}
     depends_on:
       signaling:
         condition: service_healthy
