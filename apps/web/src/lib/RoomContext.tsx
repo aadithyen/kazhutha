@@ -3,7 +3,7 @@ import { PeerInfo, RoomClient } from "@kazhutha/network";
 import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "../i18n";
 import { getOrCreatePlayerId, getStoredName } from "./identity";
-import { getIceServers, getSignalingUrl } from "./network";
+import { fetchIceServers, getSignalingUrl } from "./network";
 
 interface RoomContextValue {
   client: RoomClient;
@@ -31,7 +31,6 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
       roomCode,
       playerId,
       name,
-      iceServers: getIceServers(),
       persistedState,
     });
   }
@@ -55,7 +54,13 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
       } else if (ev.type === "error") setBanner(translateError(ev.message));
       else if (ev.type === "signalingStatus") setSignalingConnected(ev.connected);
     });
-    client.connect();
+    // Fetch TURN credentials before connecting so peer links use them; on
+    // failure connect anyway with the default STUN-only config.
+    void fetchIceServers().then((servers) => {
+      if (effectGeneration.current !== generation) return;
+      if (servers) client.setIceServers(servers);
+      client.connect();
+    });
     return () => {
       unsubEngine();
       unsubRoom();

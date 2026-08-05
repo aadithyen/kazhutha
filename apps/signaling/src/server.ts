@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
 import { parseClientMessage, ServerToClient } from "./protocol.js";
 import { RoomRegistry } from "./rooms.js";
+import { generateIceServers } from "./turn.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const registry = new RoomRegistry();
@@ -10,6 +11,16 @@ const httpServer = createServer((req, res) => {
   if (req.url === "/health") {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ ok: true, rooms: registry.roomCount() }));
+    return;
+  }
+  if (req.url === "/ice-servers") {
+    void generateIceServers().then((iceServers) => {
+      res.writeHead(200, {
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+      });
+      res.end(JSON.stringify({ iceServers }));
+    });
     return;
   }
   res.writeHead(404);

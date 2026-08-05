@@ -62,8 +62,12 @@ docker compose up --build
 ```
 
 This builds and runs the signalling server (`:8080`) and the web app (`:3000`, static nginx). Override
-`VITE_SIGNALING_URL` / `VITE_ICE_SERVERS` build args in `docker-compose.yml` for LAN/internet deployments
-where the signalling server isn't reachable at `localhost:8080` from players' browsers.
+the `VITE_SIGNALING_URL` build arg in `docker-compose.yml` for LAN/internet deployments where the
+signalling server isn't reachable at `localhost:8080` from players' browsers.
+
+For strict NATs, set `TURN_API_TOKEN` / `TURN_KEY_ID` (a [Cloudflare Calls TURN key](https://developers.cloudflare.com/calls/turn/))
+on the signalling server. It generates short-lived ICE credentials at `GET /ice-servers`, which browsers
+fetch on room join — the API token and TURN credentials are never baked into the frontend bundle.
 
 Each app also has a standalone `Dockerfile` if you want to build/deploy them independently:
 

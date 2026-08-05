@@ -94,6 +94,11 @@ export class RoomClient {
     this.bindVisibilityReconnect();
   }
 
+  /** Set ICE servers (e.g. freshly generated TURN credentials) before peer links open. */
+  setIceServers(servers: RTCIceServer[] | undefined) {
+    this.iceServers = servers;
+  }
+
   connect() {
     this.signaling.connect({
       type: "join",
