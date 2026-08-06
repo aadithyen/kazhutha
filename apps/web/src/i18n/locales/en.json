@@ -62,6 +62,12 @@
       "description": "The Ace of Spades holder must lead it in round 1. If off, they may lead any card."
     }
   },
+  "suits": {
+    "S": "Spades",
+    "H": "Hearts",
+    "D": "Diamonds",
+    "C": "Clubs"
+  },
   "game": {
     "yourTurn": "Your turn",
     "playerTurn": "{name}'s turn",

@@ -42,7 +42,7 @@ export default function TurnBanner({ sortMode, onSortModeChange }: Props) {
       <span className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500">
         {state.leadSuit && (
           <span>
-            {t("game.lead")} {SUIT_SYMBOLS[state.leadSuit]}
+            {t("game.lead")} {SUIT_SYMBOLS[state.leadSuit]} {t(`suits.${state.leadSuit}`)}
           </span>
         )}
         <HandPreferences
