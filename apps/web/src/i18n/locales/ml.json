@@ -7,33 +7,33 @@
   },
   "languagePicker": {
     "title": "ഭാഷ തിരഞ്ഞെടുക്കുക",
-    "subtitle": "ഗെയിം ഇന്റർഫേസിന് ഇംഗ്ലീഷ് അല്ലെങ്കിൽ മലയാളം തിരഞ്ഞെടുക്കുക."
+    "subtitle": "കളിക്കാൻ ഉപയോഗിക്കുന്ന ഭാഷ തിരഞ്ഞെടുക്കുക."
   },
   "common": {
     "or": "അല്ലെങ്കിൽ",
     "you": "(നിങ്ങൾ)",
     "host": "ഹോസ്റ്റ്",
     "ready": "തയ്യാർ",
-    "notReady": "തയ്യാറല്ല",
+    "notReady": "തയ്യാറില്ല",
     "dismiss": "അടയ്ക്കുക",
     "offline": "ഓഫ്‌ലൈൻ",
-    "source": "സോഴ്സ്",
+    "source": "കോഡ്",
     "defaultPlayer": "കളിക്കാരൻ",
     "someone": "ആരോ",
     "language": "ഭാഷ"
   },
   "home": {
-    "tagline": "കഴുത · സുഹൃത്തുക്കളോടൊപ്പം കേരള കാർഡ് ഗെയിം കളിക്കുക",
-    "createRoom": "ഒരു റൂം സൃഷ്ടിക്കുക",
-    "joinRoom": "ഒരു റൂമിൽ ചേരുക",
+    "tagline": "കഴുത · സുഹൃത്തുക്കളോടൊപ്പം കേരളത്തിന്റെ കാർഡുകളി",
+    "createRoom": "പുതിയ റൂം ഉണ്ടാക്കുക",
+    "joinRoom": "റൂമിൽ ചേരുക",
     "yourName": "നിങ്ങളുടെ പേര്",
     "roomCode": "റൂം കോഡ്",
-    "createRoomButton": "റൂം സൃഷ്ടിക്കുക",
+    "createRoomButton": "റൂം ഉണ്ടാക്കുക",
     "joinRoomButton": "റൂമിൽ ചേരുക",
-    "footer": "അക്കൗണ്ടുകളില്ല. ഇൻസ്റ്റാൾ ചെയ്യേണ്ടതില്ല. ലിങ്ക് പങ്കിടുക."
+    "footer": "അക്കൗണ്ട് വേണ്ട. ഇൻസ്റ്റാൾ വേണ്ട. ലിങ്ക് അയച്ചാൽ മതി."
   },
   "room": {
-    "joinTable": "ടേബിളിൽ ചേരുക",
+    "joinTable": "കളിക്കാൻ ചേരുക",
     "continue": "തുടരുക"
   },
   "lobby": {
@@ -41,81 +41,87 @@
     "subtitle": "ലോബി",
     "readyDone": "തയ്യാർ ✓",
     "readyAction": "ഞാൻ തയ്യാറാണ്",
-    "startGame": "ഗെയിം ആരംഭിക്കുക",
+    "startGame": "കളി തുടങ്ങാം",
     "waiting": "കാത്തിരിക്കുന്നു ({ready}/{total})",
     "roomCode": "റൂം കോഡ്",
-    "copyLink": "ലിങ്ക് പകർപ്പിക്കുക",
+    "copyLink": "ലിങ്ക് പകർത്തുക",
     "copied": "പകർത്തി!",
     "share": "പങ്കിടുക",
-    "shareTitle": "Kazhutha",
-    "shareText": "എന്റെ Kazhutha റൂമിൽ ചേരൂ",
+    "shareTitle": "കഴുത",
+    "shareText": "എന്റെ കഴുത റൂമിൽ വാ",
     "players": "കളിക്കാർ ({count})",
     "connecting": "ബന്ധിപ്പിക്കുന്നു…",
-    "findingPlayers": "കളിക്കാരെ തിരയുന്നു…",
+    "findingPlayers": "കളിക്കാരെ കാത്തിരിക്കുന്നു…",
     "kick": "നീക്കം ചെയ്യുക",
     "rules": "നിയമങ്ങൾ",
-    "exitLobby": "ലോബി വിടുക"
+    "exitLobby": "ലോബിയിൽ നിന്ന് പുറപ്പെടുക"
   },
   "rules": {
     "mustLeadAceOfSpades": {
-      "label": "പേക്കിലേയുടെ ഏസോടെ തുടങ്ങണം",
-      "description": "ആദ്യ റൗണ്ടിൽ പേക്കിലേയുടെ ഏസ് ഉള്ളവർ അത് നയിക്കണം. ഓഫ്-സ്യൂട്ടാണെങ്കിൽ, ഏതെങ്കിലും കാർഡ് നയിക്കാം."
+      "label": "സ്പേഡ് ഏസിനോടെ തുടങ്ങണം",
+      "description": "ആദ്യ തവണ സ്പേഡ് ഏസ് ഉള്ളവർ അത് നയിക്കണം. ഓഫ് ആണെങ്കിൽ, ഏത് കാർഡും നയിക്കാം."
     }
+  },
+  "suits": {
+    "S": "സ്പേഡ്",
+    "H": "ഹാർട്ട്സ്",
+    "D": "ഡയമണ്ട്",
+    "C": "ക്ളാവർ"
   },
   "game": {
     "yourTurn": "നിങ്ങളുടെ ഊഴം",
     "playerTurn": "{name}ന്റെ ഊഴം",
     "waiting": "കാത്തിരിക്കുന്നു…",
     "paused": "നിർത്തിവച്ചു",
-    "lead": "ലീഡ്:",
-    "playToCenter": "മധ്യത്തിൽ കളിക്കുക",
+    "lead": "നയിപ്പ്:",
+    "playToCenter": "നടുവിൽ ഇടുക",
     "play": "കളിക്കുക",
     "yourCard": "നിങ്ങളുടെ കാർഡ്",
-    "kazhuthaWins": "{name} കഴുത ആണ്!",
-    "everyoneEscaped": "മറ്റെല്ലാവരും രക്ഷപ്പെട്ടു. അടുത്ത തവണ ഭാഗ്യം ശ്രമിക്കൂ.",
+    "kazhuthaWins": "{name} കഴുതയാണ്!",
+    "everyoneEscaped": "മറ്റുള്ളവർ എല്ലാവരും രക്ഷപ്പെട്ടു. അടുത്ത തവണക്ക് കഴിയും.",
     "backHome": "ഹോമിലേക്ക്",
-    "handAriaLabel": "നിങ്ങളുടെ കൈ — കാർഡുകൾ വിരിച്ച് നോക്കാൻ തിരശ്ചീനമായി സ്ക്രോൾ ചെയ്യുക",
+    "handAriaLabel": "നിങ്ങളുടെ കൈ — കാർഡുകൾ നോക്കാൻ വശത്തേക്ക് സ്ക്രോൾ ചെയ്യുക",
     "finishedRank": "#{rank} പൂർത്തിയാക്കി",
     "outOfCards": "കാർഡുകൾ തീർന്നു",
     "cardCount": "{count} കാർഡുകൾ"
   },
   "preferences": {
-    "title": "കൈ ക്രമീകരണങ്ങൾ",
-    "colorTheme": "നിറ തീം",
+    "title": "കൈ ക്രമം",
+    "colorTheme": "നിറം",
     "appearance": "രൂപം",
     "themeLight": "ലൈറ്റ്",
     "themeDark": "ഡാർക്ക്",
     "themeAuto": "ഓട്ടോ",
-    "arrangement": "ക്രമീകരണം",
-    "handSortOrder": "കൈ ക്രമം",
-    "sortSuit": "സ്യൂട്ട്",
+    "arrangement": "ക്രമം",
+    "handSortOrder": "കൈ ക്രമിക്കുക",
+    "sortSuit": "ചിഹ്നം",
     "sortValue": "മൂല്യം",
-    "visibility": "ദൃശ്യത",
-    "showCardCount": "കാർഡ് എണ്ണം കാണിക്കുക",
-    "audio": "ഓഡിയോ",
-    "soundEffects": "ശബ്ദ ഇഫക്റ്റുകൾ"
+    "visibility": "കാണിക്കൽ",
+    "showCardCount": "കാർഡുകളുടെ എണ്ണം കാണിക്കുക",
+    "audio": "ശബ്ദം",
+    "soundEffects": "കളി ശബ്ദങ്ങൾ"
   },
   "banners": {
-    "hostLeft": "ഹോസ്റ്റ് വിച്ഛേദിച്ചു. ഹോസ്റ്റ് തിരിച്ചുവരുന്നതുവരെ ഗെയിം നിർത്തിവച്ചിരിക്കുന്നു.",
-    "hostReconnected": "ഹോസ്റ്റ് വീണ്ടും കണക്റ്റ് ചെയ്തു. ഗെയിം പുനരാരംഭിച്ചു."
+    "hostLeft": "ഹോസ്റ്റിന്റെ ബന്ധം നിന്നുപോയി. തിരിച്ചുവരുന്നവരെ കളി നിർത്തി.",
+    "hostReconnected": "ഹോസ്റ്റ് തിരിച്ചുവന്നു. കളി തുടരുന്നു."
   },
   "errors": {
     "Unknown player": "അജ്ഞാത കളിക്കാരൻ",
     "Only the host can change rules": "നിയമങ്ങൾ മാറ്റാൻ ഹോസ്റ്റിന് മാത്രമേ കഴിയൂ",
-    "Rules can only change before the game starts": "ഗെയിം ആരംഭിക്കുന്നതിന് മുമ്പ് മാത്രമേ നിയമങ്ങൾ മാറ്റാൻ കഴിയൂ",
+    "Rules can only change before the game starts": "കളി തുടങ്ങുന്നതിന് മുമ്പ് മാത്രമേ നിയമങ്ങൾ മാറ്റാൻ കഴിയൂ",
     "Only the host can kick players": "കളിക്കാരെ നീക്കം ചെയ്യാൻ ഹോസ്റ്റിന് മാത്രമേ കഴിയൂ",
     "Host cannot kick themselves": "ഹോസ്റ്റിന് സ്വയം നീക്കം ചെയ്യാൻ കഴിയില്ല",
-    "Can only change card count visibility during a game": "ഗെയിം നടക്കുമ്പോൾ മാത്രമേ കാർഡ് എണ്ണം ദൃശ്യത മാറ്റാൻ കഴിയൂ",
-    "Only the host can start the game": "ഗെയിം ആരംഭിക്കാൻ ഹോസ്റ്റിന് മാത്രമേ കഴിയൂ",
-    "Game already started": "ഗെയിം ഇതിനകം ആരംഭിച്ചു",
+    "Can only change card count visibility during a game": "കളി നടക്കുമ്പോൾ മാത്രമേ കാർഡ് എണ്ണം കാണിക്കൽ മാറ്റാൻ കഴിയൂ",
+    "Only the host can start the game": "കളി തുടങ്ങാൻ ഹോസ്റ്റിന് മാത്രമേ കഴിയൂ",
+    "Game already started": "കളി ഇതിനകം തുടങ്ങി",
     "Need at least 2 players": "കുറഞ്ഞത് 2 കളിക്കാർ വേണം",
     "Too many players (max 10)": "വളരെയധികം കളിക്കാർ (പരമാവധി 10)",
-    "Game is not in progress": "ഗെയിം നടക്കുന്നില്ല",
-    "Game is paused": "ഗെയിം നിർത്തിവച്ചിരിക്കുന്നു",
+    "Game is not in progress": "കളി നടക്കുന്നില്ല",
+    "Game is paused": "കളി നിർത്തിവച്ചിരിക്കുന്നു",
     "Not your turn": "നിങ്ങളുടെ ഊഴമല്ല",
-    "Card not in hand": "കൈയിൽ കാർഡ് ഇല്ല",
-    "Illegal move": "നിയമവിരുദ്ധ നീക്കം",
-    "Unknown intent": "അജ്ഞാത ആശയം"
+    "Card not in hand": "ആ കാർഡ് കൈയിലില്ല",
+    "Illegal move": "ഇങ്ങനെ കളിക്കാൻ പാടില്ല",
+    "Unknown intent": "അജ്ഞാത നീക്കം"
   },
   "vettu": ["വെട്ടി!", "എടുത്തോടാ!", "ന്നാ പിടിച്ചോ!", "ചത്ത് ചത്ത്!"]
 }
