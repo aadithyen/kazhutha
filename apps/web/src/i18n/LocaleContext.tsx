@@ -37,7 +37,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       setLocale,
       t: (key, params) => translate(messages, key, params),
       translateError: (message) => translateError(messages, message),
-      vettuMessages: messages.vettu,
+      vettuMessages: messages.vettu.statements,
     };
   }, [locale]);
 

@@ -10,7 +10,7 @@ const EXIT_MS = 500;
 type Phase = "idle" | "enter" | "hold" | "exit";
 
 export default function VettuBanner() {
-  const { vettuMessages } = useLocale();
+  const { t, vettuMessages } = useLocale();
   const { state } = useRoom();
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
@@ -56,7 +56,13 @@ export default function VettuBanner() {
           animationDuration: phase === "enter" ? `${ENTER_MS}ms` : phase === "exit" ? `${EXIT_MS}ms` : undefined,
         }}
       >
-        <span className="vettu-banner-text block text-balance">{message}</span>
+        <span className="vettu-banner-title block text-balance">{t("vettu.title")}</span>
+        {message && (
+          <>
+            <span className="vettu-banner-divider" aria-hidden="true" />
+            <span className="vettu-banner-sub block text-balance">{message}</span>
+          </>
+        )}
       </div>
     </div>
   );
