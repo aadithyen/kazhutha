@@ -13,7 +13,7 @@ function PreviewFrame({ title, children }: { title: string; children: React.Reac
       <div className="relative flex min-h-[720px] flex-col bg-white dark:bg-neutral-950">
         <div className="flex-1 bg-neutral-50 dark:bg-neutral-900" />
         <div className="h-48 bg-white dark:bg-neutral-950" />
-        <div className="absolute inset-x-0 bottom-24 px-4">{children}</div>
+        <div className="absolute inset-0 flex items-center justify-center">{children}</div>
       </div>
     </div>
   );
@@ -25,7 +25,9 @@ export default function HandOfferPreviewPage() {
   return (
     <div className="min-h-dvh bg-neutral-100 px-6 py-10 dark:bg-neutral-900">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-8">
-        <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Hand offer prompts</h1>
+        <h1 className="font-serif text-2xl font-semibold italic text-neutral-900 dark:text-neutral-100">
+          Hand offer prompts
+        </h1>
         <div className="flex flex-wrap items-start justify-center gap-8">
           <PreviewFrame title="Offerer (Bob)">
             <HandOfferPromptView
@@ -33,7 +35,7 @@ export default function HandOfferPreviewPage() {
               playerId="bob"
               players={previewPlayers}
               t={t}
-              className="relative mx-auto w-full max-w-md"
+              embedded
             />
           </PreviewFrame>
           <PreviewFrame title="Recipient (Alice)">
@@ -42,7 +44,7 @@ export default function HandOfferPreviewPage() {
               playerId="alice"
               players={previewPlayers}
               t={t}
-              className="relative mx-auto w-full max-w-md"
+              embedded
             />
           </PreviewFrame>
         </div>

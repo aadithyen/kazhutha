@@ -69,8 +69,10 @@
     "C": "Clubs"
   },
   "handOffer": {
-    "promptOffer": "You vettu'd twice in a row. Offer your whole hand to {name}?",
-    "promptAccept": "{name} offers their whole hand. Take it?",
+    "promptOffer": "Offer your hand to {name}?",
+    "promptOfferHint": "You vettu'd twice in a row. You can dump your whole hand now.",
+    "promptAccept": "Take {name}'s hand?",
+    "promptAcceptHint": "You'll collect every card they still hold.",
     "offer": "Offer hand",
     "skip": "Keep playing",
     "accept": "Take all",
