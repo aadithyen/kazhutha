@@ -18,6 +18,20 @@ export interface LastRoundResult {
   at: number;
 }
 
+export interface ConsecutiveVettuStreak {
+  collectorId: string;
+  vettuBy: string;
+  count: number;
+}
+
+export type HandOfferPhase = "awaiting_offer" | "awaiting_response";
+
+export interface HandOffer {
+  phase: HandOfferPhase;
+  offererId: string;
+  recipientId: string;
+}
+
 export interface GameState {
   roomCode: string;
   hostId: string | null;
@@ -44,6 +58,10 @@ export interface GameState {
   kazhuthaId: string | null;
   seed: number | null;
   lastRoundResult: LastRoundResult | null;
+  /** Back-to-back vettu where the same next seated player fed the same collector. */
+  consecutiveVettuStreak: ConsecutiveVettuStreak | null;
+  /** Optional hand dump after two consecutive vettu from the next player. */
+  handOffer: HandOffer | null;
   /** When true (default), other players see this player's hand size. Per-game; resets each GameStarted. */
   cardCountVisible: Record<string, boolean>;
   eventLog: GameEvent[];
@@ -73,6 +91,8 @@ export function createInitialState(roomCode: string): GameState {
     kazhuthaId: null,
     seed: null,
     lastRoundResult: null,
+    consecutiveVettuStreak: null,
+    handOffer: null,
     cardCountVisible: {},
     eventLog: [],
   };

@@ -68,6 +68,18 @@
     "D": "Diamonds",
     "C": "Clubs"
   },
+  "handOffer": {
+    "promptOffer": "Offer your hand to {name}?",
+    "promptOfferHint": "You vettu'd twice in a row. You can dump your whole hand now.",
+    "promptAccept": "Take {name}'s hand?",
+    "promptAcceptHint": "You'll collect every card they still hold.",
+    "offer": "Offer hand",
+    "skip": "Keep playing",
+    "accept": "Take all",
+    "reject": "Reject",
+    "waitingOffer": "{offerer} can offer their hand to {recipient}…",
+    "waitingResponse": "{recipient} is deciding on {offerer}'s hand…"
+  },
   "game": {
     "yourTurn": "Your turn",
     "playerTurn": "{name}'s turn",
@@ -121,7 +133,18 @@
     "Not your turn": "Not your turn",
     "Card not in hand": "Card not in hand",
     "Illegal move": "Illegal move",
-    "Unknown intent": "Unknown intent"
+    "Unknown intent": "Unknown intent",
+    "Resolve the hand offer first": "Resolve the hand offer first",
+    "No hand offer to make": "No hand offer to make",
+    "Only the prompted player can offer their hand": "Only the prompted player can offer their hand",
+    "No hand offer to skip": "No hand offer to skip",
+    "Only the prompted player can skip": "Only the prompted player can skip",
+    "No hand offer to reject": "No hand offer to reject",
+    "Only the recipient can reject": "Only the recipient can reject",
+    "No hand offer to accept": "No hand offer to accept",
+    "Only the recipient can accept": "Only the recipient can accept",
+    "Offerer has no cards": "Offerer has no cards",
+    "You have no cards to offer": "You have no cards to offer"
   },
   "vettu": {
     "title": "VETTU",

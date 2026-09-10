@@ -48,6 +48,22 @@ export function isStraggler(state: GameState, playerId: string): boolean {
   );
 }
 
+/** Next seated active player with cards still in hand. */
+export function nextSeatedPlayer(state: GameState, fromId: string): string | null {
+  const { turnOrder, activePlayers, finishedPlayers } = state;
+  const idx = turnOrder.indexOf(fromId);
+  if (idx === -1) return null;
+  const n = turnOrder.length;
+  for (let step = 1; step < n; step++) {
+    const id = turnOrder[(idx + step) % n];
+    if (!activePlayers.includes(id)) continue;
+    if (finishedPlayers.includes(id)) continue;
+    if ((state.hands[id]?.length ?? 0) === 0) continue;
+    return id;
+  }
+  return null;
+}
+
 /** First still-active player at or after `fromId` in the fixed seating order. */
 export function firstActiveFrom(turnOrder: string[], activePlayers: string[], fromId: string): string {
   const idx = turnOrder.indexOf(fromId);
@@ -109,6 +125,8 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
         activePlayers: event.turnOrder.slice(),
         finishedPlayers: [],
         kazhuthaId: null,
+        consecutiveVettuStreak: null,
+        handOffer: null,
         cardCountVisible: Object.fromEntries(event.turnOrder.map((id) => [id, true])),
       };
 
@@ -190,6 +208,7 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
       return {
         ...state,
         centerPile: [],
+        consecutiveVettuStreak: null,
         lastRoundResult: { kind: "normal", winnerId: event.winnerId, pile, at: Date.now() },
       };
     }
@@ -247,6 +266,51 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
         successorHostId: null,
         players: state.players.map((p) => ({ ...p, isHost: p.id === event.newHostId })),
       };
+
+    case "ConsecutiveVettuStreakChanged":
+      return { ...state, consecutiveVettuStreak: event.streak };
+
+    case "HandOfferPrompted":
+      return {
+        ...state,
+        handOffer: {
+          phase: "awaiting_offer",
+          offererId: event.offererId,
+          recipientId: event.recipientId,
+        },
+      };
+
+    case "HandOffered":
+      return {
+        ...state,
+        handOffer: {
+          phase: "awaiting_response",
+          offererId: event.offererId,
+          recipientId: event.recipientId,
+        },
+      };
+
+    case "HandOfferSkipped":
+    case "HandOfferRejected":
+      return {
+        ...state,
+        handOffer: null,
+        consecutiveVettuStreak: null,
+      };
+
+    case "HandsMerged": {
+      const recipientHand = state.hands[event.toId] ?? [];
+      return {
+        ...state,
+        hands: {
+          ...state.hands,
+          [event.fromId]: [],
+          [event.toId]: [...recipientHand, ...event.cards],
+        },
+        handOffer: null,
+        consecutiveVettuStreak: null,
+      };
+    }
 
     default:
       return state;
