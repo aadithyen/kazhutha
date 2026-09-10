@@ -83,7 +83,7 @@ export default function LandingPage() {
         <ol className="flex flex-col gap-3">
           {messages.landing.steps.map((step, i) => (
             <li key={i} className={`${panelClass} flex gap-4`}>
-              <span className="w-6 shrink-0 font-serif text-3xl font-semibold italic leading-none text-neutral-300 dark:text-neutral-600">
+              <span className="locale-neutral w-6 shrink-0 font-serif text-3xl font-semibold italic leading-none text-neutral-300 dark:text-neutral-600">
                 {i + 1}
               </span>
               <div>
@@ -106,7 +106,7 @@ export default function LandingPage() {
           <ol id="full-rules" className={`${panelClass} flex flex-col divide-y divide-neutral-100 dark:divide-neutral-800`}>
             {messages.landing.rules.map((rule, i) => (
               <li key={i} className="flex gap-3 py-3 first:pt-0 last:pb-0">
-                <span className="w-5 shrink-0 pt-0.5 font-serif text-base font-semibold text-neutral-400 dark:text-neutral-500">
+                <span className="locale-neutral w-5 shrink-0 pt-0.5 font-serif text-base font-semibold text-neutral-400 dark:text-neutral-500">
                   {i + 1}
                 </span>
                 <div>
@@ -124,7 +124,7 @@ export default function LandingPage() {
         <ul className="flex flex-col gap-3">
           {about.map((item, i) => (
             <li key={i} className={`${panelClass} flex gap-4`}>
-              <span className={`w-6 shrink-0 font-serif text-3xl leading-none ${ABOUT_SUITS[i].color}`} aria-hidden>
+              <span className={`locale-neutral w-6 shrink-0 font-serif text-3xl leading-none ${ABOUT_SUITS[i].color}`} aria-hidden>
                 {ABOUT_SUITS[i].symbol}
               </span>
               <div>

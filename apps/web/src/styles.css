@@ -80,6 +80,16 @@ html[lang="ml"] .italic {
   font-style: normal;
 }
 
+/* Latin/symbol content (card glyphs, suit marks, numerals) keeps its size and italics in every locale */
+html[lang="ml"] .locale-neutral {
+  --locale-text-scale: 1;
+}
+
+html[lang="ml"] .locale-neutral.italic,
+html[lang="ml"] .locale-neutral .italic {
+  font-style: italic;
+}
+
 .vettu-banner-title {
   font-family: var(--font-serif);
   font-weight: 700;
@@ -164,15 +174,15 @@ html[lang="ml"] .vettu-banner-sub {
   }
 
   html[lang="ml"] .text-\[9px\] {
-    font-size: 7.875px;
+    font-size: calc(9px * var(--locale-text-scale));
   }
 
   html[lang="ml"] .text-\[10px\] {
-    font-size: 8.75px;
+    font-size: calc(10px * var(--locale-text-scale));
   }
 
   html[lang="ml"] .text-\[11px\] {
-    font-size: 9.625px;
+    font-size: calc(11px * var(--locale-text-scale));
   }
 }
 

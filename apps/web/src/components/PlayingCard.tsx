@@ -175,7 +175,7 @@ function CardBack({ className }: { className: string }) {
 export default function PlayingCard({ card, faceDown, selected, disabled, onClick, size = "md" }: Props) {
   const dims = SIZE_CLASSES[size];
   // Faces stay white in dark mode — cards are physical objects, not UI chrome.
-  const base = `relative ${dims.box} border border-neutral-200 bg-white font-serif shadow-[0_2px_12px_rgba(15,23,42,0.1)] transition-all duration-150 dark:shadow-[0_2px_14px_rgba(0,0,0,0.45)]`;
+  const base = `locale-neutral relative ${dims.box} border border-neutral-200 bg-white font-serif shadow-[0_2px_12px_rgba(15,23,42,0.1)] transition-all duration-150 dark:shadow-[0_2px_14px_rgba(0,0,0,0.45)]`;
 
   if (faceDown || !card) {
     return <CardBack className={base} />;
