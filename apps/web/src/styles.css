@@ -80,12 +80,42 @@ html[lang="ml"] .italic {
   font-style: normal;
 }
 
-.vettu-banner-text {
+.vettu-banner-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-style: normal;
+  font-size: clamp(calc(2rem * var(--locale-text-scale)), 7vw, calc(2.75rem * var(--locale-text-scale)));
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+html[lang="ml"] .vettu-banner-title {
   font-family: var(--font-ml-serif);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.vettu-banner-divider {
+  display: block;
+  width: 3rem;
+  height: 2px;
+  margin: 0.5rem auto;
+  background-color: #d4d4d4;
+}
+
+.vettu-banner-sub {
+  font-family: var(--font-serif);
   font-weight: 600;
   font-style: normal;
-  font-size: clamp(calc(1.5rem * var(--locale-text-scale)), 6.5vw, calc(2.85rem * var(--locale-text-scale)));
-  line-height: 1.2;
+  font-size: clamp(calc(1.15rem * var(--locale-text-scale)), 5vw, calc(1.35rem * var(--locale-text-scale)));
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  color: #525252;
+}
+
+html[lang="ml"] .vettu-banner-sub {
+  font-family: var(--font-ml-serif);
 }
 
 @layer utilities {

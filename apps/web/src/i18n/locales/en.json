@@ -123,5 +123,8 @@
     "Illegal move": "Illegal move",
     "Unknown intent": "Unknown intent"
   },
-  "vettu": ["STRIKE!", "KEEP THIS", "A SMALL GIFT..."]
+  "vettu": {
+    "title": "VETTU",
+    "statements": ["STRIKE!", "KEEP THIS", "A SMALL GIFT..."]
+  }
 }
