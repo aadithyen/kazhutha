@@ -1,8 +1,8 @@
 import { Card, createDeck, isAceOfSpades, Player, randomSeed, shuffle } from "@kazhutha/shared";
 import { GameEvent, Intent } from "./events";
 import { electSuccessorHost, isHostConnected } from "./host";
-import { applyEvents } from "./reducer";
-import { GameState } from "./state";
+import { applyEvents, nextSeatedPlayer } from "./reducer";
+import { ConsecutiveVettuStreak, GameState } from "./state";
 import { isCardLegal, isVettuPlay } from "./validators";
 import { firstActiveFrom, nextActor } from "./reducer";
 
@@ -80,6 +80,18 @@ export function processIntent(state: GameState, intent: Intent): HostResult {
       ]);
     }
 
+    case "OfferHand":
+      return offerHand(state, intent.playerId);
+
+    case "SkipHandOffer":
+      return skipHandOffer(state, intent.playerId);
+
+    case "AcceptHandOffer":
+      return acceptHandOffer(state, intent.playerId);
+
+    case "RejectHandOffer":
+      return rejectHandOffer(state, intent.playerId);
+
     default:
       return fail("Unknown intent");
   }
@@ -118,6 +130,7 @@ function startGame(state: GameState, requesterId: string): HostResult {
 function playCard(state: GameState, playerId: string, card: Card): HostResult {
   if (state.phase !== "playing") return fail("Game is not in progress");
   if (state.paused) return fail("Game is paused");
+  if (state.handOffer) return fail("Resolve the hand offer first");
   if (state.currentTurnId !== playerId) return fail("Not your turn");
   const hand = state.hands[playerId] ?? [];
   if (!hand.some((c) => c.suit === card.suit && c.rank === card.rank)) return fail("Card not in hand");
@@ -144,7 +157,8 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
       leaderId: collectorId,
       roundNumber: state.roundNumber + 1,
     };
-  return ok([...events, vettuEvent, collectedEvent, roundStartedEvent]);
+    const streakEvents = vettuStreakEvents(state, afterPlay, collectorId, playerId);
+    return ok([...events, vettuEvent, collectedEvent, roundStartedEvent, ...streakEvents]);
   }
 
   if (nextActor(afterPlay) !== null) {
@@ -193,6 +207,90 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
 
   const nextLeader = remaining.includes(winnerId) ? winnerId : firstActiveFrom(state.turnOrder, remaining, winnerId);
   events.push({ type: "RoundStarted", leaderId: nextLeader, roundNumber: state.roundNumber + 1 });
+  return ok(events);
+}
+
+function vettuStreakEvents(
+  state: GameState,
+  afterVettuPlay: GameState,
+  collectorId: string,
+  vettuBy: string,
+): GameEvent[] {
+  const expectedOfferer = nextSeatedPlayer(afterVettuPlay, collectorId);
+  let streak: ConsecutiveVettuStreak | null;
+
+  if (expectedOfferer && vettuBy === expectedOfferer) {
+    if (
+      state.consecutiveVettuStreak?.collectorId === collectorId &&
+      state.consecutiveVettuStreak?.vettuBy === vettuBy
+    ) {
+      streak = { collectorId, vettuBy, count: state.consecutiveVettuStreak.count + 1 };
+    } else {
+      streak = { collectorId, vettuBy, count: 1 };
+    }
+  } else {
+    streak = null;
+  }
+
+  const events: GameEvent[] = [{ type: "ConsecutiveVettuStreakChanged", streak }];
+  const offererCards = afterVettuPlay.hands[vettuBy]?.length ?? 0;
+  if (streak && streak.count >= 2 && offererCards > 0) {
+    events.push({ type: "HandOfferPrompted", offererId: vettuBy, recipientId: collectorId });
+  }
+  return events;
+}
+
+function offerHand(state: GameState, playerId: string): HostResult {
+  const offer = state.handOffer;
+  if (!offer || offer.phase !== "awaiting_offer") return fail("No hand offer to make");
+  if (offer.offererId !== playerId) return fail("Only the prompted player can offer their hand");
+  if ((state.hands[playerId]?.length ?? 0) === 0) return fail("You have no cards to offer");
+  return ok([{ type: "HandOffered", offererId: offer.offererId, recipientId: offer.recipientId }]);
+}
+
+function skipHandOffer(state: GameState, playerId: string): HostResult {
+  const offer = state.handOffer;
+  if (!offer || offer.phase !== "awaiting_offer") return fail("No hand offer to skip");
+  if (offer.offererId !== playerId) return fail("Only the prompted player can skip");
+  return ok([{ type: "HandOfferSkipped", offererId: offer.offererId, recipientId: offer.recipientId }]);
+}
+
+function rejectHandOffer(state: GameState, playerId: string): HostResult {
+  const offer = state.handOffer;
+  if (!offer || offer.phase !== "awaiting_response") return fail("No hand offer to reject");
+  if (offer.recipientId !== playerId) return fail("Only the recipient can reject");
+  return ok([{ type: "HandOfferRejected", offererId: offer.offererId, recipientId: offer.recipientId }]);
+}
+
+function acceptHandOffer(state: GameState, playerId: string): HostResult {
+  const offer = state.handOffer;
+  if (!offer || offer.phase !== "awaiting_response") return fail("No hand offer to accept");
+  if (offer.recipientId !== playerId) return fail("Only the recipient can accept");
+
+  const cards = state.hands[offer.offererId] ?? [];
+  if (cards.length === 0) return fail("Offerer has no cards");
+
+  const events: GameEvent[] = [
+    { type: "HandsMerged", fromId: offer.offererId, toId: offer.recipientId, cards: [...cards] },
+    { type: "PlayerExited", playerId: offer.offererId, order: state.finishedPlayers.length + 1 },
+  ];
+
+  let runningState = applyEvents(state, events);
+  if (offer.offererId === state.hostId) {
+    const successor = runningState.successorHostId ?? electSuccessorHost(runningState, offer.offererId);
+    if (successor) {
+      const transfer: GameEvent = { type: "HostTransferred", newHostId: successor };
+      events.push(transfer);
+      runningState = applyEvents(runningState, [transfer]);
+    }
+  }
+
+  const withCards = activePlayersWithCards(runningState);
+  if (runningState.activePlayers.length <= 1 || withCards.length <= 1) {
+    const kazhuthaId = withCards[0] ?? runningState.activePlayers[0] ?? offer.recipientId;
+    events.push({ type: "GameFinished", kazhuthaId });
+  }
+
   return ok(events);
 }
 

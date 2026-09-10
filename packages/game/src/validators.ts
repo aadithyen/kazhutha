@@ -8,7 +8,7 @@ export function isLeadPlay(state: GameState): boolean {
 /** Cards a player is currently allowed to play, respecting follow-suit and the ace-of-spades opener rule. */
 export function getLegalCards(state: GameState, playerId: string): Card[] {
   const hand = state.hands[playerId] ?? [];
-  if (state.phase !== "playing" || state.currentTurnId !== playerId) return [];
+  if (state.phase !== "playing" || state.handOffer || state.currentTurnId !== playerId) return [];
 
   if (isLeadPlay(state)) {
     if (state.roundNumber === 1 && state.rules.mustLeadAceOfSpades && playerId === state.leaderId) {

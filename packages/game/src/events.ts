@@ -1,5 +1,5 @@
 import { Card, Player, RuleConfig } from "@kazhutha/shared";
-import { GameState } from "./state";
+import { ConsecutiveVettuStreak, GameState } from "./state";
 
 export interface RoomCreatedEvent {
   type: "RoomCreated";
@@ -128,6 +128,42 @@ export interface HostTransferredEvent {
   newHostId: string;
 }
 
+export interface ConsecutiveVettuStreakChangedEvent {
+  type: "ConsecutiveVettuStreakChanged";
+  streak: ConsecutiveVettuStreak | null;
+}
+
+export interface HandOfferPromptedEvent {
+  type: "HandOfferPrompted";
+  offererId: string;
+  recipientId: string;
+}
+
+export interface HandOfferedEvent {
+  type: "HandOffered";
+  offererId: string;
+  recipientId: string;
+}
+
+export interface HandOfferSkippedEvent {
+  type: "HandOfferSkipped";
+  offererId: string;
+  recipientId: string;
+}
+
+export interface HandOfferRejectedEvent {
+  type: "HandOfferRejected";
+  offererId: string;
+  recipientId: string;
+}
+
+export interface HandsMergedEvent {
+  type: "HandsMerged";
+  fromId: string;
+  toId: string;
+  cards: Card[];
+}
+
 export type GameEvent =
   | RoomCreatedEvent
   | PlayerJoinedEvent
@@ -152,7 +188,13 @@ export type GameEvent =
   | GamePausedEvent
   | GameResumedEvent
   | HostSuccessorAssignedEvent
-  | HostTransferredEvent;
+  | HostTransferredEvent
+  | ConsecutiveVettuStreakChangedEvent
+  | HandOfferPromptedEvent
+  | HandOfferedEvent
+  | HandOfferSkippedEvent
+  | HandOfferRejectedEvent
+  | HandsMergedEvent;
 
 export type GameEventType = GameEvent["type"];
 
@@ -165,7 +207,11 @@ export type Intent =
   | { type: "StartGame"; playerId: string }
   | { type: "PlayCard"; playerId: string; card: Card }
   | { type: "RequestSnapshot"; playerId: string }
-  | { type: "SetCardCountVisible"; playerId: string; visible: boolean };
+  | { type: "SetCardCountVisible"; playerId: string; visible: boolean }
+  | { type: "OfferHand"; playerId: string }
+  | { type: "SkipHandOffer"; playerId: string }
+  | { type: "AcceptHandOffer"; playerId: string }
+  | { type: "RejectHandOffer"; playerId: string };
 
 export interface IntentRejected {
   type: "IntentRejected";

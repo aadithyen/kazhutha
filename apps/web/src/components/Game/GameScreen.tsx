@@ -8,6 +8,7 @@ import GameOverScreen from "./GameOverScreen";
 import Hand from "./Hand";
 import PlayerBadges from "./PlayerBadges";
 import TurnBanner, { useHandSortMode } from "./TurnBanner";
+import HandOfferPrompt from "./HandOfferPrompt";
 import VettuBanner from "./VettuBanner";
 
 export default function GameScreen({ dealAnimationSeed }: { dealAnimationSeed: number | null }) {
@@ -30,6 +31,7 @@ export default function GameScreen({ dealAnimationSeed }: { dealAnimationSeed: n
         <DealAnimation dealAnimationSeed={dealAnimationSeed} />
         {state.phase === "finished" && <GameOverScreen />}
         <VettuBanner />
+        <HandOfferPrompt />
       </div>
     </PlayerAvatarProvider>
   );

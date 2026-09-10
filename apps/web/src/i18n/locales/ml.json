@@ -68,6 +68,16 @@
     "D": "ഡയമണ്ട്",
     "C": "ക്ളാവർ"
   },
+  "handOffer": {
+    "promptOffer": "തുടർച്ചയായി രണ്ട് വെട്ടി. {name}ക്ക് മുഴുവൻ കൈ നൽകണോ?",
+    "promptAccept": "{name} മുഴുവൻ കൈ നൽകുന്നു. എടുക്കണോ?",
+    "offer": "കൈ നൽകുക",
+    "skip": "കളി തുടരുക",
+    "accept": "എല്ലാം എടുക്കുക",
+    "reject": "നിരസിക്കുക",
+    "waitingOffer": "{offerer}ക്ക് {recipient}ക്ക് കൈ നൽകാം…",
+    "waitingResponse": "{recipient} {offerer}ന്റെ കൈയിൽ തീരുമാനം ചെയ്യുന്നു…"
+  },
   "game": {
     "yourTurn": "നിങ്ങളുടെ ഊഴം",
     "playerTurn": "{name}ന്റെ ഊഴം",
@@ -121,7 +131,18 @@
     "Not your turn": "നിങ്ങളുടെ ഊഴമല്ല",
     "Card not in hand": "ആ കാർഡ് കൈയിലില്ല",
     "Illegal move": "ഇങ്ങനെ കളിക്കാൻ പാടില്ല",
-    "Unknown intent": "അജ്ഞാത നീക്കം"
+    "Unknown intent": "അജ്ഞാത നീക്കം",
+    "Resolve the hand offer first": "ആദ്യം കൈ നൽകൽ തീർക്കുക",
+    "No hand offer to make": "നൽകാനുള്ള കൈയില്ല",
+    "Only the prompted player can offer their hand": "ആഹ്വാനിച്ച കളിക്കാരന് മാത്രമേ കൈ നൽകാൻ കഴിയൂ",
+    "No hand offer to skip": "ഒഴിവാക്കാനുള്ള കൈ നൽകൽ ഇല്ല",
+    "Only the prompted player can skip": "ആഹ്വാനിച്ച കളിക്കാരന് മാത്രമേ ഒഴിവാക്കാൻ കഴിയൂ",
+    "No hand offer to reject": "നിരസിക്കാനുള്ള കൈ നൽകൽ ഇല്ല",
+    "Only the recipient can reject": "സ്വീകരിക്കുന്നയാൾക്ക് മാത്രമേ നിരസിക്കാൻ കഴിയൂ",
+    "No hand offer to accept": "സ്വീകരിക്കാനുള്ള കൈ നൽകൽ ഇല്ല",
+    "Only the recipient can accept": "സ്വീകരിക്കുന്നയാൾക്ക് മാത്രമേ സ്വീകരിക്കാൻ കഴിയൂ",
+    "Offerer has no cards": "നൽകുന്നയാൾക്ക് കാർഡുകളില്ല",
+    "You have no cards to offer": "നിങ്ങൾക്ക് നൽകാൻ കാർഡുകളില്ല"
   },
   "vettu": ["വെട്ടി!", "എടുത്തോടാ!", "ന്നാ പിടിച്ചോ!", "ചത്ത് ചത്ത്!"]
 }
