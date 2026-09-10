@@ -5,12 +5,13 @@
   "app": {
     "title": "Kazhutha"
   },
-  "languagePicker": {
-    "title": "Choose your language",
-    "subtitle": "Pick English or Malayalam for the game interface."
+  "languageToast": {
+    "message": "Kazhutha is in English.",
+    "switchAction": "Switch to English"
   },
   "common": {
     "or": "or",
+    "back": "Back",
     "you": "(you)",
     "host": "Host",
     "ready": "Ready",
@@ -31,6 +32,77 @@
     "createRoomButton": "Create room",
     "joinRoomButton": "Join room",
     "footer": "No accounts. No install. Just share the link."
+  },
+  "landing": {
+    "tagline": "It's not about who wins, but who loses. Kerala's favourite card game, played with friends.",
+    "playNow": "Play now",
+    "playHint": "No accounts. No install. Just share the link.",
+    "howKicker": "How it's played",
+    "howTitle": "One deck, one donkey",
+    "howSubtitle": "Two to ten players. Get rid of your cards before everyone else does.",
+    "steps": [
+      {
+        "title": "Deal it all out",
+        "body": "The whole deck goes around, as evenly as it can. Whoever holds the Ace of Spades opens."
+      },
+      {
+        "title": "Follow suit",
+        "body": "Lead a card. Everyone must follow that suit if they have it. Highest card takes the round and leads the next one."
+      },
+      {
+        "title": "Vettu!",
+        "body": "No card in that suit? Throw anything. The round stops right there, and the highest card of the led suit picks up the whole pile."
+      },
+      {
+        "title": "Don't be last",
+        "body": "Empty your hand and you're safe. The last one still holding cards is the Kazhutha."
+      }
+    ],
+    "fullRules": "Full rules",
+    "hideRules": "Hide rules",
+    "rules": [
+      {
+        "title": "Deck and ranking",
+        "body": "A standard 52-card deck, no jokers. Ace is highest, then K, Q, J, 10 and on down to 2."
+      },
+      {
+        "title": "Dealing",
+        "body": "Every card is dealt. If it doesn't split evenly, a few players get one extra. That's just how it goes."
+      },
+      {
+        "title": "Opening",
+        "body": "The player holding the Ace of Spades leads the first round. The host decides whether they must lead the Ace itself or may open with any card."
+      },
+      {
+        "title": "Turn order",
+        "body": "Play goes around in the same order all game. Only who leads changes."
+      },
+      {
+        "title": "A normal round",
+        "body": "Everyone follows the led suit if they can. Once all have played, the highest card of that suit wins. Those cards are discarded and the winner leads next."
+      },
+      {
+        "title": "Vettu",
+        "body": "Can't follow suit? Play any card. That's a vettu. The round ends immediately, the remaining players are skipped, and whoever has the highest card of the led suit on the table collects everything played. They lead the next round."
+      },
+      {
+        "title": "Getting out",
+        "body": "You're out, and safe, when you play your last card in a round that finishes without a vettu. If someone vettus on your last card and yours is the highest of the led suit, you collect the pile and you're back in."
+      },
+      {
+        "title": "The Kazhutha",
+        "body": "Play on until only one player still has cards. That's the Kazhutha. The donkey."
+      }
+    ],
+    "aboutKicker": "Under the hood",
+    "aboutTitle": "Just you and your friends",
+    "p2pTitle": "Peer to peer",
+    "p2pBody": "Your browser talks directly to your friends' browsers over WebRTC. A tiny signaling server only introduces players to each other. It never sees a single card.",
+    "lightTitle": "Light and fast",
+    "lightBody": "Loads in a blink, runs on any phone, and installs as an app if you want it to. No ads, no logins, no nonsense.",
+    "openTitle": "Open source",
+    "openBody": "Free, and all of it is on GitHub. Read it, fork it, host your own table.",
+    "viewSource": "View on GitHub"
   },
   "room": {
     "joinTable": "Join the table",
