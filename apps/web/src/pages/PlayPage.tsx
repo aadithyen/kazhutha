@@ -1,6 +1,6 @@
 import { randomCode } from "@kazhutha/shared";
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLocale } from "../i18n";
 import { getStoredName, storeName } from "../lib/identity";
@@ -14,7 +14,7 @@ const primaryBtnClass =
 const secondaryBtnClass =
   "w-full rounded-xl bg-neutral-100 px-4 py-3 text-base font-semibold text-neutral-900 ring-1 ring-neutral-200 active:scale-[0.98] dark:bg-neutral-800 dark:text-neutral-100 dark:ring-neutral-700";
 
-export default function HomePage() {
+export default function PlayPage() {
   const { t } = useLocale();
   const navigate = useNavigate();
   const [createName, setCreateName] = useState(getStoredName());
@@ -38,6 +38,13 @@ export default function HomePage() {
 
   return (
     <div className="relative mx-auto flex min-h-dvh max-w-md flex-col bg-white px-4 py-10 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+      <Link
+        to="/"
+        className="absolute left-4 top-4 inline-flex items-center gap-1 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+      >
+        <span aria-hidden>←</span>
+        {t("common.back")}
+      </Link>
       <LanguageSwitcher className="absolute right-4 top-4" />
       <div className="flex flex-1 flex-col items-center justify-center gap-8">
         <header className="text-center">

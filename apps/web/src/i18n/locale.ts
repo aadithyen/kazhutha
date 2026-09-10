@@ -3,6 +3,8 @@ import { SUPPORTED_LOCALES } from "./types";
 
 const LOCALE_KEY = "kazhutha:locale";
 
+export const DEFAULT_LOCALE: LocaleId = "ml";
+
 export function getStoredLocale(): LocaleId | null {
   const stored = localStorage.getItem(LOCALE_KEY);
   return SUPPORTED_LOCALES.includes(stored as LocaleId) ? (stored as LocaleId) : null;
