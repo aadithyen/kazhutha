@@ -1,0 +1,47 @@
+name: Language request
+description: Add or improve a translation — no coding required
+title: "[Language]: "
+labels: ["language", "good first issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This is the contribution we care about most.** Want to add Hindi, Tamil, another dialect, or fix strings in an existing pack? You're in the right place.
+
+        Check if a [language issue](https://github.com/aadithyen/kazhutha/issues?q=is%3Aissue+label%3Alanguage) already exists. If not, tell us below — then open a PR with a JSON file under `apps/web/src/i18n/locales/` (see [CONTRIBUTING.md](https://github.com/aadithyen/kazhutha/blob/main/CONTRIBUTING.md)).
+
+  - type: input
+    id: language
+    attributes:
+      label: Language name
+      placeholder: e.g. Tamil, Hindi, Malayalam (improvements)
+    validations:
+      required: true
+
+  - type: input
+    id: locale
+    attributes:
+      label: Locale code (if you know it)
+      placeholder: e.g. ta, hi, ml
+      description: Short ISO-style code for the JSON filename
+    validations:
+      required: false
+
+  - type: dropdown
+    id: intent
+    attributes:
+      label: What do you want to do?
+      options:
+        - Add a new language
+        - Improve an existing translation
+        - Not sure yet — just registering interest
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Regional variant, terms you're unsure about, whether you can open the PR yourself, etc.
+    validations:
+      required: false

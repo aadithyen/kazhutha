@@ -5,6 +5,13 @@ one winner but one loser who's crowned the title of "Kazhutha" (കഴുത) me
 played in multiple times and everytime one lose a game the loser gains a piece of jewellery like a
 machinga earring or plaavila crown :) .
 
+## Contributing
+
+Want to help? See [CONTRIBUTING.md](CONTRIBUTING.md). TL;DR: check or open an issue first, then send a PR.
+
+We're mostly hoping for **language pack** contributions (JSON translations, no code). Bug reports and
+ideas welcome too.
+
 ## License
 
 See LICENSE file.
