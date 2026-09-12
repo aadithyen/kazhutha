@@ -218,8 +218,10 @@ export default function Hand({ sortMode }: Props) {
     prevDealAnimatingRef.current = dealAnimating;
   }, [dealAnimating, updateScrollBias]);
 
+  // Re-runs when the hand unlocks (deal / pile settle finished), not just on turn change,
+  // so the legal card is brought into view once the player can actually act.
   useEffect(() => {
-    if (!myTurn || legalCards.length === 0) {
+    if (!canPlay || legalCards.length === 0) {
       autoScrollKeyRef.current = null;
       return;
     }
@@ -259,7 +261,7 @@ export default function Hand({ sortMode }: Props) {
       });
     });
   }, [
-    myTurn,
+    canPlay,
     hand,
     legalCards,
     sortMode,
