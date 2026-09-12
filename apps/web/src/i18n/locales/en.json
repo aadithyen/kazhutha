@@ -31,7 +31,8 @@
     "roomCode": "Room code",
     "createRoomButton": "Create room",
     "joinRoomButton": "Join room",
-    "footer": "No accounts. No install. Just share the link."
+    "footer": "No accounts. No install. Just share the link.",
+    "invalidCode": "That code isn't valid. Room codes are 6 characters and never use 0, O, 1 or I."
   },
   "landing": {
     "tagline": "It's not about who wins, but who loses. Kerala's favourite card game, played with friends.",
@@ -126,7 +127,8 @@
     "findingPlayers": "Finding players…",
     "kick": "Kick",
     "rules": "Rules",
-    "exitLobby": "Exit lobby"
+    "exitLobby": "Exit lobby",
+    "kicked": "The host removed you from this room."
   },
   "rules": {
     "mustLeadAceOfSpades": {
@@ -155,7 +157,9 @@
     "handAriaLabel": "Your hand — scroll horizontally to fan through cards",
     "finishedRank": "Finished #{rank}",
     "outOfCards": "Out of cards",
-    "cardCount": "{count} cards"
+    "cardCount": "{count} cards",
+    "playAgain": "Play again",
+    "waitingForHost": "Waiting for the host to start a new game…"
   },
   "preferences": {
     "title": "Hand preferences",
@@ -193,7 +197,13 @@
     "Not your turn": "Not your turn",
     "Card not in hand": "Card not in hand",
     "Illegal move": "Illegal move",
-    "Unknown intent": "Unknown intent"
+    "Unknown intent": "Unknown intent",
+    "Everyone must be ready": "Everyone must be ready",
+    "Players can only be removed before the game starts": "Players can only be removed before the game starts",
+    "Removed from this room": "You were removed from this room",
+    "Only the host can return to the lobby": "Only the host can return to the lobby",
+    "Game is not finished": "Game is not finished",
+    "Intent sender mismatch": "Rejected: request did not come from its player"
   },
   "vettu": {
     "title": "VETTU",

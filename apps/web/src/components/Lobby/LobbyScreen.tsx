@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import LanguageSwitcher from "../LanguageSwitcher";
 import { useLocale } from "../../i18n";
 import { useRoom } from "../../lib/RoomContext";
+import { preloadSounds } from "../../lib/sounds";
 import InvitePanel from "./InvitePanel";
 import PlayerList from "./PlayerList";
 import RulesPanel from "./RulesPanel";
@@ -9,7 +10,7 @@ import RulesPanel from "./RulesPanel";
 export default function LobbyScreen() {
   const { t } = useLocale();
   const navigate = useNavigate();
-  const { state, client } = useRoom();
+  const { state, client, kicked } = useRoom();
   const me = state.players.find((p) => p.id === client.playerId);
   const isHost = me?.isHost ?? false;
   const joined = !!me;
@@ -17,6 +18,8 @@ export default function LobbyScreen() {
   const allReady = connectedPlayers.length >= 2 && connectedPlayers.every((p) => p.ready);
 
   function toggleReady() {
+    // First user gesture in the room: prime audio elements while we are allowed to.
+    preloadSounds();
     client.sendIntent({ type: "SetReady", playerId: client.playerId, ready: !me?.ready });
   }
 
@@ -27,6 +30,27 @@ export default function LobbyScreen() {
   function exitLobby() {
     client.leave();
     navigate("/", { replace: true });
+  }
+
+  if (kicked) {
+    return (
+      <div className="relative mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-4 py-10 text-center">
+        <LanguageSwitcher className="absolute right-4 top-4" />
+        <h1 className="font-serif text-3xl font-semibold italic text-neutral-900 dark:text-neutral-100">
+          {t("lobby.title")}
+        </h1>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400" role="status">
+          {t("lobby.kicked")}
+        </p>
+        <button
+          type="button"
+          onClick={exitLobby}
+          className="mt-2 rounded-xl bg-neutral-900 px-6 py-3 font-semibold text-white shadow-[0_2px_12px_rgba(15,23,42,0.12)] dark:bg-neutral-100 dark:text-neutral-900 dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]"
+        >
+          {t("game.backHome")}
+        </button>
+      </div>
+    );
   }
 
   return (

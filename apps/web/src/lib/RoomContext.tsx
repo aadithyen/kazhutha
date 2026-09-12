@@ -12,6 +12,8 @@ interface RoomContextValue {
   signalingConnected: boolean;
   banner: string | null;
   dismissBanner: () => void;
+  /** Host removed this player; the room UI should offer a way out instead of a spinner. */
+  kicked: boolean;
 }
 
 const RoomContext = createContext<RoomContextValue | null>(null);
@@ -40,7 +42,15 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
   const [peers, setPeers] = useState<PeerInfo[]>([]);
   const [signalingConnected, setSignalingConnected] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
+  const [kicked, setKicked] = useState(false);
   const effectGeneration = useRef(0);
+
+  // Translators live in refs so a locale switch does not tear down and rebuild
+  // the connection (re-fetching ICE servers and re-joining).
+  const tRef = useRef(t);
+  const translateErrorRef = useRef(translateError);
+  tRef.current = t;
+  translateErrorRef.current = translateError;
 
   useEffect(() => {
     const generation = ++effectGeneration.current;
@@ -48,11 +58,16 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
     const unsubRoom = client.on((ev) => {
       if (ev.type === "peers") setPeers(ev.peers);
       else if (ev.type === "hostLeft") {
-        setBanner(t("banners.hostLeft"));
+        setBanner(tRef.current("banners.hostLeft"));
       } else if (ev.type === "hostReconnected") {
-        setBanner(t("banners.hostReconnected"));
-      } else if (ev.type === "error") setBanner(translateError(ev.message));
-      else if (ev.type === "signalingStatus") setSignalingConnected(ev.connected);
+        setBanner(tRef.current("banners.hostReconnected"));
+      } else if (ev.type === "kicked") {
+        setKicked(true);
+      } else if (ev.type === "error") {
+        // A kicked player who reloads gets the rejection on JoinRoom instead of the event.
+        if (ev.message === "Removed from this room") setKicked(true);
+        setBanner(translateErrorRef.current(ev.message));
+      } else if (ev.type === "signalingStatus") setSignalingConnected(ev.connected);
     });
     // Fetch TURN credentials before connecting so peer links use them; on
     // failure connect anyway with the default STUN-only config.
@@ -69,7 +84,7 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
         if (effectGeneration.current === closedGeneration) client.disconnect();
       }, 0);
     };
-  }, [client, t, translateError]);
+  }, [client]);
 
   const value: RoomContextValue = {
     client,
@@ -78,6 +93,7 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
     signalingConnected,
     banner,
     dismissBanner: () => setBanner(null),
+    kicked,
   };
 
   return <RoomContext.Provider value={value}>{children}</RoomContext.Provider>;
