@@ -1,11 +1,37 @@
-import { createServer } from "node:http";
+import { createServer, IncomingMessage } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
 import { parseClientMessage, ServerToClient } from "./protocol.js";
 import { RoomRegistry } from "./rooms.js";
 import { generateIceServers } from "./turn.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
+/**
+ * Comma-separated list of allowed browser origins. Unset = allow any origin
+ * (local development). When set, WebSocket upgrades and /ice-servers requests
+ * from other origins are refused.
+ */
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+const HEARTBEAT_MS = 30_000;
+/** Per-socket token bucket: signalling bursts during ICE are ~20-40 messages. */
+const RATE_LIMIT_BURST = 60;
+const RATE_LIMIT_PER_SEC = 20;
+const MAX_MESSAGE_BYTES = 64 * 1024;
+
 const registry = new RoomRegistry();
+
+function originAllowed(origin: string | undefined): boolean {
+  if (ALLOWED_ORIGINS.length === 0) return true;
+  return !!origin && ALLOWED_ORIGINS.includes(origin);
+}
+
+function corsOrigin(req: IncomingMessage): string | null {
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.length === 0) return "*";
+  return origin && ALLOWED_ORIGINS.includes(origin) ? origin : null;
+}
 
 const httpServer = createServer((req, res) => {
   if (req.url === "/health") {
@@ -14,10 +40,17 @@ const httpServer = createServer((req, res) => {
     return;
   }
   if (req.url === "/ice-servers") {
+    const allowOrigin = corsOrigin(req);
+    if (!allowOrigin) {
+      res.writeHead(403);
+      res.end();
+      return;
+    }
     void generateIceServers().then((iceServers) => {
       res.writeHead(200, {
         "content-type": "application/json",
-        "access-control-allow-origin": "*",
+        "access-control-allow-origin": allowOrigin,
+        vary: "origin",
       });
       res.end(JSON.stringify({ iceServers }));
     });
@@ -27,18 +60,57 @@ const httpServer = createServer((req, res) => {
   res.end();
 });
 
-const wss = new WebSocketServer({ server: httpServer });
+const wss = new WebSocketServer({
+  server: httpServer,
+  maxPayload: MAX_MESSAGE_BYTES,
+  verifyClient: ({ origin }: { origin: string }) => originAllowed(origin),
+});
 
 function send(ws: WebSocket, msg: ServerToClient) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+}
+
+interface SocketMeta {
+  alive: boolean;
+  tokens: number;
+  lastRefill: number;
+}
+
+const meta = new WeakMap<WebSocket, SocketMeta>();
+
+function takeToken(ws: WebSocket): boolean {
+  const m = meta.get(ws);
+  if (!m) return true;
+  const now = Date.now();
+  m.tokens = Math.min(RATE_LIMIT_BURST, m.tokens + ((now - m.lastRefill) / 1000) * RATE_LIMIT_PER_SEC);
+  m.lastRefill = now;
+  if (m.tokens < 1) return false;
+  m.tokens -= 1;
+  return true;
 }
 
 wss.on("connection", (ws) => {
   let roomCode: string | null = null;
   let peerId: string | null = null;
   let joined = false;
+  meta.set(ws, { alive: true, tokens: RATE_LIMIT_BURST, lastRefill: Date.now() });
+
+  // Without a listener, an 'error' on a client socket (bad frame, reset) is
+  // an unhandled EventEmitter error and takes the whole process down.
+  ws.on("error", () => {
+    ws.terminate();
+  });
+
+  ws.on("pong", () => {
+    const m = meta.get(ws);
+    if (m) m.alive = true;
+  });
 
   ws.on("message", (raw) => {
+    if (!takeToken(ws)) {
+      ws.close(1008, "rate limit");
+      return;
+    }
     const msg = parseClientMessage(raw.toString());
     if (!msg) return;
 
@@ -108,6 +180,23 @@ wss.on("connection", (ws) => {
     }
   });
 });
+
+// Half-open TCP connections never emit 'close'; a zombie peer would otherwise
+// stay in its room forever and, as earliest joiner, block lobby host election.
+const heartbeat = setInterval(() => {
+  for (const ws of wss.clients) {
+    const m = meta.get(ws);
+    if (!m) continue;
+    if (!m.alive) {
+      ws.terminate();
+      continue;
+    }
+    m.alive = false;
+    ws.ping();
+  }
+}, HEARTBEAT_MS);
+
+wss.on("close", () => clearInterval(heartbeat));
 
 httpServer.listen(PORT, () => {
   console.log(`kazhutha signalling server listening on :${PORT}`);
