@@ -1,10 +1,9 @@
 import { Card, createDeck, isAceOfSpades, Player, randomSeed, shuffle } from "@kazhutha/shared";
 import { GameEvent, Intent } from "./events";
 import { electSuccessorHost, isHostConnected } from "./host";
-import { applyEvents } from "./reducer";
+import { applyEvents, firstActiveFrom, nextActor } from "./reducer";
 import { GameState } from "./state";
 import { isCardLegal, isVettuPlay } from "./validators";
-import { firstActiveFrom, nextActor } from "./reducer";
 
 function activePlayersWithCards(state: GameState): string[] {
   return state.activePlayers.filter((id) => (state.hands[id]?.length ?? 0) > 0);
@@ -28,6 +27,7 @@ function isLobbyHost(state: GameState, playerId: string): boolean {
 export function processIntent(state: GameState, intent: Intent): HostResult {
   switch (intent.type) {
     case "JoinRoom": {
+      if ((state.kickedPlayerIds ?? []).includes(intent.playerId)) return fail("Removed from this room");
       const existing = state.players.find((p) => p.id === intent.playerId);
       const player: Player = existing
         ? { ...existing, connected: true }
@@ -42,10 +42,21 @@ export function processIntent(state: GameState, intent: Intent): HostResult {
       if (intent.playerId === state.hostId && state.paused && state.phase === "playing") {
         events.push({ type: "GameResumed" });
       }
+      // Host already out of the game only because nobody seated was online when
+      // they exited; hand over as soon as a seated player is back.
+      if (
+        state.phase === "playing" &&
+        state.hostId &&
+        state.finishedPlayers.includes(state.hostId) &&
+        state.activePlayers.includes(intent.playerId)
+      ) {
+        events.push({ type: "HostTransferred", newHostId: intent.playerId });
+      }
       return ok(events);
     }
 
     case "SetReady": {
+      if (state.phase !== "lobby") return fail("Game already started");
       const player = state.players.find((p) => p.id === intent.playerId);
       if (!player) return fail("Unknown player");
       return ok([{ type: "PlayerReadyChanged", playerId: intent.playerId, ready: intent.ready }]);
@@ -59,7 +70,9 @@ export function processIntent(state: GameState, intent: Intent): HostResult {
 
     case "KickPlayer": {
       if (!isLobbyHost(state, intent.playerId)) return fail("Only the host can kick players");
+      if (state.phase !== "lobby") return fail("Players can only be removed before the game starts");
       if (intent.target === state.hostId) return fail("Host cannot kick themselves");
+      if (!state.players.some((p) => p.id === intent.target)) return fail("Unknown player");
       return ok([{ type: "PlayerKicked", playerId: intent.target }]);
     }
 
@@ -80,6 +93,12 @@ export function processIntent(state: GameState, intent: Intent): HostResult {
       ]);
     }
 
+    case "ReturnToLobby": {
+      if (!isLobbyHost(state, intent.playerId)) return fail("Only the host can return to the lobby");
+      if (state.phase !== "finished") return fail("Game is not finished");
+      return ok([{ type: "ReturnedToLobby" }]);
+    }
+
     default:
       return fail("Unknown intent");
   }
@@ -91,6 +110,7 @@ function startGame(state: GameState, requesterId: string): HostResult {
   const connected = state.players.filter((p) => p.connected);
   if (connected.length < 2) return fail("Need at least 2 players");
   if (connected.length > 10) return fail("Too many players (max 10)");
+  if (!connected.every((p) => p.ready)) return fail("Everyone must be ready");
 
   const turnOrder = connected.map((p) => p.id);
   const seed = randomSeed();
@@ -115,6 +135,47 @@ function startGame(state: GameState, requesterId: string): HostResult {
   ]);
 }
 
+/**
+ * Exit every candidate (seating order), then hand the host role to a player
+ * who is still seated and connected if the host was among them. Election runs
+ * after all exits so a successor can never be someone who left in the same
+ * round. Returns the state after the appended events.
+ */
+function exitPlayers(state: GameState, events: GameEvent[], candidates: string[]): GameState {
+  const exitOrder = state.turnOrder.filter((id) => candidates.includes(id));
+  let running = state;
+  exitOrder.forEach((id, i) => {
+    const evt: GameEvent = { type: "PlayerExited", playerId: id, order: state.finishedPlayers.length + i + 1 };
+    events.push(evt);
+    running = applyEvents(running, [evt]);
+  });
+
+  if (state.hostId && exitOrder.includes(state.hostId)) {
+    const successor = electSuccessorHost(running, state.hostId);
+    if (successor) {
+      const transfer: GameEvent = { type: "HostTransferred", newHostId: successor };
+      events.push(transfer);
+      running = applyEvents(running, [transfer]);
+    }
+  }
+  return running;
+}
+
+/** True when at most one seated player still holds cards; appends GameFinished. */
+function finishIfDecided(state: GameState, events: GameEvent[], fallbackKazhutha: string): boolean {
+  const remaining = state.activePlayers;
+  if (remaining.length <= 1) {
+    events.push({ type: "GameFinished", kazhuthaId: remaining[0] ?? fallbackKazhutha });
+    return true;
+  }
+  const withCards = activePlayersWithCards(state);
+  if (withCards.length <= 1) {
+    events.push({ type: "GameFinished", kazhuthaId: withCards[0] ?? fallbackKazhutha });
+    return true;
+  }
+  return false;
+}
+
 function playCard(state: GameState, playerId: string, card: Card): HostResult {
   if (state.phase !== "playing") return fail("Game is not in progress");
   if (state.paused) return fail("Game is paused");
@@ -123,6 +184,7 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
   if (!hand.some((c) => c.suit === card.suit && c.rank === card.rank)) return fail("Card not in hand");
   if (!isCardLegal(state, playerId, card)) return fail("Illegal move");
 
+  const at = Date.now();
   const playedEvent: GameEvent = { type: "CardPlayed", playerId, card };
   const vettu = isVettuPlay(state, playerId, card);
   const afterPlay = applyEvents(state, [playedEvent]);
@@ -136,15 +198,27 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
   }
 
   if (vettu) {
-    const vettuEvent: GameEvent = { type: "VettuOccurred", playerId, card };
     const collectorId = afterPlay.highestCard?.playerId ?? state.leaderId!;
-    const collectedEvent: GameEvent = { type: "CardsCollected", collectorId, cards: afterPlay.centerPile.map((p) => p.card) };
-    const roundStartedEvent: GameEvent = {
-      type: "RoundStarted",
-      leaderId: collectorId,
-      roundNumber: state.roundNumber + 1,
+    const vettuEvent: GameEvent = { type: "VettuOccurred", playerId, card, at };
+    const collectedEvent: GameEvent = {
+      type: "CardsCollected",
+      collectorId,
+      cards: afterPlay.centerPile.map((p) => p.card),
+      at,
     };
-  return ok([...events, vettuEvent, collectedEvent, roundStartedEvent]);
+    events.push(vettuEvent, collectedEvent);
+    const afterCollect = applyEvents(afterPlay, [vettuEvent, collectedEvent]);
+
+    // A vettu can leave a single player holding every card; nobody else has a
+    // move, so exit the empty hands and finish instead of forcing a lone play.
+    if (activePlayersWithCards(afterCollect).length <= 1) {
+      const empty = afterCollect.activePlayers.filter((id) => (afterCollect.hands[id]?.length ?? 0) === 0);
+      const settled = exitPlayers(afterCollect, events, empty);
+      if (finishIfDecided(settled, events, collectorId)) return ok(events);
+    }
+
+    events.push({ type: "RoundStarted", leaderId: collectorId, roundNumber: state.roundNumber + 1 });
+    return ok(events);
   }
 
   if (nextActor(afterPlay) !== null) {
@@ -152,7 +226,7 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
   }
 
   const winnerId = afterPlay.highestCard!.playerId;
-  const finishedEvent: GameEvent = { type: "RoundFinished", winnerId };
+  const finishedEvent: GameEvent = { type: "RoundFinished", winnerId, at };
   const afterFinish = applyEvents(afterPlay, [finishedEvent]);
   events.push(finishedEvent);
 
@@ -160,37 +234,11 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
   if (exitCandidates.length === state.activePlayers.length) {
     exitCandidates = exitCandidates.filter((id) => id !== winnerId);
   }
-  const exitOrder = state.turnOrder.filter((id) => exitCandidates.includes(id));
 
-  let runningState = afterFinish;
-  exitOrder.forEach((id, i) => {
-    const evt: GameEvent = { type: "PlayerExited", playerId: id, order: state.finishedPlayers.length + i + 1 };
-    events.push(evt);
-    runningState = applyEvents(runningState, [evt]);
-    if (id === state.hostId) {
-      const successor =
-        runningState.successorHostId ?? electSuccessorHost(runningState, id);
-      if (successor) {
-        const transfer: GameEvent = { type: "HostTransferred", newHostId: successor };
-        events.push(transfer);
-        runningState = applyEvents(runningState, [transfer]);
-      }
-    }
-  });
+  const settled = exitPlayers(afterFinish, events, exitCandidates);
+  if (finishIfDecided(settled, events, winnerId)) return ok(events);
 
-  const remaining = runningState.activePlayers;
-  if (remaining.length <= 1) {
-    const kazhuthaId = remaining[0] ?? winnerId;
-    events.push({ type: "GameFinished", kazhuthaId });
-    return ok(events);
-  }
-
-  const withCards = activePlayersWithCards(runningState);
-  if (withCards.length === 1) {
-    events.push({ type: "GameFinished", kazhuthaId: withCards[0] });
-    return ok(events);
-  }
-
+  const remaining = settled.activePlayers;
   const nextLeader = remaining.includes(winnerId) ? winnerId : firstActiveFrom(state.turnOrder, remaining, winnerId);
   events.push({ type: "RoundStarted", leaderId: nextLeader, roundNumber: state.roundNumber + 1 });
   return ok(events);

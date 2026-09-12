@@ -18,16 +18,22 @@ export interface LastRoundResult {
   at: number;
 }
 
+/** Reducer keeps only this many trailing events; the log is a debugging aid, not game state. */
+export const EVENT_LOG_LIMIT = 200;
+
 export interface GameState {
   roomCode: string;
   hostId: string | null;
-  /** @deprecated Legacy acting-host field; always null in current protocol. */
-  actingHostId: string | null;
   /** Game frozen until host returns (e.g. host disconnected mid-play). */
   paused: boolean;
-  /** Next host once current host exits after clearing their hand. */
+  /**
+   * Advisory pick made when the current host clears their hand. The actual
+   * transfer re-elects at exit time, so this is only a UI hint.
+   */
   successorHostId: string | null;
   players: Player[];
+  /** Players removed by the host; their JoinRoom intents are rejected for this room. */
+  kickedPlayerIds: string[];
   rules: RuleConfig;
   phase: GamePhase;
   turnOrder: string[];
@@ -53,10 +59,10 @@ export function createInitialState(roomCode: string): GameState {
   return {
     roomCode,
     hostId: null,
-    actingHostId: null,
     paused: false,
     successorHostId: null,
     players: [],
+    kickedPlayerIds: [],
     rules: DEFAULT_RULES,
     phase: "lobby",
     turnOrder: [],

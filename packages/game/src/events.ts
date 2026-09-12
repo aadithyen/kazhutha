@@ -65,17 +65,21 @@ export interface VettuOccurredEvent {
   type: "VettuOccurred";
   playerId: string;
   card: Card;
+  /** Host wall-clock ms; keeps the reducer deterministic and gives the UI a per-round key. */
+  at: number;
 }
 
 export interface RoundFinishedEvent {
   type: "RoundFinished";
   winnerId: string;
+  at: number;
 }
 
 export interface CardsCollectedEvent {
   type: "CardsCollected";
   collectorId: string;
   cards: Card[];
+  at: number;
 }
 
 export interface PlayerExitedEvent {
@@ -100,13 +104,9 @@ export interface StateSnapshotEvent {
   state: GameState;
 }
 
-export interface ActingHostElectedEvent {
-  type: "ActingHostElected";
-  actingHostId: string;
-}
-
-export interface ActingHostReleasedEvent {
-  type: "ActingHostReleased";
+/** Host reset a finished game back to the lobby; players stay, hands and progress clear. */
+export interface ReturnedToLobbyEvent {
+  type: "ReturnedToLobby";
 }
 
 export interface GamePausedEvent {
@@ -147,8 +147,7 @@ export type GameEvent =
   | GameFinishedEvent
   | CardCountVisibilityChangedEvent
   | StateSnapshotEvent
-  | ActingHostElectedEvent
-  | ActingHostReleasedEvent
+  | ReturnedToLobbyEvent
   | GamePausedEvent
   | GameResumedEvent
   | HostSuccessorAssignedEvent
@@ -165,7 +164,8 @@ export type Intent =
   | { type: "StartGame"; playerId: string }
   | { type: "PlayCard"; playerId: string; card: Card }
   | { type: "RequestSnapshot"; playerId: string }
-  | { type: "SetCardCountVisible"; playerId: string; visible: boolean };
+  | { type: "SetCardCountVisible"; playerId: string; visible: boolean }
+  | { type: "ReturnToLobby"; playerId: string };
 
 export interface IntentRejected {
   type: "IntentRejected";
