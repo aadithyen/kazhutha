@@ -14,7 +14,10 @@ export default function VettuBanner() {
   const { state } = useRoom();
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
-  const lastVettuAtRef = useRef<number | null>(null);
+  // Joining mid-game inherits the host's last result; don't announce an old vettu.
+  const lastVettuAtRef = useRef<number | null>(
+    state.lastRoundResult?.kind === "vettu" ? state.lastRoundResult.at : null,
+  );
 
   useEffect(() => {
     const result = state.lastRoundResult;

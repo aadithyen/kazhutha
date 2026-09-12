@@ -1,3 +1,4 @@
+import { normalizeRoomCode } from "@kazhutha/shared";
 import { FormEvent, useEffect, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import ConnectionBanner from "../components/ConnectionBanner";
@@ -12,11 +13,12 @@ export default function RoomPage() {
   const { code } = useParams<{ code: string }>();
   const [hasName, setHasName] = useState(!!getStoredName());
 
-  if (!code) return <Navigate to="/" replace />;
+  const roomCode = code ? normalizeRoomCode(code) : "";
+  if (!roomCode) return <Navigate to="/" replace />;
   if (!hasName) return <NameGate onDone={() => setHasName(true)} />;
 
   return (
-    <RoomProvider roomCode={code.toUpperCase()}>
+    <RoomProvider roomCode={roomCode}>
       <RoomBody />
     </RoomProvider>
   );

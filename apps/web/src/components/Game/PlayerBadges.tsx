@@ -21,7 +21,7 @@ export default function PlayerBadges() {
         const isPendingExit = !isFinished && isStraggler(state, id);
         const isOut = isFinished || isPendingExit;
         const handCount = state.hands[id]?.length ?? 0;
-        const countVisibleToOthers = state.cardCountVisible[id] ?? false;
+        const countVisibleToOthers = state.cardCountVisible[id] ?? true;
         const showHandCount = !dealAnimating && !isOut && (isMe || countVisibleToOthers);
 
         return (

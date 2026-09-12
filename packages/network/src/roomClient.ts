@@ -6,6 +6,7 @@ import {
   eventsForHostDisconnect,
   getAuthorityId,
   processIntent,
+  snapshotOf,
 } from "@kazhutha/game";
 import { electLobbyHost } from "./lobbyHost";
 import { SignalingClient } from "./signalingClient";
@@ -27,12 +28,17 @@ export type RoomClientEvent =
   | { type: "error"; message: string }
   | { type: "hostLeft" }
   | { type: "hostReconnected" }
+  | { type: "kicked" }
   | { type: "signalingStatus"; connected: boolean };
 
 type Handler = (ev: RoomClientEvent) => void;
 
 const STATE_PREFIX = "kazhutha:state:";
 const KEEPALIVE_MS = 15_000;
+/** A reloading host waits this long for a peer snapshot before trusting its own persisted state. */
+const HOST_RECOVERY_TIMEOUT_MS = 5000;
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 10_000;
 
 /**
  * Star-topology P2P room: every peer opens one WebRTC DataChannel to the
@@ -61,9 +67,11 @@ export class RoomClient {
   private handlers = new Set<Handler>();
   private iceServers?: RTCIceServer[];
   private recoveringHost: boolean;
-  private snapshotRequested = false;
+  private recoveryTimer: ReturnType<typeof setTimeout> | null = null;
   private keepaliveTimer: ReturnType<typeof setInterval> | null = null;
   private visibilityHandler: (() => void) | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempts = 0;
 
   constructor(opts: RoomClientOptions) {
     this.playerId = opts.playerId;
@@ -129,6 +137,8 @@ export class RoomClient {
   disconnect() {
     this.stopKeepalive();
     this.unbindVisibilityReconnect();
+    this.clearReconnectTimer();
+    this.clearRecoveryTimer();
     this.signaling.close();
     for (const link of this.links.values()) link.close();
     this.links.clear();
@@ -169,9 +179,40 @@ export class RoomClient {
   private persistState() {
     if (!this.isAuthority) return;
     try {
-      sessionStorage.setItem(STATE_PREFIX + this.roomCode, JSON.stringify(this.engine.getState()));
+      sessionStorage.setItem(STATE_PREFIX + this.roomCode, JSON.stringify(snapshotOf(this.engine.getState())));
     } catch {
       // quota or private mode — recovery falls back to peer snapshot
+    }
+  }
+
+  private snapshotEvent(): GameEvent {
+    return { type: "StateSnapshot", state: snapshotOf(this.engine.getState()) };
+  }
+
+  /**
+   * Side effects shared by every path that folds a batch into the engine:
+   * authority re-sync, host handoff rewiring, lobby re-election after a
+   * rematch reset, kicked-self notification and the offline-new-host guard.
+   */
+  private afterEventsApplied(events: GameEvent[]) {
+    this.syncAuthorityFromState();
+    for (const event of events) {
+      if (event.type === "HostTransferred") {
+        this.handleAuthorityTargetChanged(event.newHostId);
+      }
+      if (event.type === "GameResumed") {
+        this.emit({ type: "hostReconnected" });
+      }
+      if (event.type === "ReturnedToLobby") {
+        this.refreshLobbyAuthority();
+      }
+      if (event.type === "PlayerKicked" && event.playerId === this.playerId) {
+        this.emit({ type: "kicked" });
+      }
+    }
+    if (events.some((e) => e.type === "HostTransferred")) {
+      // Engine never picks an offline successor, but a stale snapshot could.
+      this.applyLocalPause();
     }
   }
 
@@ -232,7 +273,13 @@ export class RoomClient {
 
         if (state.phase !== "lobby") {
           if (this.recoveringHost) {
-            for (const peer of msg.peers) this.ensureLinkAsAnswerer(peer.peerId);
+            if (msg.peers.length === 0) {
+              // Nobody to ask; the persisted copy is the freshest state there is.
+              this.finishHostRecovery(state);
+            } else {
+              for (const peer of msg.peers) this.ensureLinkAsAnswerer(peer.peerId);
+              this.armRecoveryTimeout();
+            }
           } else if (state.hostId === this.playerId) {
             this.syncAuthorityFromState();
             for (const peer of msg.peers) this.ensureLinkAsAnswerer(peer.peerId);
@@ -311,7 +358,7 @@ export class RoomClient {
     this.electedHostId = hostId;
     this.syncAuthorityFromState();
 
-    if (prevHost && prevHost !== hostId) {
+    if (prevHost !== hostId) {
       this.handleAuthorityTargetChanged(hostId);
     }
 
@@ -355,7 +402,8 @@ export class RoomClient {
   private rewireToAuthority(authorityId: string) {
     for (const [peerId, link] of this.links) {
       if (peerId !== authorityId) {
-        link.close();
+        // The batch that announced the handoff was just queued on this link.
+        link.closeWhenFlushed();
         this.links.delete(peerId);
         this.peerStatus.delete(peerId);
       }
@@ -431,7 +479,32 @@ export class RoomClient {
       onStatus: (status) => this.handleLinkStatus(authorityId, link, status),
     });
     this.links.set(authorityId, link);
-    link.createOffer();
+    this.peerStatus.set(authorityId, "connecting");
+    void link.createOffer();
+  }
+
+  private clearReconnectTimer() {
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  }
+
+  /** Exponential backoff so a peer that cannot reach the host does not renegotiate ICE in a tight loop. */
+  private scheduleReconnectToAuthority(authorityId: string) {
+    if (this.reconnectTimer !== null) return;
+    const delay = Math.min(RECONNECT_BASE_MS * 2 ** this.reconnectAttempts, RECONNECT_MAX_MS);
+    this.reconnectAttempts++;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      if (this.isAuthority) return;
+      const current = this.authorityTarget();
+      if (!current || current !== authorityId) return;
+      const state = this.engine.getState();
+      if (state.phase === "lobby" || this.isHostPresentInRoom()) {
+        this.connectToAuthority(authorityId);
+      }
+    }, delay);
   }
 
   private dropPeerLink(peerId: string) {
@@ -464,11 +537,14 @@ export class RoomClient {
     const authorityId = this.authorityTarget();
 
     if (!this.isAuthority && status === "connected" && authorityId && peerId === authorityId) {
+      this.reconnectAttempts = 0;
+      this.clearReconnectTimer();
       this.sendIntent({ type: "JoinRoom", playerId: this.playerId, name: this.name });
     }
 
-    if (this.recoveringHost && status === "connected" && !this.snapshotRequested) {
-      this.snapshotRequested = true;
+    // Ask every peer that comes up while recovering; the first answer wins and
+    // a link that dies before replying does not strand the recovery.
+    if (this.recoveringHost && status === "connected") {
       this.links.get(peerId)?.send({ kind: "snapshot-request" });
     }
 
@@ -479,13 +555,30 @@ export class RoomClient {
         this.peerStatus.delete(peerId);
         const state = this.engine.getState();
         if (state.phase === "lobby" || this.isHostPresentInRoom()) {
-          this.connectToAuthority(authorityId);
+          this.scheduleReconnectToAuthority(authorityId);
         }
       }
     }
   }
 
+  private armRecoveryTimeout() {
+    if (this.recoveryTimer !== null) return;
+    this.recoveryTimer = setTimeout(() => {
+      this.recoveryTimer = null;
+      if (this.recoveringHost) this.finishHostRecovery(this.engine.getState());
+    }, HOST_RECOVERY_TIMEOUT_MS);
+  }
+
+  private clearRecoveryTimer() {
+    if (this.recoveryTimer !== null) {
+      clearTimeout(this.recoveryTimer);
+      this.recoveryTimer = null;
+    }
+  }
+
   private finishHostRecovery(state: GameState) {
+    if (!this.recoveringHost) return;
+    this.clearRecoveryTimer();
     const wasPaused = state.paused;
     this.engine.apply({ type: "StateSnapshot", state });
     this.recoveringHost = false;
@@ -508,8 +601,7 @@ export class RoomClient {
     if (msg.kind === "intent" && this.isAuthority) {
       this.handleIntentAsAuthority(msg.intent, fromPeerId);
     } else if (msg.kind === "snapshot-request") {
-      const snapshot: GameEvent = { type: "StateSnapshot", state: this.engine.getState() };
-      this.links.get(fromPeerId)?.send({ kind: "events", events: [snapshot] });
+      this.links.get(fromPeerId)?.send({ kind: "events", events: [this.snapshotEvent()] });
     } else if (msg.kind === "snapshot-response" && this.recoveringHost) {
       this.finishHostRecovery(msg.state);
     } else if (msg.kind === "events" && this.recoveringHost) {
@@ -521,16 +613,11 @@ export class RoomClient {
         this.syncAuthorityFromState();
       }
     } else if (msg.kind === "events") {
+      // Only the authority produces events. The authority itself never applies
+      // events from a client, and clients ignore events from anyone else.
+      if (this.isAuthority || fromPeerId !== this.authorityTarget()) return;
       this.engine.applyMany(msg.events);
-      this.syncAuthorityFromState();
-      for (const event of msg.events) {
-        if (event.type === "HostTransferred") {
-          this.handleAuthorityTargetChanged(event.newHostId);
-        }
-        if (event.type === "GameResumed") {
-          this.emit({ type: "hostReconnected" });
-        }
-      }
+      this.afterEventsApplied(msg.events);
     } else if (msg.kind === "ping") {
       this.links.get(fromPeerId)?.send({ kind: "pong", t: msg.t });
     } else if (msg.kind === "error") {
@@ -539,6 +626,12 @@ export class RoomClient {
   }
 
   private handleIntentAsAuthority(intent: Intent, sourcePeerId: string | null) {
+    // A remote intent must be about the peer that sent it; the DataChannel
+    // identity is the only thing we trust, never the payload.
+    if (sourcePeerId && intent.playerId !== sourcePeerId) {
+      this.links.get(sourcePeerId)?.send({ kind: "error", reason: "Intent sender mismatch" });
+      return;
+    }
     const result = processIntent(this.engine.getState(), intent);
     if (!result.ok) {
       if (sourcePeerId) this.links.get(sourcePeerId)?.send({ kind: "error", reason: result.reason });
@@ -550,23 +643,10 @@ export class RoomClient {
       this.syncAuthorityFromState();
       this.persistState();
       this.broadcastEvents(result.events);
-
-      for (const event of result.events) {
-        if (event.type === "HostTransferred") {
-          this.handleAuthorityTargetChanged(event.newHostId);
-        }
-        if (event.type === "GameResumed") {
-          this.emit({ type: "hostReconnected" });
-        }
-      }
+      this.afterEventsApplied(result.events);
     }
-    if (intent.type === "JoinRoom" && sourcePeerId) {
-      const snapshot: GameEvent = { type: "StateSnapshot", state: this.engine.getState() };
-      this.links.get(sourcePeerId)?.send({ kind: "events", events: [snapshot] });
-    }
-    if (intent.type === "RequestSnapshot" && sourcePeerId) {
-      const snapshot: GameEvent = { type: "StateSnapshot", state: this.engine.getState() };
-      this.links.get(sourcePeerId)?.send({ kind: "events", events: [snapshot] });
+    if ((intent.type === "JoinRoom" || intent.type === "RequestSnapshot") && sourcePeerId) {
+      this.links.get(sourcePeerId)?.send({ kind: "events", events: [this.snapshotEvent()] });
     }
   }
 

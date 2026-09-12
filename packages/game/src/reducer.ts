@@ -1,5 +1,5 @@
 import { GameEvent } from "./events";
-import { GameState } from "./state";
+import { createInitialState, EVENT_LOG_LIMIT, GameState } from "./state";
 
 /**
  * Finds the next player who still owes an action this round, walking the
@@ -62,7 +62,32 @@ export function firstActiveFrom(turnOrder: string[], activePlayers: string[], fr
 export function applyEvent(state: GameState, event: GameEvent): GameState {
   const next = applyEventInner(state, event);
   if (event.type === "StateSnapshot") return next;
-  return { ...next, eventLog: [...state.eventLog, event] };
+  const log = state.eventLog.length >= EVENT_LOG_LIMIT ? state.eventLog.slice(-(EVENT_LOG_LIMIT - 1)) : state.eventLog;
+  return { ...next, eventLog: [...log, event] };
+}
+
+/** Fill fields a snapshot from an older build or persisted session may lack. */
+export function normalizeState(state: GameState): GameState {
+  const base = createInitialState(state.roomCode);
+  return { ...base, ...state, eventLog: state.eventLog ?? [] };
+}
+
+/** Snapshot payload: drop the event log so joins and persistence stay small. */
+export function snapshotOf(state: GameState): GameState {
+  return { ...state, eventLog: [] };
+}
+
+/** Lobby-shaped state that keeps the room, host, ban list and roster. */
+function resetToLobby(state: GameState): GameState {
+  const base = createInitialState(state.roomCode);
+  return {
+    ...base,
+    hostId: state.hostId,
+    rules: state.rules,
+    players: state.players.map((p) => ({ ...p, ready: false })),
+    kickedPlayerIds: state.kickedPlayerIds ?? [],
+    eventLog: state.eventLog,
+  };
 }
 
 function applyEventInner(state: GameState, event: GameEvent): GameState {
@@ -84,13 +109,16 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
         players: state.players.map((p) => (p.id === event.playerId ? { ...p, connected: false } : p)),
       };
 
-    case "PlayerKicked":
+    case "PlayerKicked": {
+      const kicked = state.kickedPlayerIds ?? [];
       return {
         ...state,
         players: state.players.filter((p) => p.id !== event.playerId),
         turnOrder: state.turnOrder.filter((id) => id !== event.playerId),
         activePlayers: state.activePlayers.filter((id) => id !== event.playerId),
+        kickedPlayerIds: kicked.includes(event.playerId) ? kicked : [...kicked, event.playerId],
       };
+    }
 
     case "PlayerReadyChanged":
       return {
@@ -105,10 +133,14 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
       return {
         ...state,
         phase: "playing",
+        // Players who were listed but offline at start are not seated; drop them from the roster.
+        players: state.players.filter((p) => event.turnOrder.includes(p.id)),
         turnOrder: event.turnOrder,
         activePlayers: event.turnOrder.slice(),
         finishedPlayers: [],
         kazhuthaId: null,
+        successorHostId: null,
+        lastRoundResult: null,
         cardCountVisible: Object.fromEntries(event.turnOrder.map((id) => [id, true])),
       };
 
@@ -181,7 +213,7 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
           kind: "vettu",
           vettuBy: event.playerId,
           pile: state.centerPile,
-          at: Date.now(),
+          at: event.at,
         },
       };
 
@@ -190,7 +222,7 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
       return {
         ...state,
         centerPile: [],
-        lastRoundResult: { kind: "normal", winnerId: event.winnerId, pile, at: Date.now() },
+        lastRoundResult: { kind: "normal", winnerId: event.winnerId, pile, at: event.at },
       };
     }
 
@@ -201,7 +233,15 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
         ...state,
         hands: { ...state.hands, [event.collectorId]: [...existing, ...event.cards] },
         centerPile: [],
-        lastRoundResult: { kind: "vettu", collectorId: event.collectorId, pile, at: Date.now() },
+        // Host got cards back, so the advisory successor no longer applies.
+        successorHostId: event.collectorId === state.hostId ? null : state.successorHostId,
+        lastRoundResult: {
+          kind: "vettu",
+          vettuBy: state.lastRoundResult?.kind === "vettu" ? state.lastRoundResult.vettuBy : undefined,
+          collectorId: event.collectorId,
+          pile,
+          at: event.at,
+        },
       };
     }
 
@@ -222,19 +262,16 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
       };
 
     case "StateSnapshot":
-      return event.state;
+      return normalizeState(event.state);
 
-    case "ActingHostElected":
-      return { ...state, actingHostId: event.actingHostId };
-
-    case "ActingHostReleased":
-      return { ...state, actingHostId: null };
+    case "ReturnedToLobby":
+      return resetToLobby(state);
 
     case "GamePaused":
       return { ...state, paused: true };
 
     case "GameResumed":
-      return { ...state, paused: false, actingHostId: null };
+      return { ...state, paused: false };
 
     case "HostSuccessorAssigned":
       return { ...state, successorHostId: event.successorHostId };
@@ -243,7 +280,6 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
       return {
         ...state,
         hostId: event.newHostId,
-        actingHostId: null,
         successorHostId: null,
         players: state.players.map((p) => ({ ...p, isHost: p.id === event.newHostId })),
       };

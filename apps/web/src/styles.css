@@ -249,6 +249,15 @@ html[lang="ml"] .vettu-banner-sub {
   }
 }
 
+@keyframes vettu-banner-wipe-out {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
 @keyframes deal-hand-reveal-in {
   from {
     opacity: 0;

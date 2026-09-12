@@ -9,6 +9,9 @@ services:
       TURN_API_TOKEN: ${TURN_API_TOKEN:-}
       TURN_KEY_ID: ${TURN_KEY_ID:-}
       TURN_CREDENTIAL_TTL: ${TURN_CREDENTIAL_TTL:-86400}
+      # Optional comma-separated browser origins allowed to use the tracker and
+      # TURN endpoint (e.g. https://play.example.com). Unset allows any origin.
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
     healthcheck:
       test:
         [

@@ -5,18 +5,15 @@ interface Point {
   y: number;
 }
 
-interface PlayerAvatarContextValue {
+/** Stable callbacks: registering DOM targets, reading their centers, flipping flags. */
+interface PlayerAvatarActions {
   registerAvatar: (playerId: string, el: HTMLElement | null) => void;
   registerHandTarget: (el: HTMLElement | null) => void;
   registerPileTarget: (el: HTMLElement | null) => void;
   registerPlaySlotTarget: (el: HTMLElement | null) => void;
   setLocalFlyActive: (active: boolean) => void;
-  localFlyActive: boolean;
-  pileSettling: boolean;
   setPileSettling: (settling: boolean) => void;
-  dealAnimating: boolean;
   setDealAnimating: (animating: boolean) => void;
-  revealedHandCount: number;
   setRevealedHandCount: (count: number) => void;
   registerHandCardTarget: (index: number, el: HTMLElement | null) => void;
   clearHandCardTargets: () => void;
@@ -27,7 +24,18 @@ interface PlayerAvatarContextValue {
   getPlaySlotTarget: () => Point | null;
 }
 
-const PlayerAvatarContext = createContext<PlayerAvatarContextValue | null>(null);
+/** Flags that change during play; consumers of these re-render on every flip. */
+interface PlayerAvatarFlags {
+  localFlyActive: boolean;
+  pileSettling: boolean;
+  dealAnimating: boolean;
+  revealedHandCount: number;
+}
+
+type PlayerAvatarContextValue = PlayerAvatarActions & PlayerAvatarFlags;
+
+const ActionsContext = createContext<PlayerAvatarActions | null>(null);
+const FlagsContext = createContext<PlayerAvatarFlags | null>(null);
 
 export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
   const avatarsRef = useRef(new Map<string, HTMLElement>());
@@ -35,26 +43,10 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
   const handTargetRef = useRef<HTMLElement | null>(null);
   const pileTargetRef = useRef<HTMLElement | null>(null);
   const playSlotTargetRef = useRef<HTMLElement | null>(null);
-  const [localFlyActive, setLocalFlyActiveState] = useState(false);
-  const [pileSettling, setPileSettlingState] = useState(false);
-  const [dealAnimating, setDealAnimatingState] = useState(false);
-  const [revealedHandCount, setRevealedHandCountState] = useState(0);
-
-  const setLocalFlyActive = useCallback((active: boolean) => {
-    setLocalFlyActiveState(active);
-  }, []);
-
-  const setPileSettling = useCallback((settling: boolean) => {
-    setPileSettlingState(settling);
-  }, []);
-
-  const setDealAnimating = useCallback((animating: boolean) => {
-    setDealAnimatingState(animating);
-  }, []);
-
-  const setRevealedHandCount = useCallback((count: number) => {
-    setRevealedHandCountState(count);
-  }, []);
+  const [localFlyActive, setLocalFlyActive] = useState(false);
+  const [pileSettling, setPileSettling] = useState(false);
+  const [dealAnimating, setDealAnimating] = useState(false);
+  const [revealedHandCount, setRevealedHandCount] = useState(0);
 
   const registerHandCardTarget = useCallback((index: number, el: HTMLElement | null) => {
     if (el) handCardTargetsRef.current.set(index, el);
@@ -121,19 +113,15 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   }, [getPileTarget]);
 
-  const value = useMemo(
+  const actions = useMemo<PlayerAvatarActions>(
     () => ({
       registerAvatar,
       registerHandTarget,
       registerPileTarget,
       registerPlaySlotTarget,
       setLocalFlyActive,
-      localFlyActive,
-      pileSettling,
       setPileSettling,
-      dealAnimating,
       setDealAnimating,
-      revealedHandCount,
       setRevealedHandCount,
       registerHandCardTarget,
       clearHandCardTargets,
@@ -148,14 +136,6 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
       registerHandTarget,
       registerPileTarget,
       registerPlaySlotTarget,
-      setLocalFlyActive,
-      localFlyActive,
-      pileSettling,
-      setPileSettling,
-      dealAnimating,
-      setDealAnimating,
-      revealedHandCount,
-      setRevealedHandCount,
       registerHandCardTarget,
       clearHandCardTargets,
       getHandCardTarget,
@@ -166,11 +146,29 @@ export function PlayerAvatarProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <PlayerAvatarContext.Provider value={value}>{children}</PlayerAvatarContext.Provider>;
+  const flags = useMemo<PlayerAvatarFlags>(
+    () => ({ localFlyActive, pileSettling, dealAnimating, revealedHandCount }),
+    [localFlyActive, pileSettling, dealAnimating, revealedHandCount],
+  );
+
+  return (
+    <ActionsContext.Provider value={actions}>
+      <FlagsContext.Provider value={flags}>{children}</FlagsContext.Provider>
+    </ActionsContext.Provider>
+  );
 }
 
-export function usePlayerAvatars(): PlayerAvatarContextValue {
-  const ctx = useContext(PlayerAvatarContext);
-  if (!ctx) throw new Error("usePlayerAvatars must be used inside PlayerAvatarProvider");
+/** Callbacks only; never re-renders the caller when animation flags flip. */
+export function usePlayerAvatarActions(): PlayerAvatarActions {
+  const ctx = useContext(ActionsContext);
+  if (!ctx) throw new Error("usePlayerAvatarActions must be used inside PlayerAvatarProvider");
   return ctx;
+}
+
+/** Callbacks plus live flags; for components whose render depends on the flags. */
+export function usePlayerAvatars(): PlayerAvatarContextValue {
+  const actions = usePlayerAvatarActions();
+  const flags = useContext(FlagsContext);
+  if (!flags) throw new Error("usePlayerAvatars must be used inside PlayerAvatarProvider");
+  return useMemo(() => ({ ...actions, ...flags }), [actions, flags]);
 }

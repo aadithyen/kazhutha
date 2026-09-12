@@ -76,6 +76,17 @@ For strict NATs, set `TURN_API_TOKEN` / `TURN_KEY_ID` (a [Cloudflare Calls TURN 
 on the signalling server. It generates short-lived ICE credentials at `GET /ice-servers`, which browsers
 fetch on room join — the API token and TURN credentials are never baked into the frontend bundle.
 
+Set `ALLOWED_ORIGINS` (comma-separated, e.g. `https://play.example.com`) on the signalling server to
+refuse WebSocket and `/ice-servers` requests from other sites. Left unset, any origin is accepted, which
+is what you want for local development.
+
+### Trust model
+
+The host peer is the only authority: it validates every intent and rejects any intent whose `playerId`
+does not match the DataChannel it arrived on, and clients only apply events that come from the host.
+Hands are still dealt as plain data to every peer, so a player who opens devtools can read the other
+hands. This is inherent to the serverless design — play with people you trust.
+
 Each app also has a standalone `Dockerfile` if you want to build/deploy them independently:
 
 ```bash

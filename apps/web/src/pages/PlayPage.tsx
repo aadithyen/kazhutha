@@ -1,4 +1,4 @@
-import { randomCode } from "@kazhutha/shared";
+import { isValidRoomCode, normalizeRoomCode, randomCode, ROOM_CODE_LENGTH } from "@kazhutha/shared";
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import LanguageSwitcher from "../components/LanguageSwitcher";
@@ -20,18 +20,23 @@ export default function PlayPage() {
   const [createName, setCreateName] = useState(getStoredName());
   const [joinName, setJoinName] = useState(getStoredName());
   const [joinCode, setJoinCode] = useState("");
+  const [codeError, setCodeError] = useState(false);
 
   function handleCreate(e: FormEvent) {
     e.preventDefault();
     if (!createName.trim()) return;
     storeName(createName);
-    navigate(`/room/${randomCode(6)}`);
+    navigate(`/room/${randomCode()}`);
   }
 
   function handleJoin(e: FormEvent) {
     e.preventDefault();
-    const code = joinCode.trim().toUpperCase();
+    const code = normalizeRoomCode(joinCode);
     if (!joinName.trim() || !code) return;
+    if (!isValidRoomCode(code)) {
+      setCodeError(true);
+      return;
+    }
     storeName(joinName);
     navigate(`/room/${code}`);
   }
@@ -78,11 +83,23 @@ export default function PlayPage() {
           <h2 className="mb-3 font-serif text-xl font-semibold italic">{t("home.joinRoom")}</h2>
           <input
             value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value)}
+            onChange={(e) => {
+              setJoinCode(e.target.value);
+              setCodeError(false);
+            }}
             placeholder={t("home.roomCode")}
-            maxLength={8}
-            className={`mb-3 ${inputClass} uppercase`}
+            maxLength={ROOM_CODE_LENGTH + 2}
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-invalid={codeError || undefined}
+            className={`${codeError ? "mb-1 ring-rose-400 focus:ring-rose-500" : "mb-3"} ${inputClass} uppercase`}
           />
+          {codeError && (
+            <p className="mb-3 text-xs text-rose-600 dark:text-rose-400" role="alert">
+              {t("home.invalidCode")}
+            </p>
+          )}
           <input
             value={joinName}
             onChange={(e) => setJoinName(e.target.value)}
