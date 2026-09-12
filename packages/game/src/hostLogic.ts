@@ -141,7 +141,12 @@ function startGame(state: GameState, requesterId: string): HostResult {
  * after all exits so a successor can never be someone who left in the same
  * round. Returns the state after the appended events.
  */
-function exitPlayers(state: GameState, events: GameEvent[], candidates: string[]): GameState {
+function exitPlayers(
+  state: GameState,
+  events: GameEvent[],
+  candidates: string[],
+  fallbackKazhutha: string,
+): { state: GameState; finished: boolean } {
   const exitOrder = state.turnOrder.filter((id) => candidates.includes(id));
   let running = state;
   exitOrder.forEach((id, i) => {
@@ -150,6 +155,10 @@ function exitPlayers(state: GameState, events: GameEvent[], candidates: string[]
     running = applyEvents(running, [evt]);
   });
 
+  if (finishIfDecided(running, events, fallbackKazhutha)) return { state: running, finished: true };
+
+  // Only hand off when play continues: at game over the finished host is still
+  // connected and keeps the room (and the "Play again" control).
   if (state.hostId && exitOrder.includes(state.hostId)) {
     const successor = electSuccessorHost(running, state.hostId);
     if (successor) {
@@ -158,7 +167,7 @@ function exitPlayers(state: GameState, events: GameEvent[], candidates: string[]
       running = applyEvents(running, [transfer]);
     }
   }
-  return running;
+  return { state: running, finished: false };
 }
 
 /** True when at most one seated player still holds cards; appends GameFinished. */
@@ -213,8 +222,7 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
     // move, so exit the empty hands and finish instead of forcing a lone play.
     if (activePlayersWithCards(afterCollect).length <= 1) {
       const empty = afterCollect.activePlayers.filter((id) => (afterCollect.hands[id]?.length ?? 0) === 0);
-      const settled = exitPlayers(afterCollect, events, empty);
-      if (finishIfDecided(settled, events, collectorId)) return ok(events);
+      if (exitPlayers(afterCollect, events, empty, collectorId).finished) return ok(events);
     }
 
     events.push({ type: "RoundStarted", leaderId: collectorId, roundNumber: state.roundNumber + 1 });
@@ -235,8 +243,8 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
     exitCandidates = exitCandidates.filter((id) => id !== winnerId);
   }
 
-  const settled = exitPlayers(afterFinish, events, exitCandidates);
-  if (finishIfDecided(settled, events, winnerId)) return ok(events);
+  const { state: settled, finished } = exitPlayers(afterFinish, events, exitCandidates, winnerId);
+  if (finished) return ok(events);
 
   const remaining = settled.activePlayers;
   const nextLeader = remaining.includes(winnerId) ? winnerId : firstActiveFrom(state.turnOrder, remaining, winnerId);
