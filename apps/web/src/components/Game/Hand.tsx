@@ -30,6 +30,8 @@ const SWIPE_VELOCITY = 0.55;
 const FLY_DURATION_MS = 320;
 const SNAPBACK_DURATION_MS = 200;
 const GESTURE_LOCK_PX = 8;
+/** If the host has not confirmed the play by then (rejected or lost), put the card back. */
+const PLAY_CONFIRM_TIMEOUT_MS = FLY_DURATION_MS + 1500;
 
 type GestureMode = "pending" | "scroll" | "drag";
 
@@ -156,11 +158,18 @@ export default function Hand({ sortMode }: Props) {
     target: HTMLDivElement | null;
   } | null>(null);
   const suppressClickRef = useRef(false);
-  const rawHand = state.hands[client.playerId] ?? [];
-  const hand = useMemo(() => sortHand(rawHand, sortMode), [rawHand, sortMode]);
+  const confirmTimerRef = useRef<number | null>(null);
+  const flyingIdRef = useRef<string | null>(null);
+  const rawHand = state.hands[client.playerId];
+  const hand = useMemo(() => sortHand(rawHand ?? [], sortMode), [rawHand, sortMode]);
   const fanHandLen = hand.length;
   const displayHand = dealAnimating ? hand.slice(0, revealedHandCount) : hand;
-  const legalCards = getLegalCards(state, client.playerId);
+  const leading = isLeadPlay(state);
+  const legalCards = useMemo(
+    () => getLegalCards(state, client.playerId),
+    // getLegalCards reads exactly these fields; depending on `state` would recompute every event.
+    [state.phase, state.currentTurnId, rawHand, leading, state.leadSuit, state.roundNumber, state.rules, state.leaderId, client.playerId],
+  );
   const myTurn = state.currentTurnId === client.playerId;
   const canPlay = myTurn && !pileSettling && !dealAnimating;
 
@@ -222,7 +231,6 @@ export default function Hand({ sortMode }: Props) {
     if (max < MIN_FAN_SCROLL) return;
     if (dragRef.current) return;
 
-    const leading = isLeadPlay(state);
     const scrollKey = `${state.currentTurnId}|${state.leadSuit ?? ""}|${sortMode}|${legalCards.map(cardId).sort().join()}`;
 
     const anyLegalVisible = hand.some((card, i) => {
@@ -255,7 +263,9 @@ export default function Hand({ sortMode }: Props) {
     hand,
     legalCards,
     sortMode,
-    state,
+    leading,
+    state.currentTurnId,
+    state.leadSuit,
     fanWidth,
     updateScrollBias,
   ]);
@@ -285,6 +295,13 @@ export default function Hand({ sortMode }: Props) {
     return () => registerHandTarget(null);
   }, [registerHandTarget, hand.length]);
 
+  const clearConfirmTimer = useCallback(() => {
+    if (confirmTimerRef.current !== null) {
+      window.clearTimeout(confirmTimerRef.current);
+      confirmTimerRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     const handIds = new Set(hand.map(cardId));
     setPendingRemovalIds((prev) => {
@@ -297,6 +314,8 @@ export default function Hand({ sortMode }: Props) {
     setOverlay((prev) => {
       if (!prev) return null;
       if (!handIds.has(cardId(prev.card))) {
+        clearConfirmTimer();
+        flyingIdRef.current = null;
         setLocalFlyActive(false);
         return null;
       }
@@ -305,13 +324,44 @@ export default function Hand({ sortMode }: Props) {
           (played) => played.playerId === client.playerId && isSameCard(played.card, prev.card),
         );
         if (onPile) {
+          clearConfirmTimer();
+          flyingIdRef.current = null;
           setLocalFlyActive(false);
           return null;
         }
       }
       return prev;
     });
-  }, [hand, state.centerPile, client.playerId, setLocalFlyActive]);
+  }, [hand, state.centerPile, client.playerId, setLocalFlyActive, clearConfirmTimer]);
+
+  useEffect(() => clearConfirmTimer, [clearConfirmTimer]);
+
+  /** Host never confirmed the play: un-hide the card and unlock the hand. */
+  const abortFly = useCallback(
+    (id: string) => {
+      clearConfirmTimer();
+      flyingIdRef.current = null;
+      setPendingRemovalIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setOverlay((prev) => (prev && cardId(prev.card) === id ? null : prev));
+      setLocalFlyActive(false);
+    },
+    [setLocalFlyActive, clearConfirmTimer],
+  );
+
+  // A rejection from the host ("Not your turn", pause, ...) arrives as an
+  // error event; put the card back right away instead of waiting for the timeout.
+  useEffect(
+    () =>
+      client.on((ev) => {
+        if (ev.type === "error" && flyingIdRef.current) abortFly(flyingIdRef.current);
+      }),
+    [client, abortFly],
+  );
 
   const beginFly = useCallback(
     (card: Card, from: { x: number; y: number }, selectedForOverlay: boolean) => {
@@ -322,6 +372,9 @@ export default function Hand({ sortMode }: Props) {
       dragRef.current = null;
       setPendingRemovalIds((prev) => new Set(prev).add(id));
       setLocalFlyActive(true);
+      clearConfirmTimer();
+      flyingIdRef.current = id;
+      confirmTimerRef.current = window.setTimeout(() => abortFly(id), PLAY_CONFIRM_TIMEOUT_MS);
       playSound("cardPlay");
       setOverlay({
         card,
@@ -353,7 +406,7 @@ export default function Hand({ sortMode }: Props) {
         client.sendIntent({ type: "PlayCard", playerId: client.playerId, card });
       }, FLY_DURATION_MS);
     },
-    [client, getPlaySlotTarget, setLocalFlyActive],
+    [client, getPlaySlotTarget, setLocalFlyActive, clearConfirmTimer, abortFly],
   );
 
   const playCard = useCallback(

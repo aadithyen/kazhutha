@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocale } from "../../i18n";
 import { getPlayerColor, getPlayerInitials } from "../../lib/playerColors";
-import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
+import { usePlayerAvatarActions } from "../../lib/PlayerAvatarContext";
 
 interface Props {
   playerId: string;
@@ -29,7 +29,7 @@ export default function PlayerAvatar({
   finishRank,
 }: Props) {
   const { t } = useLocale();
-  const { registerAvatar } = usePlayerAvatars();
+  const { registerAvatar } = usePlayerAvatarActions();
   const ref = useRef<HTMLDivElement>(null);
   const color = getPlayerColor(playerId);
   const initials = getPlayerInitials(name);

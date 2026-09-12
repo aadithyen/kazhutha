@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState, type MutableRefObject } from "react";
 import { CARD_LG, CARD_SM, DEAL_FLY_SPREAD } from "../../lib/cardLayout";
-import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
+import { usePlayerAvatarActions } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
 import { playSound } from "../../lib/sounds";
 import PlayingCard from "../PlayingCard";
@@ -292,7 +292,7 @@ export default function DealAnimation({ dealAnimationSeed }: { dealAnimationSeed
     setDealAnimating,
     setRevealedHandCount,
     clearHandCardTargets,
-  } = usePlayerAvatars();
+  } = usePlayerAvatarActions();
   const [showShuffle, setShowShuffle] = useState(false);
   const [center, setCenter] = useState<Point | null>(null);
   const [flying, setFlying] = useState<FlyingDealCard[]>([]);

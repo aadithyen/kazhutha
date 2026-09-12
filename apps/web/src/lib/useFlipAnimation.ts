@@ -3,6 +3,7 @@ import { RefObject, useLayoutEffect, useRef } from "react";
 /** FLIP layout animation for children marked with `data-flip-key`. */
 export function useFlipAnimation(containerRef: RefObject<HTMLElement | null>, deps: unknown[]) {
   const prevPositions = useRef(new Map<string, DOMRect>());
+  const runs = useRef(new WeakMap<HTMLElement, number>());
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -29,6 +30,17 @@ export function useFlipAnimation(containerRef: RefObject<HTMLElement | null>, de
       requestAnimationFrame(() => {
         el.style.transition = "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)";
         el.style.transform = "";
+        // Drop the inline override once the move lands so class-based
+        // transitions (e.g. opacity fades) work again on this element. A newer
+        // FLIP run on the same element supersedes this restore.
+        const run = (runs.current.get(el) ?? 0) + 1;
+        runs.current.set(el, run);
+        const restore = () => {
+          el.removeEventListener("transitionend", restore);
+          if (runs.current.get(el) === run) el.style.transition = "";
+        };
+        el.addEventListener("transitionend", restore);
+        window.setTimeout(restore, 360);
       });
     });
 

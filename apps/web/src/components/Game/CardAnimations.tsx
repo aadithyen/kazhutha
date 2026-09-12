@@ -1,8 +1,8 @@
 import { Card } from "@kazhutha/shared";
 import { LastRoundResult, PlayedCard } from "@kazhutha/game";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { estimatePileCardRect, rectCenter } from "../../lib/cardLayout";
-import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
+import { usePlayerAvatarActions } from "../../lib/PlayerAvatarContext";
 import { useRoom } from "../../lib/RoomContext";
 import { playSound } from "../../lib/sounds";
 import PlayingCard from "../PlayingCard";
@@ -56,9 +56,13 @@ function AnimatedCard({
   onDone,
 }: {
   item: FlyingCard;
-  onDone: (hidePileKey?: string) => void;
+  onDone: (key: string, hidePileKey?: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Parent re-renders (state events, sibling cards finishing) must not restart
+  // a flight in progress, so the effect depends on the item alone.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -77,12 +81,12 @@ function AnimatedCard({
       el.style.opacity = item.faceDown ? "0" : item.hidePileKey ? "0" : "0.85";
     });
 
-    const timer = window.setTimeout(() => onDone(item.hidePileKey), item.duration);
+    const timer = window.setTimeout(() => onDoneRef.current(item.key, item.hidePileKey), item.duration);
     return () => {
       cancelAnimationFrame(frame);
       window.clearTimeout(timer);
     };
-  }, [item, onDone]);
+  }, [item]);
 
   return (
     <div ref={ref} className="card-flight pointer-events-none fixed z-50 will-change-[left,top,transform,opacity]">
@@ -103,35 +107,27 @@ export default function CardAnimations({
   setLingerPile: React.Dispatch<React.SetStateAction<PlayedCard[]>>;
 }) {
   const { state, client } = useRoom();
-  const { getAvatarCenter, getHandTarget, getPileTarget, setPileSettling } = usePlayerAvatars();
+  const { getAvatarCenter, getHandTarget, getPileTarget, setPileSettling } = usePlayerAvatarActions();
   const [flying, setFlying] = useState<FlyingCard[]>([]);
   const prevPileRef = useRef(state.centerPile);
   const lastPositionsRef = useRef<Map<string, DOMRect>>(new Map());
   const pendingPlayInRef = useRef<PlayedCard[]>([]);
-  const processedRoundAtRef = useRef<number | null>(null);
+  // A peer joining mid-game inherits the host's lastRoundResult; treat it as
+  // already shown so an old round is not replayed on arrival.
+  const processedRoundAtRef = useRef<number | null>(state.lastRoundResult?.at ?? null);
   const lingerTimerRef = useRef<number | null>(null);
 
-  function syncPileSettling(nextLinger: PlayedCard[], nextFlying: FlyingCard[]) {
-    const lingering = nextLinger.length > 0;
-    const animating = nextFlying.some((item) => isSettlementFlyingKey(item.key));
-    setPileSettling(lingering || animating || lingerTimerRef.current !== null);
-  }
+  // pileSettling is a pure function of what is on screen: a lingering pile or
+  // a fold/collect flight still in the air.
+  useLayoutEffect(() => {
+    setPileSettling(lingerPile.length > 0 || flying.some((item) => isSettlementFlyingKey(item.key)));
+  }, [lingerPile, flying, setPileSettling]);
 
   function addHiddenKeys(keys: string[]) {
     if (keys.length === 0) return;
     setHiddenPileKeys((prev) => {
       const next = new Set(prev);
       keys.forEach((k) => next.add(k));
-      return next;
-    });
-  }
-
-  function removeHiddenKey(key?: string) {
-    if (!key) return;
-    setHiddenPileKeys((prev) => {
-      if (!prev.has(key)) return prev;
-      const next = new Set(prev);
-      next.delete(key);
       return next;
     });
   }
@@ -210,7 +206,6 @@ export default function CardAnimations({
     processedRoundAtRef.current = result.at;
     setHiddenPileKeys(new Set());
     setLingerPile(result.pile);
-    syncPileSettling(result.pile, flying);
 
     const roundAt = result.at;
     const pileSnapshot = result.pile;
@@ -220,32 +215,18 @@ export default function CardAnimations({
 
       if (result.kind === "normal") {
         const items = buildFoldItems(pileSnapshot, roundAt);
-        syncPileSettling([], items);
         if (items.length > 0) {
           playSound("cardFold");
-          setFlying((f) => {
-            const next = [...f, ...items];
-            syncPileSettling([], next);
-            return next;
-          });
-        } else {
-          setPileSettling(false);
+          setFlying((f) => [...f, ...items]);
         }
         return;
       }
 
       if (result.kind === "vettu" && result.collectorId) {
         const items = buildCollectItems(result);
-        syncPileSettling([], items);
         if (items.length > 0) {
           playSound("vettuCollect");
-          setFlying((f) => {
-            const next = [...f, ...items];
-            syncPileSettling([], next);
-            return next;
-          });
-        } else {
-          setPileSettling(false);
+          setFlying((f) => [...f, ...items]);
         }
       }
     }, ROUND_LINGER_MS);
@@ -261,7 +242,6 @@ export default function CardAnimations({
 
     if (curr.length > 0) {
       setLingerPile([]);
-      setPileSettling(false);
       if (lingerTimerRef.current !== null) {
         window.clearTimeout(lingerTimerRef.current);
         lingerTimerRef.current = null;
@@ -269,7 +249,7 @@ export default function CardAnimations({
     }
 
     prevPileRef.current = curr;
-  }, [state.centerPile, setLingerPile, setPileSettling]);
+  }, [state.centerPile, setLingerPile]);
 
   useEffect(() => {
     return () => {
@@ -320,30 +300,27 @@ export default function CardAnimations({
     }
   }, [state.centerPile, client.playerId, getAvatarCenter, pileCardRefs]);
 
-  function removeFlying(key: string, hidePileKey?: string) {
-    setFlying((f) => {
-      const next = f.filter((item) => item.key !== key);
-      if (isSettlementFlyingKey(key)) {
-        const animating = next.some((item) => isSettlementFlyingKey(item.key));
-        if (!animating && lingerTimerRef.current === null) {
-          setPileSettling(false);
-        }
+  const removeFlying = useCallback(
+    (key: string, hidePileKey?: string) => {
+      setFlying((f) => f.filter((item) => item.key !== key));
+      if (hidePileKey) {
+        setHiddenPileKeys((prev) => {
+          if (!prev.has(hidePileKey)) return prev;
+          const next = new Set(prev);
+          next.delete(hidePileKey);
+          return next;
+        });
       }
-      return next;
-    });
-    removeHiddenKey(hidePileKey);
-  }
+    },
+    [setHiddenPileKeys],
+  );
 
   if (flying.length === 0) return null;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50" aria-hidden>
       {flying.map((item) => (
-        <AnimatedCard
-          key={item.key}
-          item={item}
-          onDone={(hidePileKey) => removeFlying(item.key, hidePileKey)}
-        />
+        <AnimatedCard key={item.key} item={item} onDone={removeFlying} />
       ))}
     </div>
   );
