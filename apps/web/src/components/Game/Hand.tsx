@@ -156,6 +156,8 @@ export default function Hand({ sortMode }: Props) {
     angle: number;
     selected: boolean;
     target: HTMLDivElement | null;
+    /** False when the gesture started on a card that cannot be played: horizontal scroll only. */
+    playable: boolean;
   } | null>(null);
   const suppressClickRef = useRef(false);
   const confirmTimerRef = useRef<number | null>(null);
@@ -313,28 +315,22 @@ export default function Hand({ sortMode }: Props) {
       }
       return next.size === prev.size ? prev : next;
     });
-    setOverlay((prev) => {
-      if (!prev) return null;
-      if (!handIds.has(cardId(prev.card))) {
-        clearConfirmTimer();
-        flyingIdRef.current = null;
-        setLocalFlyActive(false);
-        return null;
-      }
-      if (prev.phase === "fly") {
-        const onPile = state.centerPile.some(
-          (played) => played.playerId === client.playerId && isSameCard(played.card, prev.card),
-        );
-        if (onPile) {
-          clearConfirmTimer();
-          flyingIdRef.current = null;
-          setLocalFlyActive(false);
-          return null;
-        }
-      }
-      return prev;
-    });
-  }, [hand, state.centerPile, client.playerId, setLocalFlyActive, clearConfirmTimer]);
+    if (!overlay) return;
+    // Decide outside the updater: React may run updaters during the next render,
+    // and a nested setLocalFlyActive there is a setState-in-render.
+    const gone = !handIds.has(cardId(overlay.card));
+    const landed =
+      overlay.phase === "fly" &&
+      state.centerPile.some(
+        (played) => played.playerId === client.playerId && isSameCard(played.card, overlay.card),
+      );
+    if (gone || landed) {
+      clearConfirmTimer();
+      flyingIdRef.current = null;
+      setLocalFlyActive(false);
+      setOverlay(null);
+    }
+  }, [hand, state.centerPile, overlay, client.playerId, setLocalFlyActive, clearConfirmTimer]);
 
   useEffect(() => clearConfirmTimer, [clearConfirmTimer]);
 
@@ -422,8 +418,8 @@ export default function Hand({ sortMode }: Props) {
     [beginFly, selected],
   );
 
-  function tapCard(card: Card) {
-    if (!canPlay || overlay) return;
+  function tapCard(card: Card, legal: boolean) {
+    if (!legal || !canPlay || overlay) return;
     if (selected && isSameCard(selected, card)) {
       playCard(card);
     } else {
@@ -470,10 +466,13 @@ export default function Hand({ sortMode }: Props) {
     legal: boolean,
     angle: number,
   ) {
-    if (!legal || !canPlay || overlay) return;
+    if (overlay) return;
+    // Unplayable cards still let the player drag the fan sideways (the scrollbar is hidden).
+    const playable = legal && canPlay;
     const origin = rectCenter(e.currentTarget.getBoundingClientRect());
     const isSelected = !!selected && isSameCard(selected, card);
     dragRef.current = {
+      playable,
       id: cardId(card),
       card,
       startX: e.clientX,
@@ -495,6 +494,12 @@ export default function Hand({ sortMode }: Props) {
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     const d = dragRef.current;
     if (!d) return;
+    // Pointer released outside any card (no pointerup reached us): drop the stale gesture.
+    if (e.pointerType === "mouse" && e.buttons === 0) {
+      dragRef.current = null;
+      resetDragTarget(d.target);
+      return;
+    }
 
     if (d.mode === "pending") {
       const dx = e.clientX - d.startX;
@@ -509,7 +514,7 @@ export default function Hand({ sortMode }: Props) {
           e.currentTarget.setPointerCapture(e.pointerId);
         }
         return;
-      } else if (dy < 0) {
+      } else if (dy < 0 && d.playable) {
         d.mode = "drag";
         e.currentTarget.setPointerCapture(e.pointerId);
         e.currentTarget.style.touchAction = "none";
@@ -592,7 +597,7 @@ export default function Hand({ sortMode }: Props) {
     }
     if (d.mode === "pending") {
       setDragId(null);
-      tapCard(d.card);
+      tapCard(d.card, d.playable);
       return;
     }
     const dy = e.clientY - d.startY;
@@ -613,7 +618,7 @@ export default function Hand({ sortMode }: Props) {
     } else if (!d.moved) {
       setDragId(null);
       setOverlay(null);
-      tapCard(d.card);
+      tapCard(d.card, d.playable);
     } else {
       setDragId(null);
       snapBackOverlay(d);
