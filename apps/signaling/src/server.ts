@@ -1,8 +1,10 @@
-import { createServer, IncomingMessage } from "node:http";
+import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
+import { createTraceId } from "@kazhutha/observability";
 import { parseClientMessage, ServerToClient } from "./protocol.js";
 import { RoomRegistry } from "./rooms.js";
 import { generateIceServers } from "./turn.js";
+import { clientIp, handleTelemetryIngest, obs, trackHttpRequest } from "./observability.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
 /**
@@ -33,20 +35,53 @@ function corsOrigin(req: IncomingMessage): string | null {
   return origin && ALLOWED_ORIGINS.includes(origin) ? origin : null;
 }
 
+function finishResponse(
+  req: IncomingMessage,
+  res: ServerResponse,
+  route: string,
+  start: number,
+  traceId: string,
+  work: () => void | Promise<void>,
+): void {
+  const onFinish = () => trackHttpRequest(req, res, route, start, traceId);
+  res.on("finish", onFinish);
+  void Promise.resolve(work()).catch((err) => {
+    obs.logger.error("HTTP handler failed", { traceId, route, error: err });
+    if (!res.headersSent) {
+      res.writeHead(500);
+      res.end();
+    }
+  });
+}
+
 const httpServer = createServer((req, res) => {
-  if (req.url === "/health") {
-    res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ ok: true, rooms: registry.roomCount() }));
+  const start = Date.now();
+  const traceId = createTraceId();
+  const route = req.url?.split("?")[0] ?? "/";
+
+  if (route === "/health") {
+    finishResponse(req, res, "/health", start, traceId, () => {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: true, rooms: registry.roomCount() }));
+    });
     return;
   }
-  if (req.url === "/ice-servers") {
+
+  if (route === "/ice-servers") {
     const allowOrigin = corsOrigin(req);
     if (!allowOrigin) {
+      obs.security.record("unauthorized_access", "ICE servers origin rejected", {
+        source: clientIp(req),
+        route: "/ice-servers",
+        traceId,
+      });
       res.writeHead(403);
+      res.on("finish", () => trackHttpRequest(req, res, "/ice-servers", start, traceId));
       res.end();
       return;
     }
-    void generateIceServers().then((iceServers) => {
+    finishResponse(req, res, "/ice-servers", start, traceId, async () => {
+      const iceServers = await generateIceServers();
       res.writeHead(200, {
         "content-type": "application/json",
         "access-control-allow-origin": allowOrigin,
@@ -56,14 +91,38 @@ const httpServer = createServer((req, res) => {
     });
     return;
   }
+
+  if (route === "/telemetry" && req.method === "POST") {
+    finishResponse(req, res, "/telemetry", start, traceId, async () => {
+      await handleTelemetryIngest(req, res, corsOrigin(req));
+    });
+    return;
+  }
+
+  obs.security.record("invalid_request", "Unknown HTTP route", {
+    source: clientIp(req),
+    route,
+    traceId,
+    detail: req.method,
+  });
   res.writeHead(404);
+  res.on("finish", () => trackHttpRequest(req, res, route, start, traceId));
   res.end();
 });
 
 const wss = new WebSocketServer({
   server: httpServer,
   maxPayload: MAX_MESSAGE_BYTES,
-  verifyClient: ({ origin }: { origin: string }) => originAllowed(origin),
+  verifyClient: ({ origin, req }: { origin: string; req: IncomingMessage }) => {
+    if (!originAllowed(origin)) {
+      obs.security.record("unauthorized_access", "WebSocket origin rejected", {
+        source: clientIp(req),
+        route: "/ws",
+      });
+      return false;
+    }
+    return true;
+  },
 });
 
 function send(ws: WebSocket, msg: ServerToClient) {
@@ -74,6 +133,12 @@ interface SocketMeta {
   alive: boolean;
   tokens: number;
   lastRefill: number;
+  traceId: string;
+  connectedAt: number;
+  source: string;
+  invalidMessages: number;
+  signalMessages: number;
+  reconnect: boolean;
 }
 
 const meta = new WeakMap<WebSocket, SocketMeta>();
@@ -89,15 +154,35 @@ function takeToken(ws: WebSocket): boolean {
   return true;
 }
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req) => {
   let roomCode: string | null = null;
   let peerId: string | null = null;
   let joined = false;
-  meta.set(ws, { alive: true, tokens: RATE_LIMIT_BURST, lastRefill: Date.now() });
+  const traceId = createTraceId();
+  const source = clientIp(req);
+  const connectedAt = Date.now();
 
-  // Without a listener, an 'error' on a client socket (bad frame, reset) is
-  // an unhandled EventEmitter error and takes the whole process down.
+  meta.set(ws, {
+    alive: true,
+    tokens: RATE_LIMIT_BURST,
+    lastRefill: Date.now(),
+    traceId,
+    connectedAt,
+    source,
+    invalidMessages: 0,
+    signalMessages: 0,
+    reconnect: false,
+  });
+
+  obs.metrics?.activeConnections.add(1);
+  obs.metrics?.signalingConnectionsTotal.add(1);
+
+  obs.logger.info("Signaling connection opened", { traceId, route: "/ws" });
+  obs.security.trackRequest(source, "/ws", traceId);
+
   ws.on("error", () => {
+    obs.metrics?.signalingErrorsTotal.add(1, { reason: "socket_error" });
+    obs.logger.warn("Signaling socket error", { traceId, roomCode: roomCode ?? undefined, peerId: peerId ?? undefined });
     ws.terminate();
   });
 
@@ -107,18 +192,57 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("message", (raw) => {
+    const m = meta.get(ws);
     if (!takeToken(ws)) {
+      obs.metrics?.signalingErrorsTotal.add(1, { reason: "rate_limit" });
+      obs.security.record("rate_limit_exceeded", "Signaling rate limit exceeded", {
+        source,
+        route: "/ws",
+        traceId: m?.traceId,
+        sessionId: roomCode ?? undefined,
+        peerId: peerId ?? undefined,
+      });
+      obs.logger.warn("Signaling rate limit exceeded", {
+        traceId: m?.traceId,
+        roomCode: roomCode ?? undefined,
+        peerId: peerId ?? undefined,
+        securityEventType: "rate_limit_exceeded",
+      });
       ws.close(1008, "rate limit");
       return;
     }
+
     const msg = parseClientMessage(raw.toString());
-    if (!msg) return;
+    if (!msg) {
+      if (m) m.invalidMessages += 1;
+      obs.metrics?.signalingMessageErrorsTotal.add(1, { reason: "invalid_json" });
+      if (m && m.invalidMessages >= 5) {
+        obs.security.record("signaling_abuse", "Repeated invalid signaling messages", {
+          source,
+          route: "/ws",
+          traceId: m.traceId,
+          sessionId: roomCode ?? undefined,
+          peerId: peerId ?? undefined,
+          detail: `${m.invalidMessages} invalid messages`,
+        });
+      }
+      return;
+    }
 
     if (msg.type === "join") {
       if (joined) return;
       const room = registry.getOrCreate(msg.roomCode);
 
       const previous = room.peers.get(msg.peerId);
+      if (previous) {
+        if (m) m.reconnect = true;
+        obs.metrics?.signalingReconnectsTotal.add(1);
+        obs.logger.info("Signaling peer reconnected", {
+          traceId: m?.traceId,
+          roomCode: msg.roomCode,
+          peerId: msg.peerId,
+        });
+      }
       previous?.ws.close();
 
       if (previous) {
@@ -143,6 +267,15 @@ wss.on("connection", (ws) => {
 
       send(ws, { type: "joined", peerId: msg.peerId, peers, joinOrder });
 
+      obs.logger.info("Player joined room", {
+        traceId: m?.traceId,
+        roomCode: msg.roomCode,
+        peerId: msg.peerId,
+        sessionId: msg.roomCode,
+        player_count: room.peers.size,
+        reconnect: m?.reconnect,
+      });
+
       for (const peer of room.peers.values()) {
         if (peer.peerId === msg.peerId) continue;
         send(peer.ws, { type: "peer-joined", peerId: msg.peerId, name: msg.name });
@@ -150,13 +283,39 @@ wss.on("connection", (ws) => {
       return;
     }
 
-    if (!joined || !roomCode || !peerId) return;
+    if (!joined || !roomCode || !peerId) {
+      obs.metrics?.signalingMessageErrorsTotal.add(1, { reason: "unjoined" });
+      obs.security.record("invalid_request", "Message before join", {
+        source,
+        route: "/ws",
+        traceId: m?.traceId,
+        detail: msg.type,
+      });
+      return;
+    }
     const room = registry.get(roomCode);
     if (!room) return;
 
     if (msg.type === "signal") {
+      if (m) m.signalMessages += 1;
       const target = room.peers.get(msg.to);
-      if (target) send(target.ws, { type: "signal", from: peerId, data: msg.data });
+      if (!target) {
+        obs.metrics?.signalingMessageErrorsTotal.add(1, { reason: "unknown_peer" });
+        return;
+      }
+      if (!isSignalPayloadKind(msg.data)) {
+        obs.metrics?.signalingMessageErrorsTotal.add(1, { reason: "invalid_signal" });
+        obs.security.record("signaling_abuse", "Invalid signal payload", {
+          source,
+          route: "/ws",
+          traceId: m?.traceId,
+          sessionId: roomCode,
+          peerId,
+          detail: String((msg.data as { kind?: string }).kind),
+        });
+        return;
+      }
+      send(target.ws, { type: "signal", from: peerId, data: msg.data });
       return;
     }
 
@@ -166,14 +325,33 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("close", () => {
+    obs.metrics?.activeConnections.add(-1);
+    const m = meta.get(ws);
+    const durationMs = m ? Date.now() - m.connectedAt : undefined;
+    obs.logger.info("Signaling connection closed", {
+      traceId: m?.traceId,
+      roomCode: roomCode ?? undefined,
+      peerId: peerId ?? undefined,
+      durationMs,
+      reconnect: m?.reconnect,
+      signal_messages: m?.signalMessages,
+    });
+
     if (!roomCode || !peerId) return;
     const room = registry.get(roomCode);
     if (!room) return;
     const current = room.peers.get(peerId);
-    // Ignore close from a superseded socket (same peerId rejoined on a new ws).
     if (!current || current.ws !== ws) return;
     registry.removePeer(roomCode, peerId);
     if (room.peers.size === 0) return;
+
+    obs.logger.info("Player left room", {
+      traceId: m?.traceId,
+      roomCode,
+      peerId,
+      sessionId: roomCode,
+      player_count: room.peers.size,
+    });
 
     for (const peer of room.peers.values()) {
       send(peer.ws, { type: "peer-left", peerId });
@@ -181,8 +359,10 @@ wss.on("connection", (ws) => {
   });
 });
 
-// Half-open TCP connections never emit 'close'; a zombie peer would otherwise
-// stay in its room forever and, as earliest joiner, block lobby host election.
+function isSignalPayloadKind(data: { kind: string }): boolean {
+  return data.kind === "offer" || data.kind === "answer" || data.kind === "candidate";
+}
+
 const heartbeat = setInterval(() => {
   for (const ws of wss.clients) {
     const m = meta.get(ws);
@@ -199,5 +379,9 @@ const heartbeat = setInterval(() => {
 wss.on("close", () => clearInterval(heartbeat));
 
 httpServer.listen(PORT, () => {
-  console.log(`kazhutha signalling server listening on :${PORT}`);
+  obs.logger.info(`kazhutha signalling server listening on :${PORT}`, { route: "/startup" });
+});
+
+process.on("SIGTERM", () => {
+  void obs.shutdown().finally(() => process.exit(0));
 });

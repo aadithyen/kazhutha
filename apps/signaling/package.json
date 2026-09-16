@@ -11,6 +11,7 @@
     "lint": "echo skip"
   },
   "dependencies": {
+    "@kazhutha/observability": "workspace:*",
     "ws": "^8.18.0"
   },
   "devDependencies": {

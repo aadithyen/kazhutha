@@ -12,6 +12,15 @@ services:
       # Optional comma-separated browser origins allowed to use the tracker and
       # TURN endpoint (e.g. https://play.example.com). Unset allows any origin.
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-kazhutha-signaling}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OPENOBSERVE_ORG: ${OPENOBSERVE_ORG:-default}
+      TELEMETRY_IP_HASH_SALT: ${TELEMETRY_IP_HASH_SALT:-}
     healthcheck:
       test:
         [
