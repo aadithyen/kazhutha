@@ -4,8 +4,10 @@ FROM node:22-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@10.33.3 --activate
 WORKDIR /repo
 
-COPY . .
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY apps/web ./apps/web
+COPY packages ./packages
+RUN pnpm install --frozen-lockfile --config.strict-dep-builds=false
 
 ARG VITE_SIGNALING_URL=ws://localhost:8080
 ENV VITE_SIGNALING_URL=$VITE_SIGNALING_URL

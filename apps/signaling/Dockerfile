@@ -4,8 +4,10 @@ FROM node:22-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@10.33.3 --activate
 WORKDIR /repo
 
-COPY . .
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY apps/signaling ./apps/signaling
+COPY packages/observability ./packages/observability
+RUN pnpm install --frozen-lockfile --config.strict-dep-builds=false
 RUN pnpm --filter @kazhutha/observability build
 RUN pnpm --filter @kazhutha/signaling build
 RUN pnpm --filter @kazhutha/signaling deploy --prod --legacy /out
