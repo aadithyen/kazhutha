@@ -132,9 +132,14 @@ Labels never include user/peer/session/IP — only `method`, `route`, `status_co
    ```
 4. Deploy signaling + web as usual.
 
-## Dashboard (suggested panels)
+## Dashboard
 
-Import manually in OpenObserve UI — one dashboard **Kazhutha Overview**:
+**Fastest path:** import the prebuilt dashboard JSON and follow the setup guide:
+
+- [`docs/openobserve-dashboard-setup.md`](./openobserve-dashboard-setup.md) — import steps, empty-panel fixes, alert templates
+- [`docs/dashboards/kazhutha-overview.dashboard.json`](./dashboards/kazhutha-overview.dashboard.json) — **Kazhutha Overview** (3 tabs: Overview, P2P & Games, Security)
+
+Manual panel reference (if you prefer to build from scratch):
 
 ### Application
 
