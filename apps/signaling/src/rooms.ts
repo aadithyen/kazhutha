@@ -40,4 +40,12 @@ export class RoomRegistry {
   roomCount(): number {
     return this.rooms.size;
   }
+
+  playerCount(): number {
+    let total = 0;
+    for (const room of this.rooms.values()) {
+      total += room.peers.size;
+    }
+    return total;
+  }
 }

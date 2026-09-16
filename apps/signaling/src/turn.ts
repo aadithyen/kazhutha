@@ -31,6 +31,7 @@ export async function generateIceServers(): Promise<IceServer[] | null> {
     return await inflight;
   } catch (err) {
     const { obs } = await import("./observability.js");
+    obs.metrics?.turnCredentialErrorsTotal.add(1);
     obs.logger.error("TURN credential generation failed", { error: err, route: "/ice-servers" });
     // Serve stale credentials over nothing; they may still be valid.
     return cache?.servers ?? null;

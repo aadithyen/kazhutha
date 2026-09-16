@@ -125,6 +125,12 @@ const wss = new WebSocketServer({
   },
 });
 
+obs.metrics?.registerOperationalGauges(() => ({
+  activeRooms: registry.roomCount(),
+  activePlayers: registry.playerCount(),
+  websocketConnections: wss.clients.size,
+}));
+
 function send(ws: WebSocket, msg: ServerToClient) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
 }
@@ -232,6 +238,7 @@ wss.on("connection", (ws, req) => {
     if (msg.type === "join") {
       if (joined) return;
       const room = registry.getOrCreate(msg.roomCode);
+      const roomWasEmpty = room.peers.size === 0;
 
       const previous = room.peers.get(msg.peerId);
       if (previous) {
@@ -249,6 +256,8 @@ wss.on("connection", (ws, req) => {
         room.peers.set(msg.peerId, { ...previous, name: msg.name, ws });
       } else {
         room.peers.set(msg.peerId, { peerId: msg.peerId, name: msg.name, ws, joinedAt: Date.now() });
+        obs.metrics?.signalingPlayersJoinedTotal.add(1);
+        if (roomWasEmpty) obs.metrics?.signalingRoomsCreatedTotal.add(1);
       }
       roomCode = msg.roomCode;
       peerId = msg.peerId;
@@ -328,6 +337,11 @@ wss.on("connection", (ws, req) => {
     obs.metrics?.activeConnections.add(-1);
     const m = meta.get(ws);
     const durationMs = m ? Date.now() - m.connectedAt : undefined;
+    if (durationMs !== undefined) {
+      obs.metrics?.signalingConnectionDurationMs.record(durationMs, {
+        reconnect: m?.reconnect ? "true" : "false",
+      });
+    }
     obs.logger.info("Signaling connection closed", {
       traceId: m?.traceId,
       roomCode: roomCode ?? undefined,
@@ -343,6 +357,7 @@ wss.on("connection", (ws, req) => {
     const current = room.peers.get(peerId);
     if (!current || current.ws !== ws) return;
     registry.removePeer(roomCode, peerId);
+    obs.metrics?.signalingPlayersLeftTotal.add(1);
     if (room.peers.size === 0) return;
 
     obs.logger.info("Player left room", {

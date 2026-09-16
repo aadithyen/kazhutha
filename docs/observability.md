@@ -75,13 +75,51 @@ Create these streams (or let first ingest create them):
 
 **Never sent:** SDP bodies, ICE candidates, tokens, full game state/hands.
 
-### Metrics (low cardinality)
+### Metrics (low cardinality, alert-ready)
 
-- `http_requests_total`, `http_request_duration`, `http_errors_total`
-- `active_connections`, `signaling_connections_total`, `signaling_errors_total`
-- `signaling_reconnects_total`, `signaling_message_errors_total`
+**Operational gauges** (current state — use for capacity / “is anyone playing?” alerts):
 
-Labels: `method`, `route`, `status_code`, `reason` — **not** user/peer/session/IP.
+| Metric | Meaning |
+|--------|---------|
+| `signaling_active_rooms` | Rooms with ≥1 connected player |
+| `signaling_active_players` | Players connected across all rooms |
+| `signaling_websocket_connections` | Open WebSocket connections |
+
+**HTTP / availability** (error rate + latency):
+
+| Metric | Meaning |
+|--------|---------|
+| `http_requests_total` | All HTTP requests |
+| `http_errors_total` | Responses with status ≥ 400 |
+| `http_server_errors_total` | **5xx only** — primary availability signal |
+| `http_request_duration_ms` | Request latency histogram (ms) |
+
+Labels: `method`, `route`, `status_code`, `status_class` (`2xx`/`3xx`/`4xx`/`5xx`).
+
+**Signaling lifecycle**:
+
+| Metric | Meaning |
+|--------|---------|
+| `signaling_connections_total` | WebSockets opened (cumulative) |
+| `signaling_players_joined_total` | New players joined (excludes reconnect) |
+| `signaling_players_left_total` | Players left |
+| `signaling_rooms_created_total` | New room codes created |
+| `signaling_reconnects_total` | Same `peerId` rejoined |
+| `signaling_connection_duration_ms` | WebSocket session length histogram |
+| `signaling_errors_total` | Socket / rate-limit errors (`reason` label) |
+| `signaling_message_errors_total` | Bad messages (`reason` label) |
+| `active_connections` | Legacy up/down counter (prefer `signaling_websocket_connections`) |
+
+**Dependencies & client ingest**:
+
+| Metric | Meaning |
+|--------|---------|
+| `turn_credential_errors_total` | Cloudflare TURN API failures |
+| `telemetry_ingest_requests_total` | `POST /telemetry` requests |
+| `telemetry_ingest_errors_total` | Failed ingest (4xx/5xx) |
+| `telemetry_events_ingested_total` | Client events accepted |
+
+Labels never include user/peer/session/IP — only `method`, `route`, `status_code`, `status_class`, `reason`, `reconnect`.
 
 ## OpenObserve setup
 
@@ -104,7 +142,10 @@ Import manually in OpenObserve UI — one dashboard **Kazhutha Overview**:
 - Error rate: logs where `level='error'` or `status_code >= 500`
 - 4xx/5xx: `status_code` breakdown
 - Latency: `avg(duration_ms)` by `route`
-- Active connections: OTLP metric `active_connections`
+- Active rooms / players: `signaling_active_rooms`, `signaling_active_players`
+- WebSocket connections: `signaling_websocket_connections`
+- HTTP latency p95: `http_request_duration_ms` by `route`
+- Error rate: `http_server_errors_total` / `http_requests_total` where `status_class='5xx'`
 
 ### P2P (`client_events`)
 
@@ -123,16 +164,29 @@ Import manually in OpenObserve UI — one dashboard **Kazhutha Overview**:
 
 - `frontend_error`, `webrtc_error`, server `level=error`, `signaling_errors_total`
 
-## Alerts (suggested thresholds)
+## Alerts (OTLP metrics + logs)
 
 Tune to your traffic. For low-volume hobby use, start in **alert-only / high threshold** or monitor dashboards first.
 
+OpenObserve (or any OTLP backend) can alert on exported metrics directly. Example conditions:
+
+| Alert | Metric / query idea | Suggested threshold |
+|-------|---------------------|---------------------|
+| **Signaling down** | `http_requests_total{route="/health"}` rate = 0 for 5 min | Zero health checks |
+| **High 5xx rate** | `rate(http_server_errors_total[5m])` | > 0.1/s or any sustained 5xx |
+| **HTTP error ratio** | `http_errors_total` / `http_requests_total` over 5 min | > 5% |
+| **Slow ICE endpoint** | p95 `http_request_duration_ms{route="/health"}` | > 2000 ms |
+| **TURN broken** | `rate(turn_credential_errors_total[5m])` | > 0 |
+| **Telemetry ingest failing** | `rate(telemetry_ingest_errors_total[5m])` | > 0 |
+| **Signaling errors** | `rate(signaling_errors_total[5m])` | > 1/s sustained |
+| **Connection flood** | `signaling_websocket_connections` | > N (your capacity) |
+| **No players (optional)** | `signaling_active_players` = 0 for 24 h | Informational only |
+
+**Log-based alerts** (streams above) still useful for client-side P2P and security:
+
 | Alert | Condition | Notes |
 |-------|-----------|-------|
-| High 5xx rate | >5 server errors in 5 min | Backend health |
-| High latency | `duration_ms` p95 > 2000 on `/ice-servers` | TURN API slowness |
-| Request spike | `http_requests_total` 3× baseline over 10 min | Possible abuse |
-| P2P failure spike | `connection_failed` > 10 in 15 min | NAT/TURN issues |
+| P2P failure spike | `connection_failed` > 10 in 15 min (`client_events`) | NAT/TURN issues |
 | TURN surge | `candidate_type=relay` > 50% of samples in 1 h | Relay fallback |
 | Auth/origin rejects | `unauthorized_access` > 20 in 10 min | Misconfigured origins or probing |
 | Rate limits | `rate_limit_exceeded` > 30 in 10 min | Hammering |

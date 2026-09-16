@@ -1,4 +1,5 @@
 import { createServerObservability, type ServerObservability } from "./telemetry/server/index.js";
+import { httpStatusClass } from "./telemetry/server/labels.js";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ClientTelemetryEvent } from "./telemetry/types.js";
 
@@ -22,11 +23,13 @@ export function trackHttpRequest(
   const durationMs = Date.now() - start;
   const method = req.method ?? "GET";
   const statusCode = res.statusCode;
-  const labels = { method, route, status_code: String(statusCode) };
+  const statusClass = httpStatusClass(statusCode);
+  const labels = { method, route, status_code: String(statusCode), status_class: statusClass };
 
   obs.metrics?.httpRequestsTotal.add(1, labels);
-  obs.metrics?.httpRequestDuration.record(durationMs, labels);
+  obs.metrics?.httpRequestDurationMs.record(durationMs, labels);
   if (statusCode >= 400) obs.metrics?.httpErrorsTotal.add(1, labels);
+  if (statusCode >= 500) obs.metrics?.httpServerErrorsTotal.add(1, labels);
 
   obs.security.trackRequest(clientIp(req), route, traceId);
 
@@ -54,8 +57,21 @@ export async function handleTelemetryIngest(
   res: ServerResponse,
   allowOrigin: string | null,
 ): Promise<void> {
+  const recordIngest = (statusCode: number, eventCount = 0) => {
+    const labels = {
+      status_code: String(statusCode),
+      status_class: httpStatusClass(statusCode),
+    };
+    obs.metrics?.telemetryIngestRequestsTotal.add(1, labels);
+    if (statusCode >= 400) obs.metrics?.telemetryIngestErrorsTotal.add(1, labels);
+    if (statusCode < 400 && eventCount > 0) {
+      obs.metrics?.telemetryEventsIngestedTotal.add(eventCount);
+    }
+  };
+
   if (!allowOrigin) {
     res.writeHead(403);
+    recordIngest(403);
     res.end();
     return;
   }
@@ -74,6 +90,7 @@ export async function handleTelemetryIngest(
       route: "/telemetry",
     });
     res.writeHead(400);
+    recordIngest(400);
     res.end();
     return;
   }
@@ -81,5 +98,6 @@ export async function handleTelemetryIngest(
   if (events.length > 50) events = events.slice(0, 50);
   obs.ingest.sendClientEvents(events);
   res.writeHead(204, { "access-control-allow-origin": allowOrigin, vary: "origin" });
+  recordIngest(204, events.length);
   res.end();
 }
