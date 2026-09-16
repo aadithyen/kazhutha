@@ -26,12 +26,16 @@ Telemetry is **best-effort**. If OpenObserve is down, the game keeps working.
 | `OTEL_SERVICE_NAME` | `kazhutha-signaling` | Service name |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | _(unset)_ | OpenObserve base URL, e.g. `http://localhost:5080/api/default` |
 | `OTEL_EXPORTER_OTLP_HEADERS` | _(unset)_ | Comma-separated headers, e.g. `Authorization=Basic <base64>` |
+| `OPENOBSERVE_USER` | _(unset)_ | Alternative to headers: ingest user/email |
+| `OPENOBSERVE_PASSWORD` | _(unset)_ | Ingest password or API token (used with `OPENOBSERVE_USER`) |
 | `OPENOBSERVE_ORG` | `default` | Org label in telemetry (ingest URL uses org in `OTEL_EXPORTER_OTLP_ENDPOINT`) |
 | `TELEMETRY_IP_HASH_SALT` | dev salt | Salt for hashed `source_hash` in security events |
 
 When `OTEL_EXPORTER_OTLP_ENDPOINT` is unset, logs still go to stdout as JSON; nothing is forwarded remotely. Export failures are rate-limited warnings on stderr (gameplay unaffected).
 
-On startup, signaling logs either `OpenObserve export enabled` or `OpenObserve export disabled` so you can tell which mode is active.
+On startup, signaling logs `OpenObserve export enabled` (with `openobserve_auth_configured`) then an `OpenObserve startup ingest probe` line with `ingest_ok`, `ingest_status`, and `ingest_detail`. If `openobserve_auth_configured` is false, set `OPENOBSERVE_USER` + `OPENOBSERVE_PASSWORD` or `OTEL_EXPORTER_OTLP_HEADERS`.
+
+In OpenObserve UI, open stream **`application_logs`** (not the default/metrics stream) and search for `kazhutha_openobserve_startup_probe` after deploy.
 
 ### Web client (build-time)
 

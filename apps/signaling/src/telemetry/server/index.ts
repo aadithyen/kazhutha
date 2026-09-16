@@ -37,6 +37,18 @@ export function createServerObservability(): ServerObservability {
       route: "/startup",
       openobserve_endpoint: config.otlpEndpoint,
       openobserve_org: config.openObserveOrg,
+      openobserve_auth_configured: ingest.hasAuth(),
+    });
+    void ingest.verifyIngest().then((result) => {
+      logger.log(result.ok ? "info" : "warn", "OpenObserve startup ingest probe", {
+        route: "/startup",
+        ingest_ok: result.ok,
+        ingest_status: result.status,
+        ingest_successful: result.successful,
+        ingest_failed: result.failed,
+        ingest_detail: result.detail,
+        ingest_url: result.url,
+      });
     });
   } else {
     logger.info("OpenObserve export disabled (set OTEL_EXPORTER_OTLP_ENDPOINT to enable)", {
