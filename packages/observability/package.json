@@ -3,17 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./browser": "./src/browser.ts",
-    "./server": "./src/server/index.ts",
-    "./webrtc-stats": "./src/webrtc-stats.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    },
+    "./webrtc-stats": {
+      "types": "./dist/webrtc-stats.d.ts",
+      "default": "./dist/webrtc-stats.js"
+    }
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
     "lint": "echo skip",
     "test": "node --import tsx --test 'src/**/*.test.ts'"
   },

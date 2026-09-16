@@ -9,7 +9,7 @@
   "scripts": {
     "dev:web": "pnpm --filter @kazhutha/web dev",
     "dev:signaling": "pnpm --filter @kazhutha/signaling dev",
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @kazhutha/observability build && pnpm -r --filter '!@kazhutha/observability' build",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint"
   },

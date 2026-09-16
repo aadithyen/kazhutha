@@ -1,7 +1,8 @@
 services:
   signaling:
     build:
-      context: ./apps/signaling
+      context: .
+      dockerfile: ./apps/signaling/Dockerfile
     restart: unless-stopped
     environment:
       # Optional Cloudflare TURN credentials (see .env.example). When set, the

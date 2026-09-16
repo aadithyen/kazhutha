@@ -9,6 +9,7 @@ RUN pnpm install --frozen-lockfile
 
 ARG VITE_SIGNALING_URL=ws://localhost:8080
 ENV VITE_SIGNALING_URL=$VITE_SIGNALING_URL
+RUN pnpm --filter @kazhutha/observability build
 RUN pnpm --filter @kazhutha/web build
 
 FROM nginx:1.27-alpine
