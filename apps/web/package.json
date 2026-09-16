@@ -15,6 +15,7 @@
   "dependencies": {
     "@kazhutha/game": "workspace:*",
     "@kazhutha/network": "workspace:*",
+    "@kazhutha/observability": "workspace:*",
     "@kazhutha/shared": "workspace:*",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

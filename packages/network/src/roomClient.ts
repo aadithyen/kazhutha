@@ -8,6 +8,7 @@ import {
   processIntent,
   snapshotOf,
 } from "@kazhutha/game";
+import { createTraceId, emitTelemetry, type ClientEventType } from "@kazhutha/observability";
 import { electLobbyHost } from "./lobbyHost";
 import { SignalingClient } from "./signalingClient";
 import { PeerLink } from "./webrtc";
@@ -72,6 +73,8 @@ export class RoomClient {
   private visibilityHandler: (() => void) | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
+  private traceId = createTraceId();
+  private gameStartedAt: number | null = null;
 
   constructor(opts: RoomClientOptions) {
     this.playerId = opts.playerId;
@@ -83,7 +86,11 @@ export class RoomClient {
       this.engine.apply({ type: "StateSnapshot", state: opts.persistedState });
       this.hostId = opts.persistedState.hostId;
     }
-    this.signaling = new SignalingClient(opts.signalingUrl);
+    this.signaling = new SignalingClient(opts.signalingUrl, {
+      roomCode: opts.roomCode,
+      peerId: opts.playerId,
+      traceId: this.traceId,
+    });
     this.signaling.onMessage((msg) => this.handleSignalingMessage(msg));
     this.signaling.onStatus((connected) => {
       this.emit({ type: "signalingStatus", connected });
@@ -176,6 +183,62 @@ export class RoomClient {
     this.handlers.forEach((h) => h(ev));
   }
 
+  getTraceId(): string {
+    return this.traceId;
+  }
+
+  private trackClient(eventType: ClientEventType, fields: Record<string, unknown> = {}) {
+    emitTelemetry({
+      stream: "client_events",
+      body: {
+        timestamp: new Date().toISOString(),
+        stream: "client_events",
+        event_type: eventType,
+        service: "kazhutha-web",
+        environment: "browser",
+        version: "0.1.0",
+        trace_id: this.traceId,
+        session_id: this.roomCode,
+        room_code: this.roomCode,
+        peer_id: this.playerId,
+        player_count: this.engine.getState().players.filter((p) => p.connected).length,
+        ...fields,
+      },
+    });
+  }
+
+  private trackGameEvent(event: GameEvent) {
+    switch (event.type) {
+      case "RoomCreated":
+        this.trackClient("game_created");
+        break;
+      case "PlayerJoined":
+        this.trackClient("player_joined", { joined_player_id: event.player.id });
+        break;
+      case "PlayerLeft":
+        this.trackClient("player_left", { left_player_id: event.playerId });
+        break;
+      case "GameStarted":
+        this.gameStartedAt = Date.now();
+        this.trackClient("game_started");
+        break;
+      case "GameFinished":
+        this.trackClient("game_finished", {
+          game_duration_ms: this.gameStartedAt ? Date.now() - this.gameStartedAt : undefined,
+        });
+        this.gameStartedAt = null;
+        break;
+      case "ReturnedToLobby":
+        this.trackClient("game_abandoned", {
+          game_duration_ms: this.gameStartedAt ? Date.now() - this.gameStartedAt : undefined,
+        });
+        this.gameStartedAt = null;
+        break;
+      default:
+        break;
+    }
+  }
+
   private persistState() {
     if (!this.isAuthority) return;
     try {
@@ -209,6 +272,7 @@ export class RoomClient {
       if (event.type === "PlayerKicked" && event.playerId === this.playerId) {
         this.emit({ type: "kicked" });
       }
+      this.trackGameEvent(event);
     }
     if (events.some((e) => e.type === "HostTransferred")) {
       // Engine never picks an offline successor, but a stale snapshot could.
@@ -474,6 +538,8 @@ export class RoomClient {
     const link: PeerLink = new PeerLink({
       peerId: authorityId,
       iceServers: this.iceServers,
+      roomCode: this.roomCode,
+      traceId: this.traceId,
       onSignal: (data) => this.signaling.send({ type: "signal", to: authorityId, data }),
       onMessage: (msg) => this.handlePeerMessage(authorityId, msg),
       onStatus: (status) => this.handleLinkStatus(authorityId, link, status),
@@ -519,6 +585,8 @@ export class RoomClient {
     const link: PeerLink = new PeerLink({
       peerId,
       iceServers: this.iceServers,
+      roomCode: this.roomCode,
+      traceId: this.traceId,
       onSignal: (data) => this.signaling.send({ type: "signal", to: peerId, data }),
       onMessage: (msg) => this.handlePeerMessage(peerId, msg),
       onStatus: (status) => this.handleLinkStatus(peerId, link, status),
@@ -539,6 +607,8 @@ export class RoomClient {
     if (!this.isAuthority && status === "connected" && authorityId && peerId === authorityId) {
       this.reconnectAttempts = 0;
       this.clearReconnectTimer();
+      link.markReconnect();
+      this.trackClient("peer_connection_established", { remote_peer_id: peerId });
       this.sendIntent({ type: "JoinRoom", playerId: this.playerId, name: this.name });
     }
 
@@ -550,6 +620,10 @@ export class RoomClient {
 
     if (status === "disconnected") {
       this.links.delete(peerId);
+      this.trackClient("peer_connection_failed", {
+        remote_peer_id: peerId,
+        disconnect_reason: "peer_link_down",
+      });
       if (this.isAuthority) this.handlePeerDisconnected(peerId);
       if (!this.isAuthority && authorityId && peerId === authorityId) {
         this.peerStatus.delete(peerId);
