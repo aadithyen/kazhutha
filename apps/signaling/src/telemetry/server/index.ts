@@ -32,6 +32,18 @@ export function createServerObservability(): ServerObservability {
     ingest.sendSecurity([event]);
   });
 
+  if (config.otlpEndpoint) {
+    logger.info("OpenObserve export enabled", {
+      route: "/startup",
+      openobserve_endpoint: config.otlpEndpoint,
+      openobserve_org: config.openObserveOrg,
+    });
+  } else {
+    logger.info("OpenObserve export disabled (set OTEL_EXPORTER_OTLP_ENDPOINT to enable)", {
+      route: "/startup",
+    });
+  }
+
   return {
     config,
     logger,

@@ -26,10 +26,12 @@ Telemetry is **best-effort**. If OpenObserve is down, the game keeps working.
 | `OTEL_SERVICE_NAME` | `kazhutha-signaling` | Service name |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | _(unset)_ | OpenObserve base URL, e.g. `http://localhost:5080/api/default` |
 | `OTEL_EXPORTER_OTLP_HEADERS` | _(unset)_ | Comma-separated headers, e.g. `Authorization=Basic <base64>` |
-| `OPENOBSERVE_ORG` | `default` | OpenObserve organization |
+| `OPENOBSERVE_ORG` | `default` | Org label in telemetry (ingest URL uses org in `OTEL_EXPORTER_OTLP_ENDPOINT`) |
 | `TELEMETRY_IP_HASH_SALT` | dev salt | Salt for hashed `source_hash` in security events |
 
-When `OTEL_EXPORTER_OTLP_ENDPOINT` is unset, logs still go to stdout as JSON; nothing is forwarded remotely.
+When `OTEL_EXPORTER_OTLP_ENDPOINT` is unset, logs still go to stdout as JSON; nothing is forwarded remotely. Export failures are rate-limited warnings on stderr (gameplay unaffected).
+
+On startup, signaling logs either `OpenObserve export enabled` or `OpenObserve export disabled` so you can tell which mode is active.
 
 ### Web client (build-time)
 
