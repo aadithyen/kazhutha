@@ -1,6 +1,6 @@
-import { createServerObservability, type ServerObservability } from "@kazhutha/observability/server";
+import { createServerObservability, type ServerObservability } from "./telemetry/server/index.js";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { ClientTelemetryEvent } from "@kazhutha/observability/server";
+import type { ClientTelemetryEvent } from "./telemetry/types.js";
 
 export const obs: ServerObservability = createServerObservability();
 

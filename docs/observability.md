@@ -6,7 +6,7 @@ Lightweight OpenTelemetry + OpenObserve integration for debugging Kazhutha sessi
 
 | Source | What ships | Destination |
 |--------|------------|-------------|
-| Signaling server | Structured JSON logs, OTLP metrics, security events | OpenObserve (`application_logs`, `security_events`, OTLP metrics) |
+| Signaling server (`apps/signaling/src/telemetry`) | Structured JSON logs, OTLP metrics, security events | OpenObserve (`application_logs`, `security_events`, OTLP metrics) |
 | Browser client | Batched game/WebRTC/error events | `POST /telemetry` on signaling → OpenObserve `client_events` stream |
 
 Correlation: every browser session gets a `trace_id`; `room_code` is the session/game ID. Search OpenObserve for `room_code:"ABC123"` to see server joins, security events, WebRTC samples, and game lifecycle events for one room.

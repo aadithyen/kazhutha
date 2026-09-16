@@ -4,14 +4,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --filter @kazhutha/observability build && tsx watch src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "lint": "echo skip"
+    "lint": "echo skip",
+    "test": "node --import tsx --test 'src/**/*.test.ts'"
   },
   "dependencies": {
-    "@kazhutha/observability": "workspace:*",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.57.0",
+    "@opentelemetry/resources": "^1.30.0",
+    "@opentelemetry/sdk-metrics": "^1.30.0",
+    "@opentelemetry/semantic-conventions": "^1.28.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

@@ -1,20 +1,18 @@
-# Build context must be the monorepo root, e.g.:
-#   docker build -f apps/signaling/Dockerfile -t kazhutha-signaling .
+# Build context is this folder, e.g.:
+#   docker build -t kazhutha-signaling apps/signaling
 FROM node:22-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@10.33.3 --activate
-WORKDIR /repo
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
-COPY apps/signaling ./apps/signaling
-COPY packages/observability ./packages/observability
-RUN pnpm install --frozen-lockfile --config.strict-dep-builds=false
-RUN pnpm --filter @kazhutha/observability build
-RUN pnpm --filter @kazhutha/signaling build
-RUN pnpm --filter @kazhutha/signaling deploy --prod --legacy /out
+WORKDIR /app
+COPY package.json ./
+RUN npm install
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build
 
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /out ./
+COPY package.json ./
+RUN npm install --omit=dev
+COPY --from=builder /app/dist ./dist
 EXPOSE 8080
 CMD ["node", "dist/server.js"]

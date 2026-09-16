@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { SecurityTracker } from "./security";
-import type { SecurityEvent } from "../types";
+import { SecurityTracker } from "./security.js";
+import type { SecurityEvent } from "../types.js";
 
 const config = {
   enabled: true,

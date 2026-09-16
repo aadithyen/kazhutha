@@ -1,12 +1,11 @@
-# Build context must be the monorepo root, e.g.:
-#   docker build -f apps/web/Dockerfile -t kazhutha-web .
+# Build context MUST be the monorepo root (docker-compose sets context: ".").
+#   docker compose build web
+#   docker build -f apps/web/Dockerfile .
 FROM node:22-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@10.33.3 --activate
 WORKDIR /repo
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
-COPY apps/web ./apps/web
-COPY packages ./packages
+COPY . .
 RUN pnpm install --frozen-lockfile --config.strict-dep-builds=false
 
 ARG VITE_SIGNALING_URL=ws://localhost:8080

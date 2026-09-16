@@ -1,6 +1,6 @@
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
-import { createTraceId } from "@kazhutha/observability";
+import { createTraceId } from "./telemetry/correlation.js";
 import { parseClientMessage, ServerToClient } from "./protocol.js";
 import { RoomRegistry } from "./rooms.js";
 import { generateIceServers } from "./turn.js";
