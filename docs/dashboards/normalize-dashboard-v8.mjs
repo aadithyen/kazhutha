@@ -36,14 +36,16 @@ function normalizeQuery(query, queryType) {
     fields.stream_type = "metrics";
     fields.x = [];
     fields.y = [];
-    if (!query.config) query.config = {};
-    if (query.config.promql_legend == null) query.config.promql_legend = "";
   } else if (query.customQuery) {
     cleanCustomAxis(fields);
   }
 
   query.fields = fields;
-  if (!query.config) query.config = { promql_legend: "" };
+  // OpenObserve deserializer requires promql_legend on every query config (even SQL).
+  query.config = {
+    ...(query.config ?? {}),
+    promql_legend: query.config?.promql_legend ?? "",
+  };
   return query;
 }
 
