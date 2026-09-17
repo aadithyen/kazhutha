@@ -40,11 +40,16 @@ Three tabs:
 
 ## 3. Schema version
 
-The import file is **dashboard schema v8** (192-column grid, v8 field bindings). Older v5 exports are kept as `dashboards/kazhutha-overview.v5.dashboard.json`; regenerate v8 with:
+The import file is **dashboard schema v8** (192-column grid, v8 field bindings). It includes required `dashboardId` and PromQL panels use `customQuery: false` with `stream: ""` (OpenObserve import validation).
+
+Older v5 exports: `dashboards/kazhutha-overview.v5.dashboard.json`. Regenerate:
 
 ```bash
 node docs/dashboards/convert-dashboard-v5-to-v8.mjs
+node docs/dashboards/normalize-dashboard-v8.mjs
 ```
+
+**422 on import?** Usually missing `dashboardId`, PromQL with `customQuery: true`, or invalid axis `functionName` on SQL panels. Re-download latest JSON from repo.
 
 ## 4. If a panel is empty
 

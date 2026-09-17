@@ -120,6 +120,9 @@ function convertV5ToV8(data) {
 const input = join(__dirname, "kazhutha-overview.v5.dashboard.json");
 const output = join(__dirname, "kazhutha-overview.dashboard.json");
 const source = JSON.parse(readFileSync(input, "utf8"));
-const converted = convertV5ToV8(source);
+let converted = convertV5ToV8(source);
+converted.dashboardId = converted.dashboardId || "kazhutha-overview";
+delete converted.role;
+delete converted.owner;
 writeFileSync(output, `${JSON.stringify(converted, null, 2)}\n`);
-console.log(`Wrote ${output} (version ${converted.version})`);
+console.log(`Wrote ${output} (version ${converted.version}) — run normalize-dashboard-v8.mjs next`);

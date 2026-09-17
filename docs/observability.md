@@ -137,7 +137,7 @@ Labels never include user/peer/session/IP — only `method`, `route`, `status_co
 **Fastest path:** import the prebuilt dashboard JSON and follow the setup guide:
 
 - [`docs/openobserve-dashboard-setup.md`](./openobserve-dashboard-setup.md) — import steps, empty-panel fixes, alert templates
-- [`docs/dashboards/kazhutha-overview.dashboard.json`](./dashboards/kazhutha-overview.dashboard.json) — **Kazhutha Overview** (3 tabs: Overview, P2P & Games, Security)
+- [`docs/dashboards/kazhutha-overview.dashboard.json`](./dashboards/kazhutha-overview.dashboard.json) — **Kazhutha Overview** (schema v8; 3 tabs: Overview, P2P & Games, Security)
 
 Manual panel reference (if you prefer to build from scratch):
 
