@@ -28,7 +28,7 @@ signaling_active_players
 ## 2. Import the dashboard
 
 1. OpenObserve UI → **Dashboards** → **Import**
-2. Upload [`dashboards/kazhutha-overview.dashboard.json`](./dashboards/kazhutha-overview.dashboard.json)
+2. Upload [`dashboards/kazhutha-overview.dashboard.json`](./dashboards/kazhutha-overview.dashboard.json) (schema **v8** — required by OpenObserve 0.14+)
 3. Pick folder → **Import**
 4. Open **Kazhutha Overview**, set time range **Last 1 hour**, refresh
 
@@ -38,7 +38,15 @@ Three tabs:
 - **P2P & Games** — WebRTC RTT, packet loss, TURN candidate mix, game lifecycle
 - **Security** — rate limits, origin rejects, frontend errors
 
-## 3. If a panel is empty
+## 3. Schema version
+
+The import file is **dashboard schema v8** (192-column grid, v8 field bindings). Older v5 exports are kept as `dashboards/kazhutha-overview.v5.dashboard.json`; regenerate v8 with:
+
+```bash
+node docs/dashboards/convert-dashboard-v5-to-v8.mjs
+```
+
+## 4. If a panel is empty
 
 ### Log panels (SQL)
 
@@ -68,7 +76,7 @@ Replace panel query examples:
 | TURN errors | `sum(increase(turn_credential_errors_total[1h]))` |
 | Signaling errors | `sum(rate(signaling_errors_total[5m]))` by `reason` |
 
-## 4. Add panels manually (template)
+## 5. Add panels manually (template)
 
 **Dashboards → New Dashboard → Add panel**
 
@@ -124,7 +132,7 @@ WHERE room_code = 'YOUR_ROOM_CODE'
 ORDER BY _timestamp ASC
 ```
 
-## 5. Suggested alerts (after dashboard looks good)
+## 6. Suggested alerts (after dashboard looks good)
 
 Create under **Alerts** using same queries:
 
@@ -138,7 +146,7 @@ Create under **Alerts** using same queries:
 
 See [observability.md](./observability.md) for full metric catalog.
 
-## 6. Generate traffic for a demo
+## 7. Generate traffic for a demo
 
 1. Run signaling + web locally
 2. Open room in two tabs (incognito for second player)

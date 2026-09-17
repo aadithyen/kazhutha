@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 8,
   "title": "Kazhutha Overview",
   "description": "Signaling health, rooms/players, P2P quality, and security for Kazhutha",
   "role": "",
@@ -14,7 +14,11 @@
           "type": "gauge",
           "title": "Active Players",
           "description": "OTLP gauge signaling_active_players",
-          "config": { "show_legends": false, "unit": "numbers", "decimals": 0 },
+          "config": {
+            "show_legends": false,
+            "unit": "numbers",
+            "decimals": 0
+          },
           "queryType": "promql",
           "queries": [
             {
@@ -25,19 +29,38 @@
                 "stream_type": "metrics",
                 "x": [],
                 "y": [],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              },
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 0, "y": 0, "w": 8, "h": 7, "i": 1 }
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 14,
+            "i": 1
+          }
         },
         {
           "id": "Panel_active_rooms",
           "type": "gauge",
           "title": "Active Rooms",
           "description": "OTLP gauge signaling_active_rooms",
-          "config": { "show_legends": false, "unit": "numbers", "decimals": 0 },
+          "config": {
+            "show_legends": false,
+            "unit": "numbers",
+            "decimals": 0
+          },
           "queryType": "promql",
           "queries": [
             {
@@ -48,19 +71,38 @@
                 "stream_type": "metrics",
                 "x": [],
                 "y": [],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              },
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 8, "y": 0, "w": 8, "h": 7, "i": 2 }
+          "layout": {
+            "x": 32,
+            "y": 0,
+            "w": 32,
+            "h": 14,
+            "i": 2
+          }
         },
         {
           "id": "Panel_ws_connections",
           "type": "gauge",
           "title": "WebSocket Connections",
           "description": "OTLP gauge signaling_websocket_connections",
-          "config": { "show_legends": false, "unit": "numbers", "decimals": 0 },
+          "config": {
+            "show_legends": false,
+            "unit": "numbers",
+            "decimals": 0
+          },
           "queryType": "promql",
           "queries": [
             {
@@ -71,19 +113,38 @@
                 "stream_type": "metrics",
                 "x": [],
                 "y": [],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              },
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 16, "y": 0, "w": 8, "h": 7, "i": 3 }
+          "layout": {
+            "x": 64,
+            "y": 0,
+            "w": 32,
+            "h": 14,
+            "i": 3
+          }
         },
         {
           "id": "Panel_http_req_rate",
           "type": "line",
           "title": "HTTP Request Rate",
           "description": "Requests per second from OTLP counter http_requests_total",
-          "config": { "show_legends": true, "unit": "reqps", "decimals": 2 },
+          "config": {
+            "show_legends": true,
+            "unit": "reqps",
+            "decimals": 2
+          },
           "queryType": "promql",
           "queries": [
             {
@@ -94,19 +155,38 @@
                 "stream_type": "metrics",
                 "x": [],
                 "y": [],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": { "promql_legend": "total" }
+              "config": {
+                "promql_legend": "total"
+              },
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 0, "y": 7, "w": 12, "h": 8, "i": 4 }
+          "layout": {
+            "x": 0,
+            "y": 14,
+            "w": 48,
+            "h": 16,
+            "i": 4
+          }
         },
         {
           "id": "Panel_http_5xx_rate",
           "type": "line",
           "title": "HTTP 5xx Rate",
           "description": "Server errors per second — primary downtime signal",
-          "config": { "show_legends": true, "unit": "reqps", "decimals": 3 },
+          "config": {
+            "show_legends": true,
+            "unit": "reqps",
+            "decimals": 3
+          },
           "queryType": "promql",
           "queries": [
             {
@@ -117,19 +197,38 @@
                 "stream_type": "metrics",
                 "x": [],
                 "y": [],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": { "promql_legend": "5xx" }
+              "config": {
+                "promql_legend": "5xx"
+              },
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 12, "y": 7, "w": 12, "h": 8, "i": 5 }
+          "layout": {
+            "x": 48,
+            "y": 14,
+            "w": 48,
+            "h": 16,
+            "i": 5
+          }
         },
         {
           "id": "Panel_http_latency_logs",
           "type": "line",
           "title": "HTTP Latency (avg ms, logs)",
           "description": "Average duration_ms from application_logs HTTP requests",
-          "config": { "show_legends": true, "unit": "milliseconds", "decimals": 0 },
+          "config": {
+            "show_legends": true,
+            "unit": "milliseconds",
+            "decimals": 0
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -138,21 +237,55 @@
               "fields": {
                 "stream": "application_logs",
                 "stream_type": "logs",
-                "x": [{ "label": "Time", "alias": "x_axis_1", "column": "_timestamp" }],
-                "y": [{ "label": "Avg ms", "alias": "y_axis_1", "column": "duration_ms", "aggregationFunction": "avg" }],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "x": [
+                  {
+                    "label": "Time",
+                    "alias": "x_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Avg ms",
+                    "alias": "y_axis_1",
+                    "column": "duration_ms",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": "avg"
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 0, "y": 15, "w": 12, "h": 8, "i": 6 }
+          "layout": {
+            "x": 0,
+            "y": 30,
+            "w": 48,
+            "h": 16,
+            "i": 6
+          }
         },
         {
           "id": "Panel_http_latency_by_route",
           "type": "table",
           "title": "HTTP Latency by Route",
           "description": "avg / max duration_ms per route",
-          "config": { "show_legends": false, "wrap_table_cells": true },
+          "config": {
+            "show_legends": false,
+            "wrap_table_cells": true
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -163,19 +296,36 @@
                 "stream_type": "logs",
                 "x": [],
                 "y": [],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 12, "y": 15, "w": 12, "h": 8, "i": 7 }
+          "layout": {
+            "x": 48,
+            "y": 30,
+            "w": 48,
+            "h": 16,
+            "i": 7
+          }
         },
         {
           "id": "Panel_player_joins",
           "type": "bar",
           "title": "Player Joins",
           "description": "Join events from application_logs",
-          "config": { "show_legends": false, "unit": "numbers", "decimals": 0 },
+          "config": {
+            "show_legends": false,
+            "unit": "numbers",
+            "decimals": 0
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -184,21 +334,56 @@
               "fields": {
                 "stream": "application_logs",
                 "stream_type": "logs",
-                "x": [{ "label": "Time", "alias": "x_axis_1", "column": "_timestamp" }],
-                "y": [{ "label": "Joins", "alias": "y_axis_1", "column": "_timestamp", "aggregationFunction": "count" }],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "x": [
+                  {
+                    "label": "Time",
+                    "alias": "x_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Joins",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": "count"
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 0, "y": 23, "w": 12, "h": 8, "i": 8 }
+          "layout": {
+            "x": 0,
+            "y": 46,
+            "w": 48,
+            "h": 16,
+            "i": 8
+          }
         },
         {
           "id": "Panel_server_errors_logs",
           "type": "bar",
           "title": "Server Errors (logs)",
           "description": "level=error or status_code >= 500",
-          "config": { "show_legends": false, "unit": "numbers", "decimals": 0 },
+          "config": {
+            "show_legends": false,
+            "unit": "numbers",
+            "decimals": 0
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -207,14 +392,45 @@
               "fields": {
                 "stream": "application_logs",
                 "stream_type": "logs",
-                "x": [{ "label": "Time", "alias": "x_axis_1", "column": "_timestamp" }],
-                "y": [{ "label": "Errors", "alias": "y_axis_1", "column": "_timestamp", "aggregationFunction": "count" }],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "x": [
+                  {
+                    "label": "Time",
+                    "alias": "x_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Errors",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": "count"
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 12, "y": 23, "w": 12, "h": 8, "i": 9 }
+          "layout": {
+            "x": 48,
+            "y": 46,
+            "w": 48,
+            "h": 16,
+            "i": 9
+          }
         }
       ]
     },
@@ -227,7 +443,11 @@
           "type": "line",
           "title": "WebRTC Connections Established",
           "description": "client_events connection_established",
-          "config": { "show_legends": true, "unit": "numbers", "decimals": 0 },
+          "config": {
+            "show_legends": true,
+            "unit": "numbers",
+            "decimals": 0
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -236,21 +456,56 @@
               "fields": {
                 "stream": "client_events",
                 "stream_type": "logs",
-                "x": [{ "label": "Time", "alias": "x_axis_1", "column": "_timestamp" }],
-                "y": [{ "label": "Established", "alias": "y_axis_1", "column": "_timestamp", "aggregationFunction": "count" }],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "x": [
+                  {
+                    "label": "Time",
+                    "alias": "x_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Established",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": "count"
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 0, "y": 0, "w": 12, "h": 8, "i": 10 }
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 48,
+            "h": 16,
+            "i": 10
+          }
         },
         {
           "id": "Panel_webrtc_failed",
           "type": "line",
           "title": "WebRTC Connection Failures",
           "description": "connection_failed + peer_connection_failed",
-          "config": { "show_legends": true, "unit": "numbers", "decimals": 0 },
+          "config": {
+            "show_legends": true,
+            "unit": "numbers",
+            "decimals": 0
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -259,21 +514,56 @@
               "fields": {
                 "stream": "client_events",
                 "stream_type": "logs",
-                "x": [{ "label": "Time", "alias": "x_axis_1", "column": "_timestamp" }],
-                "y": [{ "label": "Failures", "alias": "y_axis_1", "column": "_timestamp", "aggregationFunction": "count" }],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "x": [
+                  {
+                    "label": "Time",
+                    "alias": "x_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Failures",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": "count"
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 12, "y": 0, "w": 12, "h": 8, "i": 11 }
+          "layout": {
+            "x": 48,
+            "y": 0,
+            "w": 48,
+            "h": 16,
+            "i": 11
+          }
         },
         {
           "id": "Panel_rtt",
           "type": "line",
           "title": "WebRTC RTT (avg ms)",
           "description": "webrtc_stats_sample events",
-          "config": { "show_legends": true, "unit": "milliseconds", "decimals": 0 },
+          "config": {
+            "show_legends": true,
+            "unit": "milliseconds",
+            "decimals": 0
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -282,21 +572,56 @@
               "fields": {
                 "stream": "client_events",
                 "stream_type": "logs",
-                "x": [{ "label": "Time", "alias": "x_axis_1", "column": "_timestamp" }],
-                "y": [{ "label": "RTT", "alias": "y_axis_1", "column": "rtt_ms", "aggregationFunction": "avg" }],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "x": [
+                  {
+                    "label": "Time",
+                    "alias": "x_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "RTT",
+                    "alias": "y_axis_1",
+                    "column": "rtt_ms",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": "avg"
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 0, "y": 8, "w": 12, "h": 8, "i": 12 }
+          "layout": {
+            "x": 0,
+            "y": 16,
+            "w": 48,
+            "h": 16,
+            "i": 12
+          }
         },
         {
           "id": "Panel_packet_loss",
           "type": "line",
           "title": "Packet Loss (avg)",
           "description": "webrtc_stats_sample packet_loss",
-          "config": { "show_legends": true, "unit": "percent", "decimals": 2 },
+          "config": {
+            "show_legends": true,
+            "unit": "percent",
+            "decimals": 2
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -305,21 +630,54 @@
               "fields": {
                 "stream": "client_events",
                 "stream_type": "logs",
-                "x": [{ "label": "Time", "alias": "x_axis_1", "column": "_timestamp" }],
-                "y": [{ "label": "Loss", "alias": "y_axis_1", "column": "packet_loss", "aggregationFunction": "avg" }],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "x": [
+                  {
+                    "label": "Time",
+                    "alias": "x_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Loss",
+                    "alias": "y_axis_1",
+                    "column": "packet_loss",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": "avg"
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 12, "y": 8, "w": 12, "h": 8, "i": 13 }
+          "layout": {
+            "x": 48,
+            "y": 16,
+            "w": 48,
+            "h": 16,
+            "i": 13
+          }
         },
         {
           "id": "Panel_candidate_type",
           "type": "pie",
           "title": "ICE Candidate Type",
           "description": "host/srflx vs relay (TURN usage)",
-          "config": { "show_legends": true },
+          "config": {
+            "show_legends": true
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -330,19 +688,36 @@
                 "stream_type": "logs",
                 "x": [],
                 "y": [],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 0, "y": 16, "w": 12, "h": 8, "i": 14 }
+          "layout": {
+            "x": 0,
+            "y": 32,
+            "w": 48,
+            "h": 16,
+            "i": 14
+          }
         },
         {
           "id": "Panel_game_events",
           "type": "bar",
           "title": "Game Lifecycle Events",
           "description": "game_started, game_finished, game_abandoned",
-          "config": { "show_legends": true, "unit": "numbers", "decimals": 0 },
+          "config": {
+            "show_legends": true,
+            "unit": "numbers",
+            "decimals": 0
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -353,12 +728,25 @@
                 "stream_type": "logs",
                 "x": [],
                 "y": [],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 12, "y": 16, "w": 12, "h": 8, "i": 15 }
+          "layout": {
+            "x": 48,
+            "y": 32,
+            "w": 48,
+            "h": 16,
+            "i": 15
+          }
         }
       ]
     },
@@ -371,7 +759,11 @@
           "type": "bar",
           "title": "Security Events by Type",
           "description": "security_events stream",
-          "config": { "show_legends": true, "unit": "numbers", "decimals": 0 },
+          "config": {
+            "show_legends": true,
+            "unit": "numbers",
+            "decimals": 0
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -382,19 +774,36 @@
                 "stream_type": "logs",
                 "x": [],
                 "y": [],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 0, "y": 0, "w": 12, "h": 8, "i": 16 }
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 48,
+            "h": 16,
+            "i": 16
+          }
         },
         {
           "id": "Panel_rate_limits",
           "type": "line",
           "title": "Rate Limits Over Time",
           "description": "rate_limit_exceeded events",
-          "config": { "show_legends": false, "unit": "numbers", "decimals": 0 },
+          "config": {
+            "show_legends": false,
+            "unit": "numbers",
+            "decimals": 0
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -403,21 +812,56 @@
               "fields": {
                 "stream": "security_events",
                 "stream_type": "logs",
-                "x": [{ "label": "Time", "alias": "x_axis_1", "column": "_timestamp" }],
-                "y": [{ "label": "Rate limits", "alias": "y_axis_1", "column": "_timestamp", "aggregationFunction": "count" }],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "x": [
+                  {
+                    "label": "Time",
+                    "alias": "x_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Rate limits",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": "count"
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 12, "y": 0, "w": 12, "h": 8, "i": 17 }
+          "layout": {
+            "x": 48,
+            "y": 0,
+            "w": 48,
+            "h": 16,
+            "i": 17
+          }
         },
         {
           "id": "Panel_frontend_errors",
           "type": "line",
           "title": "Frontend Errors",
           "description": "client_events frontend_error",
-          "config": { "show_legends": false, "unit": "numbers", "decimals": 0 },
+          "config": {
+            "show_legends": false,
+            "unit": "numbers",
+            "decimals": 0
+          },
           "queryType": "sql",
           "queries": [
             {
@@ -426,14 +870,45 @@
               "fields": {
                 "stream": "client_events",
                 "stream_type": "logs",
-                "x": [{ "label": "Time", "alias": "x_axis_1", "column": "_timestamp" }],
-                "y": [{ "label": "Errors", "alias": "y_axis_1", "column": "_timestamp", "aggregationFunction": "count" }],
-                "filter": { "filterType": "group", "logicalOperator": "AND", "conditions": [] }
+                "x": [
+                  {
+                    "label": "Time",
+                    "alias": "x_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": null
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Errors",
+                    "alias": "y_axis_1",
+                    "column": "_timestamp",
+                    "args": [],
+                    "type": "custom",
+                    "functionName": "count"
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                },
+                "z": [],
+                "breakdown": []
               },
-              "config": {}
+              "config": {},
+              "vrlFunctionQuery": ""
             }
           ],
-          "layout": { "x": 0, "y": 8, "w": 24, "h": 8, "i": 18 }
+          "layout": {
+            "x": 0,
+            "y": 16,
+            "w": 96,
+            "h": 16,
+            "i": 18
+          }
         }
       ]
     }
