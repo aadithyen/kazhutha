@@ -2,8 +2,6 @@
   "version": 8,
   "title": "Kazhutha Overview",
   "description": "Signaling health, rooms/players, P2P quality, and security for Kazhutha",
-  "role": "",
-  "owner": "",
   "tabs": [
     {
       "tabId": "overview",
@@ -23,9 +21,9 @@
           "queries": [
             {
               "query": "signaling_active_players",
-              "customQuery": true,
+              "customQuery": false,
               "fields": {
-                "stream": "signaling_active_players",
+                "stream": "",
                 "stream_type": "metrics",
                 "x": [],
                 "y": [],
@@ -34,13 +32,11 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
               "config": {
                 "promql_legend": ""
-              },
-              "vrlFunctionQuery": ""
+              }
             }
           ],
           "layout": {
@@ -65,9 +61,9 @@
           "queries": [
             {
               "query": "signaling_active_rooms",
-              "customQuery": true,
+              "customQuery": false,
               "fields": {
-                "stream": "signaling_active_rooms",
+                "stream": "",
                 "stream_type": "metrics",
                 "x": [],
                 "y": [],
@@ -76,13 +72,11 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
               "config": {
                 "promql_legend": ""
-              },
-              "vrlFunctionQuery": ""
+              }
             }
           ],
           "layout": {
@@ -107,9 +101,9 @@
           "queries": [
             {
               "query": "signaling_websocket_connections",
-              "customQuery": true,
+              "customQuery": false,
               "fields": {
-                "stream": "signaling_websocket_connections",
+                "stream": "",
                 "stream_type": "metrics",
                 "x": [],
                 "y": [],
@@ -118,13 +112,11 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
               "config": {
                 "promql_legend": ""
-              },
-              "vrlFunctionQuery": ""
+              }
             }
           ],
           "layout": {
@@ -142,16 +134,16 @@
           "description": "Requests per second from OTLP counter http_requests_total",
           "config": {
             "show_legends": true,
-            "unit": "reqps",
+            "unit": "numbers",
             "decimals": 2
           },
           "queryType": "promql",
           "queries": [
             {
               "query": "sum(rate(http_requests_total[5m]))",
-              "customQuery": true,
+              "customQuery": false,
               "fields": {
-                "stream": "http_requests_total",
+                "stream": "",
                 "stream_type": "metrics",
                 "x": [],
                 "y": [],
@@ -160,13 +152,11 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
               "config": {
                 "promql_legend": "total"
-              },
-              "vrlFunctionQuery": ""
+              }
             }
           ],
           "layout": {
@@ -184,16 +174,16 @@
           "description": "Server errors per second — primary downtime signal",
           "config": {
             "show_legends": true,
-            "unit": "reqps",
+            "unit": "numbers",
             "decimals": 3
           },
           "queryType": "promql",
           "queries": [
             {
               "query": "sum(rate(http_server_errors_total[5m]))",
-              "customQuery": true,
+              "customQuery": false,
               "fields": {
-                "stream": "http_server_errors_total",
+                "stream": "",
                 "stream_type": "metrics",
                 "x": [],
                 "y": [],
@@ -202,13 +192,11 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
               "config": {
                 "promql_legend": "5xx"
-              },
-              "vrlFunctionQuery": ""
+              }
             }
           ],
           "layout": {
@@ -241,20 +229,14 @@
                   {
                     "label": "Time",
                     "alias": "x_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": null
+                    "type": "custom"
                   }
                 ],
                 "y": [
                   {
                     "label": "Avg ms",
                     "alias": "y_axis_1",
-                    "column": "duration_ms",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": "avg"
+                    "type": "custom"
                   }
                 ],
                 "filter": {
@@ -262,11 +244,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -301,11 +281,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -338,20 +316,14 @@
                   {
                     "label": "Time",
                     "alias": "x_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": null
+                    "type": "custom"
                   }
                 ],
                 "y": [
                   {
                     "label": "Joins",
                     "alias": "y_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": "count"
+                    "type": "custom"
                   }
                 ],
                 "filter": {
@@ -359,11 +331,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -396,20 +366,14 @@
                   {
                     "label": "Time",
                     "alias": "x_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": null
+                    "type": "custom"
                   }
                 ],
                 "y": [
                   {
                     "label": "Errors",
                     "alias": "y_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": "count"
+                    "type": "custom"
                   }
                 ],
                 "filter": {
@@ -417,11 +381,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -460,20 +422,14 @@
                   {
                     "label": "Time",
                     "alias": "x_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": null
+                    "type": "custom"
                   }
                 ],
                 "y": [
                   {
                     "label": "Established",
                     "alias": "y_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": "count"
+                    "type": "custom"
                   }
                 ],
                 "filter": {
@@ -481,11 +437,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -518,20 +472,14 @@
                   {
                     "label": "Time",
                     "alias": "x_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": null
+                    "type": "custom"
                   }
                 ],
                 "y": [
                   {
                     "label": "Failures",
                     "alias": "y_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": "count"
+                    "type": "custom"
                   }
                 ],
                 "filter": {
@@ -539,11 +487,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -576,20 +522,14 @@
                   {
                     "label": "Time",
                     "alias": "x_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": null
+                    "type": "custom"
                   }
                 ],
                 "y": [
                   {
                     "label": "RTT",
                     "alias": "y_axis_1",
-                    "column": "rtt_ms",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": "avg"
+                    "type": "custom"
                   }
                 ],
                 "filter": {
@@ -597,11 +537,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -619,7 +557,7 @@
           "description": "webrtc_stats_sample packet_loss",
           "config": {
             "show_legends": true,
-            "unit": "percent",
+            "unit": "percent-1",
             "decimals": 2
           },
           "queryType": "sql",
@@ -634,20 +572,14 @@
                   {
                     "label": "Time",
                     "alias": "x_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": null
+                    "type": "custom"
                   }
                 ],
                 "y": [
                   {
                     "label": "Loss",
                     "alias": "y_axis_1",
-                    "column": "packet_loss",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": "avg"
+                    "type": "custom"
                   }
                 ],
                 "filter": {
@@ -655,11 +587,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -693,11 +623,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -733,11 +661,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -779,11 +705,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -816,20 +740,14 @@
                   {
                     "label": "Time",
                     "alias": "x_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": null
+                    "type": "custom"
                   }
                 ],
                 "y": [
                   {
                     "label": "Rate limits",
                     "alias": "y_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": "count"
+                    "type": "custom"
                   }
                 ],
                 "filter": {
@@ -837,11 +755,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -874,20 +790,14 @@
                   {
                     "label": "Time",
                     "alias": "x_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": null
+                    "type": "custom"
                   }
                 ],
                 "y": [
                   {
                     "label": "Errors",
                     "alias": "y_axis_1",
-                    "column": "_timestamp",
-                    "args": [],
-                    "type": "custom",
-                    "functionName": "count"
+                    "type": "custom"
                   }
                 ],
                 "filter": {
@@ -895,11 +805,9 @@
                   "logicalOperator": "AND",
                   "conditions": []
                 },
-                "z": [],
-                "breakdown": []
+                "z": []
               },
-              "config": {},
-              "vrlFunctionQuery": ""
+              "config": {}
             }
           ],
           "layout": {
@@ -912,5 +820,6 @@
         }
       ]
     }
-  ]
+  ],
+  "dashboardId": "kazhutha-overview"
 }
