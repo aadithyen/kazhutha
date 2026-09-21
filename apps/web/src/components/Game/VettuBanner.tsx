@@ -1,23 +1,33 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "../../i18n";
+<<<<<<< HEAD
 import { getVettuMessageByIndex } from "../../lib/vettuMessages";
+=======
+import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
+import { pickRandomVettuMessage } from "../../lib/vettuMessages";
+>>>>>>> origin/main
 import { useRoom } from "../../lib/RoomContext";
+import { ROUND_LINGER_MS } from "./CardAnimations";
 
 const ENTER_MS = 500;
-const HOLD_MS = 500;
 const EXIT_MS = 500;
+/** Collect flight after linger; keep banner through pile settle if pileSettling never flips. */
+const SETTLEMENT_FALLBACK_MS = ROUND_LINGER_MS + 500;
 
 type Phase = "idle" | "enter" | "hold" | "exit";
 
 export default function VettuBanner() {
   const { t, vettuMessages } = useLocale();
   const { state } = useRoom();
+  const { pileSettling } = usePlayerAvatars();
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
   // Joining mid-game inherits the host's last result; don't announce an old vettu.
   const lastVettuAtRef = useRef<number | null>(
     state.lastRoundResult?.kind === "vettu" ? state.lastRoundResult.at : null,
   );
+  const holdStartedAtRef = useRef<number | null>(null);
+  const sawPileSettlingRef = useRef(false);
 
   useEffect(() => {
     const result = state.lastRoundResult;
@@ -25,23 +35,60 @@ export default function VettuBanner() {
     if (lastVettuAtRef.current === result.at) return;
     lastVettuAtRef.current = result.at;
 
+<<<<<<< HEAD
     setMessage(
       result.statementIndex !== undefined
         ? getVettuMessageByIndex(vettuMessages, result.statementIndex)
         : "",
     );
+=======
+    setMessage(pickRandomVettuMessage(vettuMessages));
+    holdStartedAtRef.current = null;
+    sawPileSettlingRef.current = false;
+>>>>>>> origin/main
     setPhase("enter");
 
-    const holdTimer = window.setTimeout(() => setPhase("hold"), ENTER_MS);
-    const exitTimer = window.setTimeout(() => setPhase("exit"), ENTER_MS + HOLD_MS);
-    const idleTimer = window.setTimeout(() => setPhase("idle"), ENTER_MS + HOLD_MS + EXIT_MS);
+    const holdTimer = window.setTimeout(() => {
+      holdStartedAtRef.current = Date.now();
+      setPhase("hold");
+    }, ENTER_MS);
 
     return () => {
       window.clearTimeout(holdTimer);
-      window.clearTimeout(exitTimer);
-      window.clearTimeout(idleTimer);
     };
   }, [state.lastRoundResult, vettuMessages]);
+
+  useEffect(() => {
+    if (phase !== "hold" || !pileSettling) return;
+    sawPileSettlingRef.current = true;
+  }, [phase, pileSettling]);
+
+  useEffect(() => {
+    if (phase !== "hold") return;
+    if (pileSettling) return;
+
+    if (sawPileSettlingRef.current) {
+      setPhase("exit");
+      return;
+    }
+
+    const holdStartedAt = holdStartedAtRef.current ?? Date.now();
+    const elapsed = Date.now() - holdStartedAt;
+    const remainingFallback = Math.max(0, SETTLEMENT_FALLBACK_MS - elapsed);
+
+    const exitTimer = window.setTimeout(() => setPhase("exit"), remainingFallback);
+    return () => {
+      window.clearTimeout(exitTimer);
+    };
+  }, [phase, pileSettling]);
+
+  useEffect(() => {
+    if (phase !== "exit") return;
+    const idleTimer = window.setTimeout(() => setPhase("idle"), EXIT_MS);
+    return () => {
+      window.clearTimeout(idleTimer);
+    };
+  }, [phase]);
 
   if (phase === "idle") return null;
 
