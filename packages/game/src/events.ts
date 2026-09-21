@@ -67,6 +67,8 @@ export interface VettuOccurredEvent {
   card: Card;
   /** Host wall-clock ms; keeps the reducer deterministic and gives the UI a per-round key. */
   at: number;
+  /** Host-picked index into each locale's vettu.statements array. */
+  statementIndex: number;
 }
 
 export interface RoundFinishedEvent {

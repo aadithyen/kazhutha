@@ -212,6 +212,7 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
         lastRoundResult: {
           kind: "vettu",
           vettuBy: event.playerId,
+          statementIndex: event.statementIndex,
           pile: state.centerPile,
           at: event.at,
         },
@@ -238,6 +239,8 @@ function applyEventInner(state: GameState, event: GameEvent): GameState {
         lastRoundResult: {
           kind: "vettu",
           vettuBy: state.lastRoundResult?.kind === "vettu" ? state.lastRoundResult.vettuBy : undefined,
+          statementIndex:
+            state.lastRoundResult?.kind === "vettu" ? state.lastRoundResult.statementIndex : undefined,
           collectorId: event.collectorId,
           pile,
           at: event.at,
