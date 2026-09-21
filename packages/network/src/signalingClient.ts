@@ -7,6 +7,7 @@ export interface SignalingClientOptions {
   roomCode?: string;
   peerId?: string;
   traceId?: string;
+  clientVersion?: string;
 }
 
 /** Thin WebSocket wrapper for the signalling server, with basic auto-reconnect. */
@@ -85,7 +86,7 @@ export class SignalingClient {
         event_type: eventType,
         service: "kazhutha-web",
         environment: "browser",
-        version: "0.1.0",
+        version: this.opts.clientVersion ?? "0.1.0",
         trace_id: this.opts.traceId,
         session_id: this.opts.roomCode,
         room_code: this.opts.roomCode,

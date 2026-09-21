@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "generate:icons": "node scripts/generate-icons.mjs",
-    "prebuild": "pnpm generate:icons",
+    "prebuild": "pnpm generate:icons && node scripts/write-version.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
@@ -19,7 +19,8 @@
     "@kazhutha/shared": "workspace:*",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.1"
+    "react-router-dom": "^7.18.1",
+    "workbox-window": "^7.4.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

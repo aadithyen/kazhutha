@@ -1,4 +1,5 @@
 import { BrowserTelemetryReporter, type BrowserTelemetryConfig } from "@kazhutha/observability/browser";
+import { getAppVersion } from "./appVersion";
 import { getSignalingUrl } from "./network";
 
 let reporter: BrowserTelemetryReporter | null = null;
@@ -11,7 +12,7 @@ function loadBrowserTelemetryConfig(): BrowserTelemetryConfig {
     endpoint: `${httpBase}/telemetry`,
     service: "kazhutha-web",
     environment: import.meta.env.MODE ?? "development",
-    version: import.meta.env.VITE_APP_VERSION ?? "0.1.0",
+    version: getAppVersion(),
     flushIntervalMs: 10_000,
     maxBatchSize: 25,
   };

@@ -3,3 +3,4 @@ export * from "./cards";
 export * from "./shuffle";
 export * from "./id";
 export * from "./vettu";
+export * from "./version";

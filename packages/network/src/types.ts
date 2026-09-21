@@ -24,7 +24,7 @@ export type ServerToClient =
   | { type: "error"; message: string };
 
 export type ClientToServer =
-  | { type: "join"; roomCode: string; peerId: string; name: string }
+  | { type: "join"; roomCode: string; peerId: string; name: string; clientVersion?: string }
   | { type: "signal"; to: string; data: SignalPayload }
   | { type: "leave" };
 

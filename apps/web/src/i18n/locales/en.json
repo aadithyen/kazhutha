@@ -181,6 +181,10 @@
     "hostLeft": "Host disconnected. Game paused until they return.",
     "hostReconnected": "Host reconnected. Game resumed."
   },
+  "update": {
+    "message": "A new version is available. Reload to get the latest fixes.",
+    "reload": "Reload"
+  },
   "errors": {
     "Unknown player": "Unknown player",
     "Only the host can change rules": "Only the host can change rules",
@@ -203,7 +207,8 @@
     "Removed from this room": "You were removed from this room",
     "Only the host can return to the lobby": "Only the host can return to the lobby",
     "Game is not finished": "Game is not finished",
-    "Intent sender mismatch": "Rejected: request did not come from its player"
+    "Intent sender mismatch": "Rejected: request did not come from its player",
+    "Client version too old": "Your app is outdated. Reload the page to continue."
   },
   "vettu": {
     "title": "VETTU",
