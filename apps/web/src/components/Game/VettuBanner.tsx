@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "../../i18n";
-<<<<<<< HEAD
-import { getVettuMessageByIndex } from "../../lib/vettuMessages";
-=======
 import { usePlayerAvatars } from "../../lib/PlayerAvatarContext";
-import { pickRandomVettuMessage } from "../../lib/vettuMessages";
->>>>>>> origin/main
+import { getVettuMessageByIndex } from "../../lib/vettuMessages";
 import { useRoom } from "../../lib/RoomContext";
 import { ROUND_LINGER_MS } from "./CardAnimations";
 
@@ -35,17 +31,13 @@ export default function VettuBanner() {
     if (lastVettuAtRef.current === result.at) return;
     lastVettuAtRef.current = result.at;
 
-<<<<<<< HEAD
     setMessage(
       result.statementIndex !== undefined
         ? getVettuMessageByIndex(vettuMessages, result.statementIndex)
         : "",
     );
-=======
-    setMessage(pickRandomVettuMessage(vettuMessages));
     holdStartedAtRef.current = null;
     sawPileSettlingRef.current = false;
->>>>>>> origin/main
     setPhase("enter");
 
     const holdTimer = window.setTimeout(() => {
