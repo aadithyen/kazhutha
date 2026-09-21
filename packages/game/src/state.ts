@@ -13,6 +13,8 @@ export interface LastRoundResult {
   winnerId?: string;
   collectorId?: string;
   vettuBy?: string;
+  /** Host-picked index into each locale's vettu.statements array. */
+  statementIndex?: number;
   /** Full center pile at round end (CardPlayed + RoundFinished/CardsCollected may batch). */
   pile: PlayedCard[];
   at: number;

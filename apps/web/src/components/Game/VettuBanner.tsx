@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "../../i18n";
-import { pickRandomVettuMessage } from "../../lib/vettuMessages";
+import { getVettuMessageByIndex } from "../../lib/vettuMessages";
 import { useRoom } from "../../lib/RoomContext";
 
 const ENTER_MS = 500;
@@ -25,7 +25,11 @@ export default function VettuBanner() {
     if (lastVettuAtRef.current === result.at) return;
     lastVettuAtRef.current = result.at;
 
-    setMessage(pickRandomVettuMessage(vettuMessages));
+    setMessage(
+      result.statementIndex !== undefined
+        ? getVettuMessageByIndex(vettuMessages, result.statementIndex)
+        : "",
+    );
     setPhase("enter");
 
     const holdTimer = window.setTimeout(() => setPhase("hold"), ENTER_MS);

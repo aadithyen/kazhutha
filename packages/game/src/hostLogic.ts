@@ -1,4 +1,4 @@
-import { Card, createDeck, isAceOfSpades, Player, randomSeed, shuffle } from "@kazhutha/shared";
+import { Card, createDeck, isAceOfSpades, Player, randomSeed, shuffle, VETTU_STATEMENT_COUNT } from "@kazhutha/shared";
 import { GameEvent, Intent } from "./events";
 import { electSuccessorHost, isHostConnected } from "./host";
 import { applyEvents, firstActiveFrom, nextActor } from "./reducer";
@@ -208,7 +208,8 @@ function playCard(state: GameState, playerId: string, card: Card): HostResult {
 
   if (vettu) {
     const collectorId = afterPlay.highestCard?.playerId ?? state.leaderId!;
-    const vettuEvent: GameEvent = { type: "VettuOccurred", playerId, card, at };
+    const statementIndex = Math.floor(Math.random() * VETTU_STATEMENT_COUNT);
+    const vettuEvent: GameEvent = { type: "VettuOccurred", playerId, card, at, statementIndex };
     const collectedEvent: GameEvent = {
       type: "CardsCollected",
       collectorId,

@@ -1,4 +1,5 @@
-export function pickRandomVettuMessage(messages: string[]): string {
+export function getVettuMessageByIndex(messages: string[], index: number): string {
   if (messages.length === 0) return "";
-  return messages[Math.floor(Math.random() * messages.length)]!;
+  const safe = Math.floor(index) % messages.length;
+  return messages[safe < 0 ? safe + messages.length : safe]!;
 }
