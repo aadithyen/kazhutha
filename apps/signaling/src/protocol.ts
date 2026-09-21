@@ -4,7 +4,7 @@ export type SignalPayload =
   | { kind: "candidate"; candidate: unknown };
 
 export type ClientToServer =
-  | { type: "join"; roomCode: string; peerId: string; name: string }
+  | { type: "join"; roomCode: string; peerId: string; name: string; clientVersion?: string }
   | { type: "signal"; to: string; data: SignalPayload }
   | { type: "leave" };
 
@@ -41,7 +41,17 @@ export function parseClientMessage(raw: string): ClientToServer | null {
       msg.peerId.length <= MAX_ID_LEN &&
       typeof msg.name === "string"
     ) {
-      return { type: "join", roomCode: msg.roomCode, peerId: msg.peerId, name: msg.name.slice(0, MAX_NAME_LEN) };
+      const clientVersion =
+        typeof msg.clientVersion === "string" && msg.clientVersion.length > 0
+          ? msg.clientVersion.slice(0, 64)
+          : undefined;
+      return {
+        type: "join",
+        roomCode: msg.roomCode,
+        peerId: msg.peerId,
+        name: msg.name.slice(0, MAX_NAME_LEN),
+        clientVersion,
+      };
     }
     return null;
   }

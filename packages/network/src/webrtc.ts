@@ -7,6 +7,7 @@ export interface PeerLinkOptions {
   iceServers?: RTCIceServer[];
   roomCode?: string;
   traceId?: string;
+  clientVersion?: string;
   onSignal: (data: SignalPayload) => void;
   onMessage: (msg: PeerMessage) => void;
   onStatus: (status: "connecting" | "connected" | "disconnected") => void;
@@ -231,7 +232,7 @@ export class PeerLink {
         event_type: eventType,
         service: "kazhutha-web",
         environment: "browser",
-        version: "0.1.0",
+        version: this.opts.clientVersion ?? "0.1.0",
         trace_id: this.opts.traceId,
         session_id: this.opts.roomCode,
         room_code: this.opts.roomCode,

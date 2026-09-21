@@ -1,10 +1,14 @@
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
+import { loadAppConfig } from "./appConfig.js";
 import { createTraceId } from "./telemetry/correlation.js";
 import { parseClientMessage, ServerToClient } from "./protocol.js";
 import { RoomRegistry } from "./rooms.js";
 import { generateIceServers } from "./turn.js";
 import { clientIp, handleTelemetryIngest, obs, trackHttpRequest } from "./observability.js";
+import { isClientVersionSupported } from "./version.js";
+
+const appConfig = loadAppConfig();
 
 const PORT = Number(process.env.PORT ?? 8080);
 /**
@@ -63,6 +67,24 @@ const httpServer = createServer((req, res) => {
     finishResponse(req, res, "/health", start, traceId, () => {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ ok: true, rooms: registry.roomCount() }));
+    });
+    return;
+  }
+
+  if (route === "/version") {
+    const allowOrigin = corsOrigin(req);
+    finishResponse(req, res, "/version", start, traceId, () => {
+      res.writeHead(200, {
+        "content-type": "application/json",
+        "cache-control": "no-cache, no-store, must-revalidate",
+        ...(allowOrigin ? { "access-control-allow-origin": allowOrigin, vary: "origin" } : {}),
+      });
+      res.end(
+        JSON.stringify({
+          version: appConfig.version,
+          minClientVersion: appConfig.minClientVersion || undefined,
+        }),
+      );
     });
     return;
   }
@@ -237,6 +259,25 @@ wss.on("connection", (ws, req) => {
 
     if (msg.type === "join") {
       if (joined) return;
+
+      if (appConfig.minClientVersion) {
+        const clientVersion = msg.clientVersion?.trim();
+        if (!clientVersion || !isClientVersionSupported(clientVersion, appConfig.minClientVersion)) {
+          obs.metrics?.signalingMessageErrorsTotal.add(1, { reason: "client_version" });
+          obs.security.record("invalid_request", "Client version rejected", {
+            source,
+            route: "/ws",
+            traceId: m?.traceId,
+            sessionId: msg.roomCode,
+            peerId: msg.peerId,
+            detail: clientVersion ?? "missing",
+          });
+          send(ws, { type: "error", message: "Client version too old" });
+          ws.close(1008, "client version");
+          return;
+        }
+      }
+
       const room = registry.getOrCreate(msg.roomCode);
       const roomWasEmpty = room.peers.size === 0;
 

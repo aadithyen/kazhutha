@@ -19,6 +19,7 @@ export interface RoomClientOptions {
   roomCode: string;
   playerId: string;
   name: string;
+  clientVersion?: string;
   iceServers?: RTCIceServer[];
   /** Restore persisted state before networking (host reload recovery). */
   persistedState?: GameState | null;
@@ -75,8 +76,10 @@ export class RoomClient {
   private reconnectAttempts = 0;
   private traceId = createTraceId();
   private gameStartedAt: number | null = null;
+  private clientVersion: string;
 
   constructor(opts: RoomClientOptions) {
+    this.clientVersion = opts.clientVersion ?? "0.1.0";
     this.playerId = opts.playerId;
     this.name = opts.name;
     this.roomCode = opts.roomCode;
@@ -90,6 +93,7 @@ export class RoomClient {
       roomCode: opts.roomCode,
       peerId: opts.playerId,
       traceId: this.traceId,
+      clientVersion: this.clientVersion,
     });
     this.signaling.onMessage((msg) => this.handleSignalingMessage(msg));
     this.signaling.onStatus((connected) => {
@@ -119,6 +123,7 @@ export class RoomClient {
       roomCode: this.roomCode,
       peerId: this.playerId,
       name: this.name,
+      clientVersion: this.clientVersion,
     });
   }
 
@@ -196,7 +201,7 @@ export class RoomClient {
         event_type: eventType,
         service: "kazhutha-web",
         environment: "browser",
-        version: "0.1.0",
+        version: this.clientVersion,
         trace_id: this.traceId,
         session_id: this.roomCode,
         room_code: this.roomCode,
@@ -540,6 +545,7 @@ export class RoomClient {
       iceServers: this.iceServers,
       roomCode: this.roomCode,
       traceId: this.traceId,
+      clientVersion: this.clientVersion,
       onSignal: (data) => this.signaling.send({ type: "signal", to: authorityId, data }),
       onMessage: (msg) => this.handlePeerMessage(authorityId, msg),
       onStatus: (status) => this.handleLinkStatus(authorityId, link, status),
@@ -587,6 +593,7 @@ export class RoomClient {
       iceServers: this.iceServers,
       roomCode: this.roomCode,
       traceId: this.traceId,
+      clientVersion: this.clientVersion,
       onSignal: (data) => this.signaling.send({ type: "signal", to: peerId, data }),
       onMessage: (msg) => this.handlePeerMessage(peerId, msg),
       onStatus: (status) => this.handleLinkStatus(peerId, link, status),

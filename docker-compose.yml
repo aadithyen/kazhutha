@@ -16,6 +16,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       ENVIRONMENT: ${ENVIRONMENT:-production}
       APP_VERSION: ${APP_VERSION:-0.1.0}
+      MIN_CLIENT_VERSION: ${MIN_CLIENT_VERSION:-}
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-kazhutha-signaling}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
@@ -44,6 +45,7 @@ services:
         # Browser-reachable address of the signalling server. Set
         # VITE_SIGNALING_URL to your public WebSocket URL when deploying.
         VITE_SIGNALING_URL: ${VITE_SIGNALING_URL:-ws://localhost:8080}
+        VITE_APP_VERSION: ${APP_VERSION:-0.1.0}
     depends_on:
       signaling:
         condition: service_healthy

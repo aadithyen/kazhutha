@@ -2,6 +2,7 @@ import { GameState } from "@kazhutha/game";
 import { PeerInfo, RoomClient } from "@kazhutha/network";
 import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "../i18n";
+import { getAppVersion } from "./appVersion";
 import { getOrCreatePlayerId, getStoredName } from "./identity";
 import { fetchIceServers, getSignalingUrl } from "./network";
 import { getTelemetry } from "./telemetry";
@@ -34,6 +35,7 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
       roomCode,
       playerId,
       name,
+      clientVersion: getAppVersion(),
       persistedState,
     });
   }
