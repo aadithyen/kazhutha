@@ -93,3 +93,7 @@ Each app also has a standalone `Dockerfile` if you want to build/deploy them ind
 docker build -f apps/web/Dockerfile -t kazhutha-web .
 docker build -t kazhutha-signaling apps/signaling
 ```
+
+## Thanks
+
+Inspired by [dots](https://github.com/subins2000/dots) — thanks for the P2P game idea.
