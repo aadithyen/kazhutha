@@ -1,13 +1,8 @@
-import { emitTelemetry, type ClientEventType } from "@kazhutha/observability";
-import { summarizeRtcStats } from "@kazhutha/observability/webrtc-stats";
 import { DEFAULT_ICE_SERVERS, PeerMessage, SignalPayload } from "./types";
 
 export interface PeerLinkOptions {
   peerId: string;
   iceServers?: RTCIceServer[];
-  roomCode?: string;
-  traceId?: string;
-  clientVersion?: string;
   onSignal: (data: SignalPayload) => void;
   onMessage: (msg: PeerMessage) => void;
   onStatus: (status: "connecting" | "connected" | "disconnected") => void;
@@ -15,7 +10,6 @@ export interface PeerLinkOptions {
 
 const DISCONNECT_GRACE_MS = 4000;
 const FLUSH_TIMEOUT_MS = 1000;
-const STATS_INTERVAL_MS = 8_000;
 
 /** One WebRTC connection + reliable/ordered DataChannel to a single remote peer. */
 export class PeerLink {
@@ -28,56 +22,24 @@ export class PeerLink {
   private closed = false;
   private reportedDown = false;
   private graceTimer: ReturnType<typeof setTimeout> | null = null;
-  private statsTimer: ReturnType<typeof setInterval> | null = null;
-  private createdAt = Date.now();
   private reconnectCount = 0;
-  private lastCandidateType: "host" | "srflx" | "relay" | "unknown" = "unknown";
-  private connectedAt: number | null = null;
 
   constructor(opts: PeerLinkOptions) {
     this.opts = opts;
     this.peerId = opts.peerId;
     this.pc = new RTCPeerConnection({ iceServers: opts.iceServers ?? DEFAULT_ICE_SERVERS });
-    this.trackClient("peer_connection_created", { remote_peer_id: opts.peerId });
 
     this.pc.onicecandidate = (ev) => {
       if (ev.candidate) this.opts.onSignal({ kind: "candidate", candidate: ev.candidate.toJSON() });
     };
-    this.pc.oniceconnectionstatechange = () => {
-      const state = this.pc.iceConnectionState;
-      if (state === "failed") {
-        this.trackClient("ice_failed", {
-          ice_connection_state: state,
-          candidate_type: this.lastCandidateType,
-        });
-      } else if (state === "disconnected") {
-        this.trackClient("ice_restart", { ice_connection_state: state });
-      }
-    };
     this.pc.onconnectionstatechange = () => {
       const state = this.pc.connectionState;
       if (state === "failed" || state === "closed") {
-        this.trackClient(state === "failed" ? "connection_failed" : "connection_closed", {
-          connection_state: state,
-          ice_connection_state: this.pc.iceConnectionState,
-          candidate_type: this.lastCandidateType,
-          connection_duration_ms: this.connectedAt ? Date.now() - this.connectedAt : undefined,
-          disconnect_reason: state,
-        });
         this.reportDown();
       } else if (state === "disconnected") {
         this.startGrace();
       } else if (state === "connected") {
         this.cancelGrace();
-        if (!this.connectedAt) {
-          this.connectedAt = Date.now();
-          this.trackClient("connection_established", {
-            connection_state: state,
-            establishment_duration_ms: Date.now() - this.createdAt,
-            candidate_type: this.lastCandidateType,
-          });
-        }
-        this.startStatsSampler();
       }
     };
     this.pc.ondatachannel = (ev) => {
@@ -93,11 +55,7 @@ export class PeerLink {
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
       this.opts.onSignal({ kind: "offer", sdp: offer.sdp ?? "" });
-    } catch (err) {
-      this.trackClient("webrtc_error", {
-        error_message: err instanceof Error ? err.message : "createOffer failed",
-        connection_state: this.pc.connectionState,
-      });
+    } catch {
       this.reportDown();
     }
   }
@@ -124,10 +82,6 @@ export class PeerLink {
       }
     } catch (err) {
       if (data.kind !== "candidate") {
-        this.trackClient("webrtc_error", {
-          error_message: err instanceof Error ? err.message : "signal handling failed",
-          signal_kind: data.kind,
-        });
         this.reportDown();
       }
     }
@@ -179,73 +133,13 @@ export class PeerLink {
 
   private reportDown() {
     this.cancelGrace();
-    this.stopStatsSampler();
     if (this.reportedDown) return;
     this.reportedDown = true;
     this.opts.onStatus("disconnected");
   }
 
-  private startStatsSampler() {
-    if (this.statsTimer !== null) return;
-    this.statsTimer = setInterval(() => void this.sampleStats(), STATS_INTERVAL_MS);
-  }
-
-  private stopStatsSampler() {
-    if (this.statsTimer !== null) {
-      clearInterval(this.statsTimer);
-      this.statsTimer = null;
-    }
-  }
-
-  private async sampleStats() {
-    if (this.closed || this.pc.connectionState !== "connected") return;
-    try {
-      const report = await this.pc.getStats();
-      const sample = summarizeRtcStats(report);
-      sample.connectionState = this.pc.connectionState;
-      sample.iceConnectionState = this.pc.iceConnectionState;
-      this.lastCandidateType = sample.candidateType;
-      this.trackClient("webrtc_stats_sample", {
-        connection_state: sample.connectionState,
-        ice_connection_state: sample.iceConnectionState,
-        candidate_type: sample.candidateType,
-        protocol: sample.protocol,
-        rtt_ms: sample.rttMs,
-        packet_loss: sample.packetLoss,
-        jitter_ms: sample.jitterMs,
-        bytes_sent: sample.bytesSent,
-        bytes_received: sample.bytesReceived,
-        connection_duration_ms: this.connectedAt ? Date.now() - this.connectedAt : undefined,
-        reconnect_count: this.reconnectCount,
-      });
-    } catch {
-      // stats sampling is best-effort
-    }
-  }
-
-  private trackClient(eventType: ClientEventType, fields: Record<string, unknown> = {}) {
-    emitTelemetry({
-      stream: "client_events",
-      body: {
-        timestamp: new Date().toISOString(),
-        stream: "client_events",
-        event_type: eventType,
-        service: "kazhutha-web",
-        environment: "browser",
-        version: this.opts.clientVersion ?? "0.1.0",
-        trace_id: this.opts.traceId,
-        session_id: this.opts.roomCode,
-        room_code: this.opts.roomCode,
-        peer_id: this.opts.peerId,
-        remote_peer_id: this.peerId,
-        ...fields,
-      },
-    });
-  }
-
   markReconnect() {
     this.reconnectCount += 1;
-    this.trackClient("peer_reconnected", { reconnect_count: this.reconnectCount });
   }
 
   send(msg: PeerMessage) {
@@ -259,7 +153,6 @@ export class PeerLink {
   close() {
     this.closed = true;
     this.cancelGrace();
-    this.stopStatsSampler();
     try {
       this.channel?.close();
       this.pc.close();

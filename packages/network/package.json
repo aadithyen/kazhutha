@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@kazhutha/game": "workspace:*",
-    "@kazhutha/observability": "workspace:*",
     "@kazhutha/shared": "workspace:*"
   },
   "devDependencies": {

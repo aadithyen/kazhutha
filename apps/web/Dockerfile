@@ -12,7 +12,6 @@ ARG VITE_SIGNALING_URL=ws://localhost:8080
 ARG VITE_APP_VERSION=0.1.0+dev
 ENV VITE_SIGNALING_URL=$VITE_SIGNALING_URL
 ENV VITE_APP_VERSION=$VITE_APP_VERSION
-RUN pnpm --filter @kazhutha/observability build
 RUN pnpm --filter @kazhutha/web build
 
 FROM nginx:1.27-alpine

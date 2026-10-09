@@ -5,7 +5,7 @@ import { createTraceId } from "./telemetry/correlation.js";
 import { parseClientMessage, ServerToClient } from "./protocol.js";
 import { RoomRegistry } from "./rooms.js";
 import { generateIceServers } from "./turn.js";
-import { clientIp, handleTelemetryIngest, obs, trackHttpRequest } from "./observability.js";
+import { clientIp, obs, trackHttpRequest } from "./observability.js";
 import { isClientVersionSupported } from "./version.js";
 
 const appConfig = loadAppConfig();
@@ -114,13 +114,6 @@ const httpServer = createServer((req, res) => {
     return;
   }
 
-  if (route === "/telemetry" && req.method === "POST") {
-    finishResponse(req, res, "/telemetry", start, traceId, async () => {
-      await handleTelemetryIngest(req, res, corsOrigin(req));
-    });
-    return;
-  }
-
   obs.security.record("invalid_request", "Unknown HTTP route", {
     source: clientIp(req),
     route,
@@ -146,12 +139,6 @@ const wss = new WebSocketServer({
     return true;
   },
 });
-
-obs.metrics?.registerOperationalGauges(() => ({
-  activeRooms: registry.roomCount(),
-  activePlayers: registry.playerCount(),
-  websocketConnections: wss.clients.size,
-}));
 
 function send(ws: WebSocket, msg: ServerToClient) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
@@ -202,14 +189,11 @@ wss.on("connection", (ws, req) => {
     reconnect: false,
   });
 
-  obs.metrics?.activeConnections.add(1);
-  obs.metrics?.signalingConnectionsTotal.add(1);
 
   obs.logger.info("Signaling connection opened", { traceId, route: "/ws" });
   obs.security.trackRequest(source, "/ws", traceId);
 
   ws.on("error", () => {
-    obs.metrics?.signalingErrorsTotal.add(1, { reason: "socket_error" });
     obs.logger.warn("Signaling socket error", { traceId, roomCode: roomCode ?? undefined, peerId: peerId ?? undefined });
     ws.terminate();
   });
@@ -222,7 +206,6 @@ wss.on("connection", (ws, req) => {
   ws.on("message", (raw) => {
     const m = meta.get(ws);
     if (!takeToken(ws)) {
-      obs.metrics?.signalingErrorsTotal.add(1, { reason: "rate_limit" });
       obs.security.record("rate_limit_exceeded", "Signaling rate limit exceeded", {
         source,
         route: "/ws",
@@ -243,7 +226,6 @@ wss.on("connection", (ws, req) => {
     const msg = parseClientMessage(raw.toString());
     if (!msg) {
       if (m) m.invalidMessages += 1;
-      obs.metrics?.signalingMessageErrorsTotal.add(1, { reason: "invalid_json" });
       if (m && m.invalidMessages >= 5) {
         obs.security.record("signaling_abuse", "Repeated invalid signaling messages", {
           source,
@@ -263,7 +245,6 @@ wss.on("connection", (ws, req) => {
       if (appConfig.minClientVersion) {
         const clientVersion = msg.clientVersion?.trim();
         if (!clientVersion || !isClientVersionSupported(clientVersion, appConfig.minClientVersion)) {
-          obs.metrics?.signalingMessageErrorsTotal.add(1, { reason: "client_version" });
           obs.security.record("invalid_request", "Client version rejected", {
             source,
             route: "/ws",
@@ -284,7 +265,6 @@ wss.on("connection", (ws, req) => {
       const previous = room.peers.get(msg.peerId);
       if (previous) {
         if (m) m.reconnect = true;
-        obs.metrics?.signalingReconnectsTotal.add(1);
         obs.logger.info("Signaling peer reconnected", {
           traceId: m?.traceId,
           roomCode: msg.roomCode,
@@ -297,8 +277,6 @@ wss.on("connection", (ws, req) => {
         room.peers.set(msg.peerId, { ...previous, name: msg.name, ws });
       } else {
         room.peers.set(msg.peerId, { peerId: msg.peerId, name: msg.name, ws, joinedAt: Date.now() });
-        obs.metrics?.signalingPlayersJoinedTotal.add(1);
-        if (roomWasEmpty) obs.metrics?.signalingRoomsCreatedTotal.add(1);
       }
       roomCode = msg.roomCode;
       peerId = msg.peerId;
@@ -334,7 +312,6 @@ wss.on("connection", (ws, req) => {
     }
 
     if (!joined || !roomCode || !peerId) {
-      obs.metrics?.signalingMessageErrorsTotal.add(1, { reason: "unjoined" });
       obs.security.record("invalid_request", "Message before join", {
         source,
         route: "/ws",
@@ -350,11 +327,9 @@ wss.on("connection", (ws, req) => {
       if (m) m.signalMessages += 1;
       const target = room.peers.get(msg.to);
       if (!target) {
-        obs.metrics?.signalingMessageErrorsTotal.add(1, { reason: "unknown_peer" });
         return;
       }
       if (!isSignalPayloadKind(msg.data)) {
-        obs.metrics?.signalingMessageErrorsTotal.add(1, { reason: "invalid_signal" });
         obs.security.record("signaling_abuse", "Invalid signal payload", {
           source,
           route: "/ws",
@@ -375,14 +350,8 @@ wss.on("connection", (ws, req) => {
   });
 
   ws.on("close", () => {
-    obs.metrics?.activeConnections.add(-1);
     const m = meta.get(ws);
     const durationMs = m ? Date.now() - m.connectedAt : undefined;
-    if (durationMs !== undefined) {
-      obs.metrics?.signalingConnectionDurationMs.record(durationMs, {
-        reconnect: m?.reconnect ? "true" : "false",
-      });
-    }
     obs.logger.info("Signaling connection closed", {
       traceId: m?.traceId,
       roomCode: roomCode ?? undefined,
@@ -398,7 +367,6 @@ wss.on("connection", (ws, req) => {
     const current = room.peers.get(peerId);
     if (!current || current.ws !== ws) return;
     registry.removePeer(roomCode, peerId);
-    obs.metrics?.signalingPlayersLeftTotal.add(1);
     if (room.peers.size === 0) return;
 
     obs.logger.info("Player left room", {
