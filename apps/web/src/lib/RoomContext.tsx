@@ -5,8 +5,6 @@ import { useLocale } from "../i18n";
 import { getAppVersion } from "./appVersion";
 import { getOrCreatePlayerId, getStoredName } from "./identity";
 import { fetchIceServers, getSignalingUrl } from "./network";
-import { getTelemetry } from "./telemetry";
-
 interface RoomContextValue {
   client: RoomClient;
   state: GameState;
@@ -74,12 +72,6 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
     });
     // Fetch TURN credentials before connecting so peer links use them; on
     // failure connect anyway with the default STUN-only config.
-    getTelemetry()?.setContext({
-      roomCode,
-      peerId: playerId,
-      sessionId: roomCode,
-      traceId: client.getTraceId(),
-    });
     void fetchIceServers().then((servers) => {
       if (effectGeneration.current !== generation) return;
       if (servers) client.setIceServers(servers);

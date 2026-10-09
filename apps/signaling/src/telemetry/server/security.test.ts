@@ -9,10 +9,7 @@ const config = {
   environment: "test",
   version: "0.0.0",
   logLevel: "info" as const,
-  otlpEndpoint: null,
-  otlpHeaders: {},
   ipHashSalt: "test-salt",
-  openObserveOrg: "default",
 };
 
 describe("SecurityTracker", () => {
