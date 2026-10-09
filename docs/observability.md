@@ -11,7 +11,7 @@ Lightweight OpenTelemetry + OpenObserve integration for debugging Kazhutha sessi
 
 Correlation: every browser session gets a `trace_id`; `room_code` is the session/game ID. Search OpenObserve for `room_code:"ABC123"` to see server joins, security events, WebRTC samples, and game lifecycle events for one room.
 
-Telemetry is **best-effort**. If OpenObserve is down, the game keeps working.
+Telemetry is **best-effort**. If OpenObserve is down, the game keeps working. Repeated ingest failures open a short circuit (no outbound calls for several minutes; rate-limited warnings only). To stop export entirely while OpenObserve is offline, unset `OTEL_EXPORTER_OTLP_ENDPOINT` or set `TELEMETRY_ENABLED=false` on signaling.
 
 ## Environment variables
 

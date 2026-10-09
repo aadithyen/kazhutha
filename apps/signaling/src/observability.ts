@@ -96,7 +96,9 @@ export async function handleTelemetryIngest(
   }
 
   if (events.length > 50) events = events.slice(0, 50);
-  obs.ingest.sendClientEvents(events);
+  if (obs.config.enabled && obs.config.otlpEndpoint) {
+    obs.ingest.sendClientEvents(events);
+  }
   res.writeHead(204, { "access-control-allow-origin": allowOrigin, vary: "origin" });
   recordIngest(204, events.length);
   res.end();

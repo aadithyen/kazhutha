@@ -5,6 +5,10 @@ type IngestPayload = StructuredLog | SecurityEvent | ClientTelemetryEvent;
 
 const EXPORT_ERROR_LOG_INTERVAL_MS = 60_000;
 const FETCH_TIMEOUT_MS = 15_000;
+const FLUSH_INTERVAL_MS = 2_000;
+const MAX_BATCH_SIZE = 50;
+const CIRCUIT_FAILURE_THRESHOLD = 3;
+const CIRCUIT_COOLDOWN_MS = 5 * 60_000;
 
 interface IngestResponse {
   code?: number;
@@ -65,11 +69,41 @@ function summarizeIngestResponse(status: number, body: string): IngestResult {
  */
 export class OpenObserveIngest {
   private lastErrorLogAt = 0;
+  private consecutiveFailures = 0;
+  private circuitOpenUntil = 0;
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly buffers = new Map<string, IngestPayload[]>();
 
   constructor(private readonly config: ObservabilityConfig) {}
 
   hasAuth(): boolean {
     return Object.keys(this.config.otlpHeaders).length > 0;
+  }
+
+  private exportConfigured(): boolean {
+    return this.config.enabled && !!this.config.otlpEndpoint;
+  }
+
+  private circuitOpen(): boolean {
+    return Date.now() < this.circuitOpenUntil;
+  }
+
+  private recordFailure(stream: string, result: IngestResult): void {
+    this.consecutiveFailures += 1;
+    if (this.consecutiveFailures >= CIRCUIT_FAILURE_THRESHOLD && this.circuitOpenUntil === 0) {
+      this.circuitOpenUntil = Date.now() + CIRCUIT_COOLDOWN_MS;
+      this.logExportFailure(stream, {
+        ...result,
+        detail: `export paused for ${CIRCUIT_COOLDOWN_MS / 60_000}m after repeated failures (${result.detail})`,
+      });
+      return;
+    }
+    this.logExportFailure(stream, result);
+  }
+
+  private recordSuccess(): void {
+    this.consecutiveFailures = 0;
+    this.circuitOpenUntil = 0;
   }
 
   private logExportFailure(stream: string, result: IngestResult): void {
@@ -93,7 +127,7 @@ export class OpenObserveIngest {
   }
 
   async verifyIngest(stream = "application_logs"): Promise<IngestResult> {
-    return this.post(stream, [
+    return this.postNow(stream, [
       {
         timestamp: new Date().toISOString(),
         level: "info",
@@ -107,17 +141,69 @@ export class OpenObserveIngest {
     ]);
   }
 
-  private async post(stream: string, records: IngestPayload[]): Promise<IngestResult> {
+  private enqueue(stream: string, records: IngestPayload[]): void {
+    if (!this.exportConfigured() || records.length === 0 || this.circuitOpen()) return;
+    const buffer = this.buffers.get(stream) ?? [];
+    buffer.push(...records);
+    while (buffer.length > MAX_BATCH_SIZE) {
+      const batch = buffer.splice(0, MAX_BATCH_SIZE);
+      void this.postNow(stream, batch);
+    }
+    this.buffers.set(stream, buffer);
+    this.scheduleFlush();
+  }
+
+  private scheduleFlush(): void {
+    if (this.flushTimer !== null) return;
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null;
+      this.flushAll();
+    }, FLUSH_INTERVAL_MS);
+  }
+
+  private flushAll(): void {
+    for (const [stream, buffer] of this.buffers) {
+      if (buffer.length === 0) continue;
+      const batch = buffer.splice(0, buffer.length);
+      void this.postNow(stream, batch);
+    }
+  }
+
+  private async postNow(stream: string, records: IngestPayload[]): Promise<IngestResult> {
     const url = openObserveIngestUrl(this.config, stream);
-    if (!url || records.length === 0) {
-      return { ok: false, status: null, successful: 0, failed: records.length, detail: "export not configured", url: url ?? "" };
+    if (!this.exportConfigured() || records.length === 0) {
+      return {
+        ok: false,
+        status: null,
+        successful: 0,
+        failed: records.length,
+        detail: "export not configured",
+        url: url ?? "",
+      };
+    }
+    if (this.circuitOpen()) {
+      return {
+        ok: false,
+        status: null,
+        successful: 0,
+        failed: records.length,
+        detail: "export circuit open",
+        url: url ?? "",
+      };
     }
     if (!this.hasAuth()) {
-      return { ok: false, status: null, successful: 0, failed: records.length, detail: "missing auth headers", url };
+      return {
+        ok: false,
+        status: null,
+        successful: 0,
+        failed: records.length,
+        detail: "missing auth headers",
+        url: url ?? "",
+      };
     }
 
     try {
-      const res = await fetch(url, {
+      const res = await fetch(url!, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -128,8 +214,9 @@ export class OpenObserveIngest {
       });
       const body = await res.text().catch(() => "");
       const result = summarizeIngestResponse(res.status, body);
-      result.url = url;
-      if (!result.ok) this.logExportFailure(stream, result);
+      result.url = url!;
+      if (!result.ok) this.recordFailure(stream, result);
+      else this.recordSuccess();
       return result;
     } catch (err) {
       const detail = err instanceof Error ? err.message : "network error";
@@ -139,22 +226,22 @@ export class OpenObserveIngest {
         successful: 0,
         failed: records.length,
         detail,
-        url,
+        url: url!,
       };
-      this.logExportFailure(stream, result);
+      this.recordFailure(stream, result);
       return result;
     }
   }
 
   sendLogs(records: StructuredLog[]): void {
-    void this.post("application_logs", records);
+    this.enqueue("application_logs", records);
   }
 
   sendSecurity(records: SecurityEvent[]): void {
-    void this.post("security_events", records);
+    this.enqueue("security_events", records);
   }
 
   sendClientEvents(records: ClientTelemetryEvent[]): void {
-    void this.post("client_events", records);
+    this.enqueue("client_events", records);
   }
 }
