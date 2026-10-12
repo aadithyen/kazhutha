@@ -4,7 +4,7 @@ services:
       context: ./apps/dashboard
     restart: unless-stopped
     ports:
-      - "${DASHBOARD_PORT:-9090}:9090"
+      - "9090:9090"
     volumes:
       - dashboard-data:/data
     environment:
@@ -35,8 +35,6 @@ services:
     build:
       context: ./apps/signaling
     restart: unless-stopped
-    ports:
-      - "${SIGNALING_PORT:-8080}:8080"
     environment:
       # Optional Cloudflare TURN credentials (see .env.example). When set, the
       # server generates short-lived ICE credentials at GET /ice-servers.
@@ -79,8 +77,6 @@ services:
         VITE_APP_VERSION: ${APP_VERSION:-0.1.0}
         VITE_ANALYTICS_URL: ${VITE_ANALYTICS_URL:-http://localhost:9090}
         VITE_ANALYTICS_KEY: ${DASHBOARD_API_KEY:-dev-change-me}
-    ports:
-      - "${WEB_PORT:-3000}:80"
     depends_on:
       signaling:
         condition: service_healthy

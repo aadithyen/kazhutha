@@ -68,11 +68,9 @@ workspace package.
 docker compose up --build
 ```
 
-This builds and runs three services on separate ports: signalling (`SIGNALING_PORT`, default `8080`),
-game UI (`WEB_PORT`, default `3000`), and ops dashboard (`DASHBOARD_PORT`, default `9090`). Point
-different reverse-proxy hostnames at each port if you want (e.g. play on one domain, ops dashboard on
-another with auth only on the ops vhost). Override `VITE_SIGNALING_URL` and `VITE_ANALYTICS_URL` at
-build time so browsers reach your public URLs, not docker-internal hostnames.
+This builds and runs the signalling server (`:8080`) and the web app (`:3000`, static nginx). Override
+the `VITE_SIGNALING_URL` build arg in `docker-compose.yml` for LAN/internet deployments where the
+signalling server isn't reachable at `localhost:8080` from players' browsers.
 
 For strict NATs, set `TURN_API_TOKEN` / `TURN_KEY_ID` (a [Cloudflare Calls TURN key](https://developers.cloudflare.com/calls/turn/))
 on the signalling server. It generates short-lived ICE credentials at `GET /ice-servers`, which browsers
