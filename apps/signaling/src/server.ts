@@ -71,6 +71,28 @@ const httpServer = createServer((req, res) => {
     return;
   }
 
+  if (route === "/internal/stats") {
+    const key = req.headers["x-dashboard-key"];
+    const expected = process.env.DASHBOARD_API_KEY ?? "";
+    if (!expected || key !== expected) {
+      res.writeHead(401);
+      res.on("finish", () => trackHttpRequest(req, res, "/internal/stats", start, traceId));
+      res.end();
+      return;
+    }
+    finishResponse(req, res, "/internal/stats", start, traceId, () => {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(
+        JSON.stringify({
+          roomCount: registry.roomCount(),
+          playerCount: registry.playerCount(),
+          rooms: registry.listRooms(),
+        }),
+      );
+    });
+    return;
+  }
+
   if (route === "/version") {
     const allowOrigin = corsOrigin(req);
     finishResponse(req, res, "/version", start, traceId, () => {

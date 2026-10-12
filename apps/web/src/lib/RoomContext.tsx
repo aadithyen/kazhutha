@@ -2,6 +2,7 @@ import { GameState } from "@kazhutha/game";
 import { PeerInfo, RoomClient } from "@kazhutha/network";
 import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "../i18n";
+import { reportClientEvent } from "./analytics";
 import { getAppVersion } from "./appVersion";
 import { getOrCreatePlayerId, getStoredName } from "./identity";
 import { fetchIceServers, getSignalingUrl } from "./network";
@@ -45,6 +46,8 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
   const [banner, setBanner] = useState<string | null>(null);
   const [kicked, setKicked] = useState(false);
   const effectGeneration = useRef(0);
+  const prevPhaseRef = useRef(state.phase);
+  const prevPeerStatusRef = useRef<Map<string, string>>(new Map());
 
   // Translators live in refs so a locale switch does not tear down and rebuild
   // the connection (re-fetching ICE servers and re-joining).
@@ -68,13 +71,28 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
         // A kicked player who reloads gets the rejection on JoinRoom instead of the event.
         if (ev.message === "Removed from this room") setKicked(true);
         setBanner(translateErrorRef.current(ev.message));
-      } else if (ev.type === "signalingStatus") setSignalingConnected(ev.connected);
+        reportClientEvent("client_error", "warn", {
+          roomCode,
+          peerId: playerId,
+          message: ev.message,
+        });
+      } else if (ev.type === "signalingStatus") {
+        setSignalingConnected(ev.connected);
+        reportClientEvent(
+          ev.connected ? "signaling_connected" : "signaling_disconnect",
+          ev.connected ? "info" : "warn",
+          { roomCode, peerId: playerId },
+        );
+      }
     });
     // Fetch TURN credentials before connecting so peer links use them; on
     // failure connect anyway with the default STUN-only config.
     void fetchIceServers().then((servers) => {
       if (effectGeneration.current !== generation) return;
       if (servers) client.setIceServers(servers);
+      else {
+        reportClientEvent("ice_fetch_failed", "warn", { roomCode, peerId: playerId });
+      }
       client.connect();
     });
     return () => {
@@ -85,7 +103,42 @@ export function RoomProvider({ roomCode, children }: { roomCode: string; childre
         if (effectGeneration.current === closedGeneration) client.disconnect();
       }, 0);
     };
-  }, [client]);
+  }, [client, playerId, roomCode]);
+
+  useEffect(() => {
+    const prev = prevPhaseRef.current;
+    if (prev !== state.phase) {
+      reportClientEvent("game_phase", "info", {
+        roomCode,
+        peerId: playerId,
+        detail: `${prev}->${state.phase}`,
+      });
+      if (state.phase === "playing" && prev === "lobby") {
+        reportClientEvent("game_started", "info", { roomCode, peerId: playerId });
+      }
+      if (state.phase === "finished") {
+        reportClientEvent("game_finished", "info", { roomCode, peerId: playerId });
+      }
+      prevPhaseRef.current = state.phase;
+    }
+  }, [state.phase, roomCode, playerId]);
+
+  useEffect(() => {
+    for (const peer of peers) {
+      const was = prevPeerStatusRef.current.get(peer.id);
+      if (was && was !== "disconnected" && peer.status === "disconnected") {
+        reportClientEvent("webrtc_disconnect", "warn", {
+          roomCode,
+          peerId: playerId,
+          message: `peer ${peer.id}`,
+        });
+      }
+      if (peer.status === "connected" && was !== "connected") {
+        reportClientEvent("webrtc_connected", "info", { roomCode, peerId: playerId });
+      }
+      prevPeerStatusRef.current.set(peer.id, peer.status);
+    }
+  }, [peers, roomCode, playerId]);
 
   const value: RoomContextValue = {
     client,

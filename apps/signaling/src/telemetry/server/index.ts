@@ -1,4 +1,5 @@
 import { loadObservabilityConfig } from "./config.js";
+import { attachDashboardIngest } from "./dashboardIngest.js";
 import { StructuredLogger } from "./logger.js";
 import { SecurityTracker } from "./security.js";
 import type { SecurityEvent, StructuredLog } from "../types.js";
@@ -22,6 +23,17 @@ export function createServerObservability(): ServerObservability {
   security.addSink((event: SecurityEvent) => {
     process.stdout.write(JSON.stringify(event) + "\n");
   });
+
+  const dashboardUrl = process.env.DASHBOARD_INGEST_URL?.trim();
+  const dashboardKey = process.env.DASHBOARD_API_KEY?.trim();
+  if (dashboardUrl && dashboardKey) {
+    attachDashboardIngest(
+      dashboardUrl,
+      dashboardKey,
+      (handler) => logger.addSink(handler),
+      (handler) => security.addSink(handler),
+    );
+  }
 
   return {
     config,
