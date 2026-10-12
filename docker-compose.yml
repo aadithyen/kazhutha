@@ -1,4 +1,36 @@
 services:
+  dashboard:
+    build:
+      context: ./apps/dashboard
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - dashboard-data:/data
+    environment:
+      PORT: 9090
+      DATABASE_PATH: /data/kazhutha.db
+      SIGNALING_URL: http://signaling:8080
+      DASHBOARD_API_KEY: ${DASHBOARD_API_KEY:-dev-change-me}
+      ALLOWED_ORIGINS: ${DASHBOARD_ALLOWED_ORIGINS:-}
+      RETAIN_DAYS: ${DASHBOARD_RETAIN_DAYS:-30}
+      POLL_INTERVAL_MS: ${DASHBOARD_POLL_INTERVAL_MS:-60000}
+    depends_on:
+      signaling:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:9090/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
   signaling:
     build:
       context: ./apps/signaling
@@ -19,6 +51,8 @@ services:
       MIN_CLIENT_VERSION: ${MIN_CLIENT_VERSION:-}
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-kazhutha-signaling}
       TELEMETRY_IP_HASH_SALT: ${TELEMETRY_IP_HASH_SALT:-}
+      DASHBOARD_INGEST_URL: ${DASHBOARD_INGEST_URL:-http://dashboard:9090}
+      DASHBOARD_API_KEY: ${DASHBOARD_API_KEY:-dev-change-me}
     healthcheck:
       test:
         [
@@ -41,6 +75,8 @@ services:
         # VITE_SIGNALING_URL to your public WebSocket URL when deploying.
         VITE_SIGNALING_URL: ${VITE_SIGNALING_URL:-ws://localhost:8080}
         VITE_APP_VERSION: ${APP_VERSION:-0.1.0}
+        VITE_ANALYTICS_URL: ${VITE_ANALYTICS_URL:-http://localhost:9090}
+        VITE_ANALYTICS_KEY: ${DASHBOARD_API_KEY:-dev-change-me}
     depends_on:
       signaling:
         condition: service_healthy
@@ -51,3 +87,6 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
+
+volumes:
+  dashboard-data:

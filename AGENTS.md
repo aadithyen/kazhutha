@@ -9,8 +9,9 @@ Workspaces:
 - `packages/shared`, `packages/game`, `packages/network` — libraries consumed via `workspace:*`
   source (no build step; `build`/`typecheck` are just `tsc --noEmit`).
 - `apps/signaling` — WebSocket signaling/tracker server (`ws://localhost:8080`). Only relays room
-  membership + SDP/ICE; never sees game state.
+ membership + SDP/ICE; never sees game state.
 - `apps/web` — Vite + React SPA (`http://localhost:5173` in dev).
+- `apps/dashboard` — minimal ops UI + SQLite history (`http://localhost:9090` in docker compose).
 
 Standard commands (see root `package.json`): `pnpm typecheck`, `pnpm build`, `pnpm lint`
 (lint is currently a no-op `echo skip` in every package — there is no ESLint config or test suite).
