@@ -48,4 +48,17 @@ export class RoomRegistry {
     }
     return total;
   }
+
+  listRooms(): { code: string; playerCount: number; peers: { peerId: string; name: string }[] }[] {
+    const out: { code: string; playerCount: number; peers: { peerId: string; name: string }[] }[] = [];
+    for (const room of this.rooms.values()) {
+      out.push({
+        code: room.code,
+        playerCount: room.peers.size,
+        peers: Array.from(room.peers.values()).map((p) => ({ peerId: p.peerId, name: p.name })),
+      });
+    }
+    out.sort((a, b) => b.playerCount - a.playerCount || a.code.localeCompare(b.code));
+    return out;
+  }
 }
