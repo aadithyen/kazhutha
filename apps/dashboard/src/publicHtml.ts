@@ -6,15 +6,33 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
   <title>Kazhutha ops</title>
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #0f1419;
-      --panel: #1a2332;
-      --border: #2d3a4f;
-      --text: #e8eef7;
-      --muted: #8b9cb3;
-      --accent: #5eead4;
-      --warn: #fbbf24;
-      --err: #f87171;
+      color-scheme: light dark;
+      --bg: #f4f6f9;
+      --panel: #ffffff;
+      --border: #d8dee9;
+      --text: #1a2332;
+      --muted: #5c6b7f;
+      --accent: #0d9488;
+      --warn: #b45309;
+      --err: #dc2626;
+      --alert-bg: #fef3c7;
+      --alert-text: #92400e;
+      --alert-border: #f59e0b;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1419;
+        --panel: #1a2332;
+        --border: #2d3a4f;
+        --text: #e8eef7;
+        --muted: #8b9cb3;
+        --accent: #5eead4;
+        --warn: #fbbf24;
+        --err: #f87171;
+        --alert-bg: #2a2210;
+        --alert-text: #fde68a;
+        --alert-border: #f59e0b;
+      }
     }
     * { box-sizing: border-box; }
     body {
@@ -46,9 +64,9 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
     .card h2 { margin: 0 0 0.35rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
     .big { font-size: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
     .alert {
-      border-color: var(--warn);
-      background: #2a2210;
-      color: #fde68a;
+      border: 1px solid var(--alert-border);
+      background: var(--alert-bg);
+      color: var(--alert-text);
       padding: 0.85rem 1rem;
       border-radius: 8px;
       margin-bottom: 1rem;
