@@ -3,8 +3,6 @@ services:
     build:
       context: ./apps/dashboard
     restart: unless-stopped
-    ports:
-      - "9090:9090"
     volumes:
       - dashboard-data:/data
     environment:
@@ -74,7 +72,7 @@ services:
         # VITE_SIGNALING_URL to your public WebSocket URL when deploying.
         VITE_SIGNALING_URL: ${VITE_SIGNALING_URL:-ws://localhost:8080}
         VITE_APP_VERSION: ${APP_VERSION:-0.1.0}
-        VITE_ANALYTICS_URL: ${VITE_ANALYTICS_URL:-http://localhost:9090}
+        VITE_ANALYTICS_URL: ${VITE_ANALYTICS_URL:-}
         VITE_ANALYTICS_KEY: ${DASHBOARD_API_KEY:-dev-change-me}
     depends_on:
       signaling:
