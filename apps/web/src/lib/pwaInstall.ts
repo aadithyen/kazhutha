@@ -74,16 +74,14 @@ export function useAddToHomeScreen() {
     }
   }, [deferredPrompt]);
 
-  const canShow =
-    !dismissed &&
-    !isStandalonePwa() &&
-    isMobileLikeDevice() &&
-    (deferredPrompt !== null || isIosSafari());
+  const mobileWeb = isMobileLikeDevice() && !isStandalonePwa();
+  const canShow = !dismissed && mobileWeb;
 
   return {
     canShow,
     canNativeInstall: deferredPrompt !== null,
-    showIosHint: isIosSafari() && deferredPrompt === null,
+    showIosHint: isIosSafari(),
+    showGenericHint: mobileWeb && !isIosSafari() && deferredPrompt === null,
     dismiss,
     promptInstall,
   };

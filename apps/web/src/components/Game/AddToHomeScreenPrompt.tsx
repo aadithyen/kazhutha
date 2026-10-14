@@ -5,7 +5,8 @@ import { useAddToHomeScreen } from "../../lib/pwaInstall";
 
 export default function AddToHomeScreenPrompt() {
   const { t, addToHomeMessages } = useLocale();
-  const { canShow, canNativeInstall, showIosHint, dismiss, promptInstall } = useAddToHomeScreen();
+  const { canShow, canNativeInstall, showIosHint, showGenericHint, dismiss, promptInstall } =
+    useAddToHomeScreen();
 
   const message = useMemo(() => {
     const index = Math.floor(Math.random() * addToHomeMessages.length);
@@ -23,6 +24,9 @@ export default function AddToHomeScreenPrompt() {
       <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{message}</p>
       {showIosHint && (
         <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{t("game.addToHome.iosHint")}</p>
+      )}
+      {showGenericHint && (
+        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{t("game.addToHome.genericHint")}</p>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
         {canNativeInstall && (
