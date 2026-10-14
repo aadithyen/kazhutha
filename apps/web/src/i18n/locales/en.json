@@ -159,7 +159,21 @@
     "outOfCards": "Out of cards",
     "cardCount": "{count} cards",
     "playAgain": "Play again",
-    "waitingForHost": "Waiting for the host to start a new game…"
+    "waitingForHost": "Waiting for the host to start a new game…",
+    "addToHome": {
+      "aria": "Add Kazhutha to your home screen",
+      "install": "Add to home screen",
+      "iosHint": "Tap Share, then \"Add to Home Screen\".",
+      "genericHint": "Use your browser menu to install or add this page to your home screen.",
+      "dismiss": "Not now",
+      "messages": [
+        "Enjoying Kazhutha? Add it to your home screen for one-tap games.",
+        "Like the game? Pin Kazhutha to your home screen.",
+        "Come back anytime — add Kazhutha to your home screen.",
+        "Skip the browser tab. Add Kazhutha to your home screen.",
+        "Had fun? Keep Kazhutha on your home screen for the next round."
+      ]
+    }
   },
   "preferences": {
     "title": "Hand preferences",

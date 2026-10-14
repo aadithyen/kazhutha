@@ -12,6 +12,7 @@ interface LocaleContextValue {
   t: (key: string, params?: Record<string, string | number>) => string;
   translateError: (message: string) => string;
   vettuMessages: string[];
+  addToHomeMessages: string[];
 }
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -45,6 +46,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       t: (key, params) => translate(messages, key, params),
       translateError: (message) => translateError(messages, message),
       vettuMessages: messages.vettu.statements,
+      addToHomeMessages: messages.game.addToHome.messages,
     };
   }, [locale]);
 
