@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useLocale } from "../../i18n";
 import { useRoom } from "../../lib/RoomContext";
+import AddToHomeScreenPrompt from "./AddToHomeScreenPrompt";
 
 export default function GameOverScreen() {
   const { t } = useLocale();
@@ -27,6 +28,7 @@ export default function GameOverScreen() {
         {t("game.kazhuthaWins", { name: kazhutha?.name ?? t("common.someone") })}
       </h2>
       <p className="text-sm text-neutral-500 dark:text-neutral-400">{t("game.everyoneEscaped")}</p>
+      <AddToHomeScreenPrompt />
       <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
         {isHost ? (
           <button
